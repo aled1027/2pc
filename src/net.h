@@ -1,0 +1,21 @@
+#ifndef __NET_H
+#define __NET_H
+
+#include <netinet/in.h>
+
+#define BACKLOG 5
+
+void *
+net_get_in_addr(struct sockaddr *sa);
+
+int
+net_init_server(const char *addr, const char *port);
+
+int
+net_server_accept(int sockfd);
+
+int
+net_init_client(const char *addr, const char *port);
+
+
+#endif
