@@ -43,19 +43,11 @@ typedef struct {
     int id, type;
 } GarbledGate;
 
-
 typedef char shortBlock[10];
 
-#ifdef TRUNCATED
-typedef struct {
-	char table[4][10];
-
-} GarbledTable;
-#else
 typedef struct {
 	block table[4];
 } GarbledTable;
-#endif
 
 typedef struct {
 	int n,m,q,r;
@@ -73,12 +65,6 @@ typedef struct {
 	long id;
 	block globalKey;
 } GarbledCircuit;
-
-/* typedef struct { */
-/* 	int m; */
-/* 	block *outputLabels; */
-/* 	long id; */
-/* } GarbledOutput; */
 
 typedef struct {
 	long wireIndex, gateIndex, tableIndex;
@@ -158,10 +144,8 @@ int extractLabels(ExtractedLabels extractedLabels, InputLabels inputLabels,
 int mapOutputs(OutputMap outputMap, OutputMap extractedMap, int *outputVals,
 		int m);
 
-
 int writeCircuitToFile(GarbledCircuit *garbledCircuit, char *fileName);
 int readCircuitFromFile(GarbledCircuit *garbledCircuit, char *fileName);
-
 
 #include "garble.h"
 #include "circuits.h"

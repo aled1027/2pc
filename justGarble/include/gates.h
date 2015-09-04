@@ -19,9 +19,11 @@
 #ifndef GATES_H_
 #define GATES_H_
 
-inline int ANDGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext, int input0, int input1, int output);
-inline int ORGate(GarbledCircuit *gc, GarblingContext *garblingContext, int input0, int input1, int output);
-inline int XORGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext, int input0, int input1, int output);
+#include "justGarble.h"
+
+int ANDGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext, int input0, int input1, int output);
+int ORGate(GarbledCircuit *gc, GarblingContext *garblingContext, int input0, int input1, int output);
+int XORGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext, int input0, int input1, int output);
 int genericGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,  int input0, int input1, int output, int *vals, int type);
 int fixedZeroWire(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext);
 int fixedOneWire(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext);
