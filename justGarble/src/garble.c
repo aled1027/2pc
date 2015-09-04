@@ -206,18 +206,15 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
 	GarbledGate *garbledGate;
 	GarbledTable *garbledTable;
 	DKCipherContext dkCipherContext;
-	const __m128i *sched = ((__m128i *)(dkCipherContext.K.rd_key));
-	block val;
 
-	block *A, *B, *plainText,*cipherText;
-	block tweak;
-	long a, b, i, j,rnds = 10;
+	block key, tweak;
 	block blocks[4];
 	block keys[4];
 	long lsb0,lsb1;
-	block keyToEncrypt;
 	int input0, input1, output;
-	srand_sse( time(NULL));
+    int tableIndex = 0;
+
+    srand_sse(time(NULL));
 
 	startTime = RDTSC;
 
@@ -225,7 +222,7 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
 
 	garbledCircuit->id = getFreshId();
 
-	for(i=0;i<2*garbledCircuit->n;i+=2) {
+	for (int i = 0; i < 2 * garbledCircuit->n; i += 2) {
 		garbledCircuit->wires[i/2].id = i+1;
 		garbledCircuit->wires[i/2].label0 = inputLabels[i];
 		garbledCircuit->wires[i/2].label1 = inputLabels[i+1];
@@ -233,15 +230,16 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
 	garbledTable = garbledCircuit->garbledTable;
 	garblingContext.gateIndex = 0;
 	garblingContext.wireIndex = garbledCircuit->n + 1;
-	block key = randomBlock();
-	garblingContext.R = xorBlocks(garbledCircuit->wires[0].label0, garbledCircuit->wires[0].label1);
+	key = randomBlock();
+	garblingContext.R = xorBlocks(garbledCircuit->wires[0].label0,
+                                  garbledCircuit->wires[0].label1);
 	garbledCircuit->globalKey = key;
 	DKCipherInit(&key, &(garblingContext.dkCipherContext));
-	int tableIndex = 0;
 
-	for(i=0; i< garbledCircuit->q;i++) {
+	for (int i = 0; i < garbledCircuit->q; i++) {
 		garbledGate = &(garbledCircuit->garbledGates[i]);
-		input0 = garbledGate->input0; input1 = garbledGate->input1;
+		input0 = garbledGate->input0;
+        input1 = garbledGate->input1;
 		output = garbledGate->output;
 
 		if (garbledGate->type == XORGATE) {
@@ -253,7 +251,7 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
                           garbledCircuit->wires[input1].label0);
 			continue;
 		}
-		tweak = makeBlock(i, (long)0);
+		tweak = makeBlock(i, (long) 0);
 		input0 = garbledGate->input0; input1 = garbledGate->input1;
 		lsb0 = getLSB(garbledCircuit->wires[input0].label0);
 		lsb1 = getLSB(garbledCircuit->wires[input1].label0);
@@ -285,18 +283,19 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
 		mask[3] = xorBlocks(mask[3],keys[3]);
 
 		if (2*lsb0 + lsb1 ==0)
-		newToken = mask[0];
+            newToken = mask[0];
 		if (2*lsb0 + 1-lsb1 ==0)
-		newToken = mask[1];
+            newToken = mask[1];
 		if (2*(1-lsb0) + lsb1 ==0)
-		newToken = mask[2];
+            newToken = mask[2];
 		if (2*(1-lsb0) + 1-lsb1 ==0)
-		newToken = mask[3];
+            newToken = mask[3];
 
 		block newToken2 = xorBlocks(garblingContext.R, newToken);
 
-		if (garbledGate->type == ANDGATE) {
-			if (lsb1 ==1 & lsb0 ==1) {
+        switch (garbledGate->type) {
+        case ANDGATE:
+			if (lsb1 == 1 & lsb0 == 1) {
 				garbledCircuit->wires[garbledGate->output].label1 = newToken;
 				garbledCircuit->wires[garbledGate->output].label0 = newToken2;
 			}
@@ -304,10 +303,9 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
 				garbledCircuit->wires[garbledGate->output].label0 = newToken;
 				garbledCircuit->wires[garbledGate->output].label1 = newToken2;
 			}
-		}
-
-		if (garbledGate->type == ORGATE) {
-			if (!(lsb1 ==0 & lsb0 ==0)) {
+            break;
+        case ORGATE:
+			if (!(lsb1 == 0 & lsb0 == 0)) {
 				garbledCircuit->wires[garbledGate->output].label1 = newToken;
 				garbledCircuit->wires[garbledGate->output].label0 = newToken2;
 			}
@@ -315,10 +313,9 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
 				garbledCircuit->wires[garbledGate->output].label0 = newToken;
 				garbledCircuit->wires[garbledGate->output].label1 = newToken2;
 			}
-		}
-
-		if (garbledGate->type == XORGATE) {
-			if ((lsb1 ==0 & lsb0 ==1) ||(lsb1 ==1 & lsb0 ==0) ) {
+            break;
+        case XORGATE:
+			if ((lsb1 == 0 & lsb0 == 1) ||(lsb1 == 1 & lsb0 == 0)) {
 				garbledCircuit->wires[garbledGate->output].label1 = newToken;
 				garbledCircuit->wires[garbledGate->output].label0 = newToken2;
 			}
@@ -326,10 +323,9 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
 				garbledCircuit->wires[garbledGate->output].label0 = newToken;
 				garbledCircuit->wires[garbledGate->output].label1 = newToken2;
 			}
-		}
-
-		if (garbledGate->type == NOTGATE) {
-			if (lsb0 ==0) {
+            break;
+        case NOTGATE:
+			if (lsb0 == 0) {
 				garbledCircuit->wires[garbledGate->output].label1 = newToken;
 				garbledCircuit->wires[garbledGate->output].label0 = newToken2;
 			}
@@ -337,68 +333,64 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
 				garbledCircuit->wires[garbledGate->output].label0 = newToken;
 				garbledCircuit->wires[garbledGate->output].label1 = newToken2;
 			}
+            break;
+        default:
+            break;
 		}
 
 		block *label0 = &garbledCircuit->wires[garbledGate->output].label0;
 		block *label1 = &garbledCircuit->wires[garbledGate->output].label1;
 
-		if (garbledGate->type == ANDGATE) {
-
+        switch (garbledGate->type) {
+        case ANDGATE:
 			blocks[0] = *label0;
 			blocks[1] = *label0;
 			blocks[2] = *label0;
 			blocks[3] = *label1;
-			goto write;
-		}
-
-		if (garbledGate->type == ORGATE) {
-
-			blocks[0] = *label0;
+            break;
+        case ORGATE:
+            blocks[0] = *label0;
 			blocks[1] = *label1;
 			blocks[2] = *label1;
 			blocks[3] = *label1;
-			goto write;
-
-		}
-
-		if (garbledGate->type == XORGATE) {
-
+            break;
+        case XORGATE:
 			blocks[0] = *label0;
 			blocks[1] = *label1;
 			blocks[2] = *label1;
 			blocks[3] = *label0;
-			goto write;
-
-		}
-
-		if (garbledGate->type == NOTGATE) {
-
+            break;
+        case NOTGATE:
 			blocks[0] = *label1;
 			blocks[1] = *label0;
 			blocks[2] = *label1;
 			blocks[3] = *label0;
-			goto write;
+            break;
+        default:
+            break;
+        }
 
-		}
-		write:
-		if (2*lsb0 + lsb1 !=0)
-		garbledTable[tableIndex].table[2*lsb0 + lsb1 -1] = xorBlocks(blocks[0], mask[0]);
-		if (2*lsb0 + 1-lsb1 !=0)
-		garbledTable[tableIndex].table[2*lsb0 + 1-lsb1-1] = xorBlocks(blocks[1], mask[1]);
-		if (2*(1-lsb0) + lsb1 !=0)
-		garbledTable[tableIndex].table[2*(1-lsb0) + lsb1-1] = xorBlocks(blocks[2], mask[2]);
-		if (2*(1-lsb0) + (1-lsb1) !=0)
-		garbledTable[tableIndex].table[2*(1-lsb0) + (1-lsb1)-1] = xorBlocks(blocks[3], mask[3]);
+        if (2 * lsb0 + lsb1 != 0)
+            garbledTable[tableIndex].table[2 * lsb0 + lsb1 - 1] =
+                xorBlocks(blocks[0], mask[0]);
+		if (2 * lsb0 + 1 - lsb1 != 0)
+            garbledTable[tableIndex].table[2 * lsb0 + 1 - lsb1 - 1] =
+                xorBlocks(blocks[1], mask[1]);
+		if (2 * (1 - lsb0) + lsb1 != 0)
+            garbledTable[tableIndex].table[2 * (1 - lsb0) + lsb1 - 1] =
+                xorBlocks(blocks[2], mask[2]);
+		if (2 * (1 - lsb0) + (1 - lsb1) != 0)
+            garbledTable[tableIndex].table[2 * (1 - lsb0) + (1 - lsb1) - 1] =
+                xorBlocks(blocks[3], mask[3]);
 
 		tableIndex++;
-
 	}
-	for(i=0;i<garbledCircuit->m;i++) {
+	for(int i = 0; i < garbledCircuit->m; i++) {
 		outputMap[2*i] = garbledCircuit->wires[garbledCircuit->outputs[i]].label0;
 		outputMap[2*i+1] = garbledCircuit->wires[garbledCircuit->outputs[i]].label1;
 	}
 	endTime = RDTSC;
-	return (endTime - startTime);
+	return endTime - startTime;
 }
 
 int
