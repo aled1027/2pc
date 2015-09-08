@@ -205,7 +205,6 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
 	GarblingContext garblingContext;
 	GarbledGate *garbledGate;
 	GarbledTable *garbledTable;
-	DKCipherContext dkCipherContext;
 
 	block key, tweak;
 	block blocks[4];
@@ -251,7 +250,7 @@ garbleCircuit(GarbledCircuit *garbledCircuit,
                           garbledCircuit->wires[input1].label0);
 			continue;
 		}
-		tweak = makeBlock(i, (long) 0);
+		tweak = makeBlock((long) i, (long) 0);
 		input0 = garbledGate->input0; input1 = garbledGate->input1;
 		lsb0 = getLSB(garbledCircuit->wires[input0].label0);
 		lsb1 = getLSB(garbledCircuit->wires[input1].label0);
@@ -411,16 +410,14 @@ mapOutputs(OutputMap outputMap, OutputMap outputMap2, int *vals, int m)
 	for (i = 0; i < m; i++) {
 		if (blockEqual(outputMap2[i], outputMap[2 * i])) {
 			vals[i] = 0;
-			continue;
-		}
-		if (blockEqual(outputMap2[i], outputMap[2 * i + 1])) {
+		} else if (blockEqual(outputMap2[i], outputMap[2 * i + 1])) {
 			vals[i] = 1;
-			continue;
-		}
-		printf("MAP FAILED %d\n", i);
+		} else {
+            printf("MAP FAILED %d\n", i);
+            return FAILURE;
+        }
 	}
-	return 0;
-
+	return SUCCESS;
 }
 
 int

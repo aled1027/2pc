@@ -42,12 +42,15 @@ checkCircuit(GarbledCircuit *garbledCircuit, InputLabels inputLabels,
 		}
 		extractLabels(extractedLabels, inputLabels, inputs, n);
 		evaluate(garbledCircuit, extractedLabels, computedOutputMap);
-		mapOutputs(outputMap, computedOutputMap, outputVals, m);
+		if (mapOutputs(outputMap, computedOutputMap, outputVals, m) == FAILURE) {
+            break;
+        }
 		check(inputs, outputReal, n);
-		for (int j = 0; j < m; j++)
+		for (int j = 0; j < m; j++) {
 			if (outputVals[j] != outputReal[j]) {
 				fprintf(stderr, "Check failed %u \n", j);
 			}
+        }
 	}
 	return 0;
 }
@@ -72,5 +75,4 @@ timedEval(GarbledCircuit *garbledCircuit, InputLabels inputLabels)
 	endTime = RDTSC;
 	sum = endTime - startTime;
 	return sum;
-
 }

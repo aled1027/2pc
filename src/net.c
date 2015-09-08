@@ -9,6 +9,44 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+void
+net_send(int socket, const void *buffer, size_t length, int flags)
+{
+    size_t total = 0;
+    ssize_t bytesleft = length;
+
+    printf("sending %lu bytes of data\n", length);
+
+    while (total < length) {
+        ssize_t n = send(socket, buffer + total, bytesleft, flags);
+        if (n == -1) {
+            perror("send");
+            exit(EXIT_FAILURE);
+        }
+        total += n;
+        bytesleft -= n;
+    }
+}
+
+void
+net_recv(int socket, void *buffer, size_t length, int flags)
+{
+    size_t total = 0;
+    ssize_t bytesleft = length;
+
+    printf("receiving %lu bytes of data\n", length);
+
+    while (total < length) {
+        ssize_t n = recv(socket, buffer + total, bytesleft, flags);
+        if (n == -1) {
+            perror("recv");
+            exit(EXIT_FAILURE);
+        }
+        total += n;
+        bytesleft -= n;
+    }
+}
+
 void *
 net_get_in_addr(struct sockaddr *sa)
 {
@@ -17,7 +55,6 @@ net_get_in_addr(struct sockaddr *sa)
     else
         return &(((struct sockaddr_in6 *) sa)->sin6_addr);
 }
-
 
 int
 net_init_server(const char *addr, const char *port)

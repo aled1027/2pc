@@ -48,14 +48,37 @@
 #include "common.h"
 #include "emmintrin.h"
 
-int countToN(int *a, int N);
-int dbgBlock(block a);
-#define RDTSC ({unsigned long long res;  unsigned hi, lo;   __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi)); res =  ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );res;})
-int getWords(char *line, char *words[], int maxwords);
+#define RDTSC ({                                                        \
+            unsigned long long res;                                     \
+            unsigned hi, lo;                                            \
+            __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));        \
+            res =  ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 ); \
+            res;                                                        \
+        })
 #define fbits( v, p) ((v & (1 << p))>>p)
-block randomBlock();
-int median(int A[], int n);
-double doubleMean(double A[], int n);
-void srand_sse(unsigned int seed);
+
+void
+countToN(int *a, int N);
+
+int
+dbgBlock(block a);
+
+int
+getWords(char *line, char *words[], int maxwords);
+
+block
+randomBlock(void);
+
+int
+median(int A[], int n);
+
+double
+doubleMean(double A[], int n);
+
+void
+srand_sse(unsigned int seed);
+
+void
+print_block(block blk);
 
 #endif /* UTIL_H_ */

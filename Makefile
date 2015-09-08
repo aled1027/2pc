@@ -3,7 +3,7 @@ SRCDIR = src
 OBJDIR = obj
 OBJFULL = obj/*.o
 
-CC=gcc
+CC=clang
 CFLAGS= -g -Iinc -IjustGarble/include
 LIBS=-lmsgpack -march=native -maes -msse4 -lm -lrt
 

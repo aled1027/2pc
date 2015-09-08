@@ -5,6 +5,12 @@
 
 #define BACKLOG 5
 
+void
+net_send(int socket, const void *buffer, size_t length, int flags);
+
+void
+net_recv(int socket, void *buffer, size_t length, int flags);
+
 void *
 net_get_in_addr(struct sockaddr *sa);
 
