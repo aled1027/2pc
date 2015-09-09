@@ -5,10 +5,10 @@
 
 #define BACKLOG 5
 
-void
+int
 net_send(int socket, const void *buffer, size_t length, int flags);
 
-void
+int
 net_recv(int socket, void *buffer, size_t length, int flags);
 
 void *

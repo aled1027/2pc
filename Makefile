@@ -5,7 +5,7 @@ OBJFULL = obj/*.o
 
 CC=clang
 CFLAGS= -g -Iinc -IjustGarble/include
-LIBS=-lmsgpack -march=native -maes -msse4 -lm -lrt
+LIBS=-lmsgpack -march=native -maes -msse4 -lm -lrt -lcrypto -lssl -lgmp
 
 SOURCES := $(wildcard $(SRCDIR)/*.c)
 INCLUDES := $(wildcard $(SRCDIR)/*.h)

@@ -1,4 +1,5 @@
 #include "net.h"
+#include "utils.h"
 
 #include <netdb.h>
 #include <stdio.h>
@@ -9,7 +10,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-void
+int
 net_send(int socket, const void *buffer, size_t length, int flags)
 {
     size_t total = 0;
@@ -21,14 +22,15 @@ net_send(int socket, const void *buffer, size_t length, int flags)
         ssize_t n = send(socket, buffer + total, bytesleft, flags);
         if (n == -1) {
             perror("send");
-            exit(EXIT_FAILURE);
+            return FAILURE;
         }
         total += n;
         bytesleft -= n;
     }
+    return SUCCESS;
 }
 
-void
+int
 net_recv(int socket, void *buffer, size_t length, int flags)
 {
     size_t total = 0;
@@ -40,11 +42,12 @@ net_recv(int socket, void *buffer, size_t length, int flags)
         ssize_t n = recv(socket, buffer + total, bytesleft, flags);
         if (n == -1) {
             perror("recv");
-            exit(EXIT_FAILURE);
+            return FAILURE;
         }
         total += n;
         bytesleft -= n;
     }
+    return SUCCESS;
 }
 
 void *

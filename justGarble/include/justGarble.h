@@ -23,7 +23,7 @@
 #include "common.h"
 
 typedef struct {
-	long value, id;
+	long id;
 	block label, label0, label1;
 } Wire;
 
@@ -106,7 +106,7 @@ int createEmptyGarbledCircuit(GarbledCircuit *garbledCircuit, int n, int m,
                               int q, int r, InputLabels inputLabels);
 
 //Create memory for 2*n input labels.
-int createInputLabels(InputLabels inputLabels, int n);
+void createInputLabels(InputLabels inputLabels, int n);
 
 //Garble the circuit described in garbledCircuit. For efficiency reasons,
 //we use the garbledCircuit data-structure for representing the input 

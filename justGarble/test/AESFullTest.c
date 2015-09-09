@@ -108,18 +108,32 @@ main(int argc, char *argv[])
     buildAESCircuit();
 	readCircuitFromFile(&aesCircuit, AES_CIRCUIT_FILE_NAME);
 
-	for (j = 0; j < TIMES; j++) {
-		for (i = 0; i < TIMES; i++) {
-			timeGarble[i] = garbleCircuit(&aesCircuit, inputLabels, outputMap);
-			timeEval[i] = timedEval(&aesCircuit, inputLabels);
-		}
-		timeGarbleMedians[j] = ((double) median(timeGarble, TIMES))
-            / aesCircuit.q;
-		timeEvalMedians[j] = ((double) median(timeEval, TIMES)) / aesCircuit.q;
-	}
-	double garblingTime = doubleMean(timeGarbleMedians, TIMES);
-	double evalTime = doubleMean(timeEvalMedians, TIMES);
-	printf("%lf %lf\n", garblingTime, evalTime);
+    (void) garbleCircuit(&aesCircuit, inputLabels, outputMap);
+    {
+        block extractedLabels[n];
+        block computedOutputMap[m];
+        int inputs[n];
+        int outputVals[n];
+        for (int i = 0; i < n; ++i) {
+            inputs[i] = rand() % 2;
+        }
+        extractLabels(extractedLabels, inputLabels, inputs, n);
+        evaluate(&aesCircuit, extractedLabels, computedOutputMap);
+        mapOutputs(outputMap, computedOutputMap, outputVals, m);
+    }
+
+	/* for (j = 0; j < TIMES; j++) { */
+	/* 	for (i = 0; i < TIMES; i++) { */
+	/* 		timeGarble[i] = garbleCircuit(&aesCircuit, inputLabels, outputMap); */
+	/* 		timeEval[i] = timedEval(&aesCircuit, inputLabels); */
+	/* 	} */
+	/* 	timeGarbleMedians[j] = ((double) median(timeGarble, TIMES)) */
+    /*         / aesCircuit.q; */
+	/* 	timeEvalMedians[j] = ((double) median(timeEval, TIMES)) / aesCircuit.q; */
+	/* } */
+	/* double garblingTime = doubleMean(timeGarbleMedians, TIMES); */
+	/* double evalTime = doubleMean(timeEvalMedians, TIMES); */
+	/* printf("%lf %lf\n", garblingTime, evalTime); */
 	return 0;
 }
 

@@ -9,6 +9,14 @@
 #include "arg.h"
 #include "gc_comm.h"
 #include "net.h"
+#include "ot_np.h"
+
+/* static void */
+/* print_block(block blk) */
+/* { */
+/*     uint64_t *val = (uint64_t *) &blk; */
+/*     printf("%016lx%016lx", val[1], val[0]); */
+/* } */
 
 static void
 print_garbled_gate(GarbledGate *gg)
@@ -33,9 +41,7 @@ print_garbled_table(GarbledTable *gt)
 static void
 print_wire(Wire *w)
 {
-    printf("%ld %ld ", w->value, w->id);
-    print_block(w->label);
-    printf(" ");
+    printf("%ld ", w->id);
     print_block(w->label0);
     printf(" ");
     print_block(w->label1);
@@ -50,10 +56,13 @@ print_gc(GarbledCircuit *gc)
     printf("q = %d\n", gc->q);
     printf("r = %d\n", gc->r);
     for (int i = 0; i < gc->q; ++i) {
+        printf("garbled gate %d: ", i);
         print_garbled_gate(&gc->garbledGates[i]);
+        printf("garbled table %d: ", i);
         print_garbled_table(&gc->garbledTable[i]);
     }
     for (int i = 0; i < gc->r; ++i) {
+        printf("wire %d: ", i);
         print_wire(&gc->wires[i]);
     }
     for (int i = 0; i < gc->m; ++i) {
@@ -71,21 +80,21 @@ print_blocks(const char *str, block *blks, int length)
     }
 }
 
-static int
-checkfn(int *a, int *outputs, int n)
-{
-	outputs[0] = a[0];
-	int i = 0;
-	for (i = 0; i < n - 1; i++) {
-		if (i % 3 == 2)
-			outputs[0] = outputs[0] | a[i + 1];
-		if (i % 3 == 1)
-			outputs[0] = outputs[0] & a[i + 1];
-		if (i % 3 == 0)
-			outputs[0] = outputs[0] ^ a[i + 1];
-	}
-	return outputs[0];
-}
+/* static int */
+/* checkfn(int *a, int *outputs, int n) */
+/* { */
+/* 	outputs[0] = a[0]; */
+/* 	int i = 0; */
+/* 	for (i = 0; i < n - 1; i++) { */
+/* 		if (i % 3 == 2) */
+/* 			outputs[0] = outputs[0] | a[i + 1]; */
+/* 		if (i % 3 == 1) */
+/* 			outputs[0] = outputs[0] & a[i + 1]; */
+/* 		if (i % 3 == 0) */
+/* 			outputs[0] = outputs[0] ^ a[i + 1]; */
+/* 	} */
+/* 	return outputs[0]; */
+/* } */
 
 static void
 buildCircuit(GarbledCircuit *gc)
@@ -109,27 +118,6 @@ buildCircuit(GarbledCircuit *gc)
 	block outputbs[m];
     int outputs[1];
 
-    /* int n = 8; */
-	/* int m = 1; */
-	/* int q = n; */
-	/* int r = q+n; */
-
-	/* //Setup input and output tokens/labels. */
-	/* block *labels = (block*) malloc(sizeof(block) * 2 * n); */
-	/* block *exlabels = (block*) malloc(sizeof(block) * n); */
-	/* block *outputbs2 = (block*) malloc(sizeof(block) * m); */
-	/* block *outputbs = (block*) malloc(sizeof(block) * m); */
-	/* int *inp = (int *) malloc(sizeof(int) * n); */
-	/* countToN(inp, n); */
-    /* int *outputs = (int *) malloc(sizeof(int) * m); */
-
-
-	/* createInputLabels(labels, n); */
-	/* createEmptyGarbledCircuit(gc, n, m, q, r, labels); */
-	/* startBuilding(gc, &gctxt); */
-	/* MIXEDCircuit(gc, &gctxt, n, inp, outputs); */
-	/* finishBuilding(gc, &gctxt, outputbs, outputs); */
-    
 	createInputLabels(labels, n);
 	createEmptyGarbledCircuit(gc, n, m, q, r, labels);
 	startBuilding(gc, &gctxt);
@@ -160,61 +148,68 @@ buildCircuit(GarbledCircuit *gc)
 	finishBuilding(gc, &gctxt, outputbs, mixColumnOutputs);
 }
 
+void *
+my_msg_reader(void *msgs, int idx)
+{
+    block *m = (block *) msgs;
+    return &m[2 * idx];
+}
+
+void *
+my_item_reader(void *item, int idx, ssize_t *mlen)
+{
+    block *a = (block *) item;
+    *mlen = sizeof(block);
+    return &a[idx];
+}
+
+int
+my_choice_reader(void *choices, int idx)
+{
+    int *c = (int *) choices;
+    return c[idx];
+}
+
+int
+my_msg_writer(void *array, int idx, void *msg, size_t msglength)
+{
+    block *a = (block *) array;
+    a[idx] = *((block *) msg);
+    return 0;
+}
+
 static int
 run_generator(arg_t *args)
 {
-    int sockfd, fd, res;
+    int serverfd, fd, res;
     GarbledCircuit gc;
     block *inputLabels, *extractedLabels;
     block *outputMap;
     int *inputs;
+    struct state state;
 
-    /* sockfd = net_init_server("127.0.0.1", "8000"); */
-    /* fd = net_server_accept(sockfd); */
+    state_init(&state);
+
+    serverfd = net_init_server("127.0.0.1", "8000");
+    fd = net_server_accept(serverfd);
 
     /* buildCircuit(&gc); */
     (void) readCircuitFromFile(&gc, "aesCircuit");
 
     inputLabels = (block *) memalign(128, sizeof(block) * 2 * gc.n);
-    extractedLabels = (block *) memalign(128, sizeof(block) * gc.n);
     outputMap = (block *) memalign(128, sizeof(block) * 2 * gc.m);
 
-    inputs = (int *) malloc(sizeof(int) * gc.n);
-    for (int i = 0; i < gc.n; ++i) {
-		inputs[i] = rand() % 2;
-	}
-    
     (void) garbleCircuit(&gc, inputLabels, outputMap);
-    print_gc(&gc);
-    (void) extractLabels(extractedLabels, inputLabels, inputs, gc.n);
 
-    /* (void) gc_comm_send(fd, &gc); */
-    /* net_send(fd, extractedLabels, sizeof(block) * gc.n, 0); */
-    /* net_send(fd, outputMap, sizeof(block) * 2 * gc.m, 0); */
+    (void) gc_comm_send(fd, &gc);
+    ot_np_send(&state, fd, inputLabels, sizeof(block), gc.n, 2,
+               my_msg_reader, my_item_reader);
+    net_send(fd, outputMap, sizeof(block) * 2 * gc.m, 0);
 
-    {
-        int *outputVals = (int *) malloc(sizeof(int) * gc.m);
-        block *computedOutputMap = (block *) memalign(128, sizeof(block) * gc.m);
-        evaluate(&gc, extractedLabels, computedOutputMap);
-        print_blocks("computedOutputMap", computedOutputMap, gc.m);
-        if (mapOutputs(outputMap, computedOutputMap, outputVals, gc.m) == FAILURE) {
-            fprintf(stderr, "mapOutputs failed!\n");
-            return -1;
-        }
+    close(fd);
+    close(serverfd);
 
-        printf("Output: ");
-        for (int i = 0; i < gc.m; ++i) {
-            printf("%d", outputVals[i]);
-        }
-        printf("\n");
-
-    }
-
-
-    checkCircuit(&gc, inputLabels, outputMap, &checkfn);
-
-    /* close(fd); */
-    /* close(sockfd); */
+    state_cleanup(&state);
     return 0;
 }
 
@@ -225,17 +220,26 @@ run_evaluator(arg_t *args)
     GarbledCircuit gc;
     block *inputLabels, *outputMap, *computedOutputMap;
     int *outputVals;
+    struct state state;
+    int *input;
+
+    state_init(&state);
 
     sockfd = net_init_client("127.0.01", "8000");
 
     (void) gc_comm_recv(sockfd, &gc);
-
     inputLabels = (block *) memalign(128, sizeof(block) * gc.n);
+    input = (int *) malloc(sizeof(int) * gc.n);
+    for (int i = 0; i < gc.n; ++i) {
+        input[i] = rand() % 2;
+    }
+    ot_np_recv(&state, sockfd, input, gc.n, sizeof(block), 2, inputLabels,
+               my_choice_reader, my_msg_writer);
+
     outputMap = (block *) memalign(128, sizeof(block) * 2 * gc.m);
     computedOutputMap = (block *) memalign(128, sizeof(block) * gc.m);
     outputVals = (int *) malloc(sizeof(int) * gc.m);
 
-    net_recv(sockfd, inputLabels, sizeof(block) * gc.n, 0);
     net_recv(sockfd, outputMap, sizeof(block) * 2 * gc.m, 0);
 
     evaluate(&gc, inputLabels, computedOutputMap);
@@ -255,6 +259,8 @@ run_evaluator(arg_t *args)
     free(outputVals);
 
     close(sockfd);
+
+    state_cleanup(&state);
 
     return 0;
 }
