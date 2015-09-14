@@ -16,8 +16,6 @@ net_send(int socket, const void *buffer, size_t length, int flags)
     size_t total = 0;
     ssize_t bytesleft = length;
 
-    printf("sending %lu bytes of data\n", length);
-
     while (total < length) {
         ssize_t n = send(socket, buffer + total, bytesleft, flags);
         if (n == -1) {
@@ -35,8 +33,6 @@ net_recv(int socket, void *buffer, size_t length, int flags)
 {
     size_t total = 0;
     ssize_t bytesleft = length;
-
-    printf("receiving %lu bytes of data\n", length);
 
     while (total < length) {
         ssize_t n = recv(socket, buffer + total, bytesleft, flags);
@@ -74,7 +70,7 @@ net_init_server(const char *addr, const char *port)
 
     if ((rv = getaddrinfo(addr, port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
+        return FAILURE;
     }
 
     for(p = servinfo; p != NULL; p = p->ai_next) {
@@ -86,7 +82,7 @@ net_init_server(const char *addr, const char *port)
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
                 sizeof(int)) == -1) {
             perror("setsockopt");
-            exit(1);
+            return FAILURE;
         }
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
             close(sockfd);
@@ -98,14 +94,14 @@ net_init_server(const char *addr, const char *port)
 
     if (p == NULL)  {
         fprintf(stderr, "server: failed to bind\n");
-        return 2;
+        return FAILURE;
     }
 
     freeaddrinfo(servinfo);
 
     if (listen(sockfd, BACKLOG) == -1) {
         perror("listen");
-        exit(1);
+        return FAILURE;
     }
 
     fprintf(stderr, "server: waiting for connections...\n");
@@ -135,7 +131,7 @@ net_init_client(const char *addr, const char *port)
 
     if ((rv = getaddrinfo(addr, port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return -1;
+        return FAILURE;
     }
 
     for (p = servinfo; p != NULL; p = p->ai_next) {
@@ -153,7 +149,7 @@ net_init_client(const char *addr, const char *port)
 
     if (p == NULL) {
         fprintf(stderr, "client: failed to connect\n");
-        return -1;
+        return FAILURE;
     }
 
     inet_ntop(p->ai_family, net_get_in_addr((struct sockaddr *) p->ai_addr),

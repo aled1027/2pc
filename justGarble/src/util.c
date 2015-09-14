@@ -19,24 +19,19 @@
 #include "../include/common.h"
 #include "../include/util.h"
 #include "../include/justGarble.h"
-
-#include <ctype.h>
-#include <stdint.h>
 #include <stdio.h>
+#include <ctype.h>
 
 static __m128i cur_seed;
 
-void
-countToN(int *a, int n)
-{
-	for (int i = 0; i < n; i++) {
+int countToN(int *a, int n) {
+	int i;
+	for (i = 0; i < n; i++)
 		a[i] = i;
-    }
+	return 0;
 }
 
-int
-dbgBlock(block a)
-{
+int dbgBlock(block a) {
 	int *A = (int *) &a;
 	int i;
 	int out = 0;
@@ -45,15 +40,12 @@ dbgBlock(block a)
 	return out;
 }
 
-int
-compare(const void * a, const void * b)
-{
+int compare(const void * a, const void * b) {
 	return (*(int*) a - *(int*) b);
 }
 
-int
-median(int *values, int n)
-{
+int median(int *values, int n) {
+	int i;
 	qsort(values, n, sizeof(int), compare);
 	if (n % 2 == 1)
 		return values[(n + 1) / 2];
@@ -61,24 +53,20 @@ median(int *values, int n)
 		return (values[n / 2] + values[n / 2 + 1]) / 2;
 }
 
-double
-doubleMean(double *values, int n)
-{
+double doubleMean(double *values, int n) {
+	int i;
 	double total = 0;
-	for (int i = 0; i < n; i++) {
+	for (i = 0; i < n; i++)
 		total += values[i];
-    }
 	return total / n;
 }
 
-void
-srand_sse(unsigned int seed)
-{
+void srand_sse(unsigned int seed) {
 	cur_seed = _mm_set_epi32(seed, seed + 1, seed, seed + 1);
 }
 
 block
-randomBlock(void)
+randomBlock()
 {
 	block cur_seed_split;
 	block multiplier;
@@ -90,7 +78,7 @@ randomBlock(void)
 	static const unsigned int gadd[4] = { 2531011, 10395331, 13737667, 1 };
 	static const unsigned int mask[4] = { 0xFFFFFFFF, 0, 0xFFFFFFFF, 0 };
 	static const unsigned int masklo[4] = { 0x00007FFF, 0x00007FFF, 0x00007FFF,
-                                            0x00007FFF };
+			0x00007FFF };
 
 	adder = _mm_load_si128((block *) gadd);
 	multiplier = _mm_load_si128((block *) mult);
@@ -109,9 +97,3 @@ randomBlock(void)
 	return cur_seed;
 }
 
-void
-print_block(block blk)
-{
-    uint64_t *val = (uint64_t *) &blk;
-    printf("%016lx%016lx", val[1], val[0]);
-}

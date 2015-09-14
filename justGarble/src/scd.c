@@ -37,7 +37,9 @@ long fsize(const char *filename) {
 	return -1;
 }
 
-int writeCircuitToFile(GarbledCircuit *garbledCircuit, char *fileName) {
+int
+writeCircuitToFile(GarbledCircuit *garbledCircuit, char *fileName)
+{
 	FILE *f = fopen(fileName, "wb");
 	if (f == NULL) {
 		printf("Write: Error in opening file.\n");
@@ -111,7 +113,7 @@ int readCircuitFromFile(GarbledCircuit *garbledCircuit, char *fileName) {
 			sizeof(GarbledTable) * q);
 	garbledCircuit->wires = (Wire *) malloc(sizeof(Wire) * garbledCircuit->r);
 	if (garbledCircuit->garbledGates == NULL
-			|| garbledCircuit->garbledGates == NULL
+			|| garbledCircuit->garbledTable == NULL
 			|| garbledCircuit->wires == NULL) {
 		printf("Linux is a cheap miser that refuses to give us memory\n");
 		return FAILURE;
@@ -142,4 +144,3 @@ int readCircuitFromFile(GarbledCircuit *garbledCircuit, char *fileName) {
 	}
 	return SUCCESS;
 }
-

@@ -23,13 +23,12 @@
 #include "common.h"
 
 typedef struct {
-	long id;
+	long value, id;
 	block label, label0, label1;
 } Wire;
 
 typedef struct {
-	block label;
-    long id;
+	block label; long id;
 } GarbledWire;
 
 
@@ -39,9 +38,9 @@ typedef struct {
 } Gate;
 
 typedef struct {
-	long input0, input1, output;
-    int id, type;
+	long input0, input1, output; int id, type;
 } GarbledGate;
+
 
 typedef char shortBlock[10];
 
@@ -58,6 +57,7 @@ typedef struct {
 
 typedef struct {
 	int n, m, q, r;
+	block* inputLabels, outputLabels;
 	GarbledGate* garbledGates;
 	GarbledTable* garbledTable;
 	Wire* wires;
@@ -67,6 +67,12 @@ typedef struct {
 } GarbledCircuit;
 
 typedef struct {
+	int m;
+	block *outputLabels;
+	long id;
+} GarbledOutput;
+
+typedef struct {
 	long wireIndex, gateIndex, tableIndex;
 	DKCipherContext dkCipherContext;
 	int* fixedWires;
@@ -74,9 +80,12 @@ typedef struct {
 	block R;
 } GarblingContext;
 
+
 typedef block* InputLabels;
 typedef block* ExtractedLabels;
 typedef block* OutputMap;
+
+
 
 /*
  * The following are the functions involved in creating, garbling, and 
@@ -98,15 +107,16 @@ int createEmptyCircuit(Circuit *circuit, int n, int m, int q, int r);
 // data-structure just before calling garbleCircuit.
 int startBuilding(GarbledCircuit *gc, GarblingContext *ctx);
 int finishBuilding(GarbledCircuit *garbledCircuit,
-                   GarblingContext *garbledContext,
-                   OutputMap outputMap, int *outputs);
+		GarblingContext *garbledContext, OutputMap outputMap, int *outputs);
+
+
 
 // Create memory for an empty circuit of the specified size.
 int createEmptyGarbledCircuit(GarbledCircuit *garbledCircuit, int n, int m,
-                              int q, int r, InputLabels inputLabels);
+		int q, int r, InputLabels inputLabels);
 
 //Create memory for 2*n input labels.
-void createInputLabels(InputLabels inputLabels, int n);
+int createInputLabels(InputLabels inputLabels, int n);
 
 //Garble the circuit described in garbledCircuit. For efficiency reasons,
 //we use the garbledCircuit data-structure for representing the input 
@@ -144,8 +154,10 @@ int extractLabels(ExtractedLabels extractedLabels, InputLabels inputLabels,
 int mapOutputs(OutputMap outputMap, OutputMap extractedMap, int *outputVals,
 		int m);
 
+
 int writeCircuitToFile(GarbledCircuit *garbledCircuit, char *fileName);
 int readCircuitFromFile(GarbledCircuit *garbledCircuit, char *fileName);
+
 
 #include "garble.h"
 #include "circuits.h"

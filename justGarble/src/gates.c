@@ -21,19 +21,16 @@
 #include "../include/gates.h"
 #include "../include/justGarble.h"
 
-int
-ANDGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
-		int input0, int input1, int output)
-{
+int ANDGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
+		int input0, int input1, int output) {
 	int vals[] = { 0, 0, 0, 1 };
 	return genericGate(garbledCircuit, garblingContext, input0, input1, output,
 			vals, ANDGATE);
 }
 
-int
-XORGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
-        int input0, int input1, int output)
-{
+#ifdef FREE_XOR
+
+int XORGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext, int input0, int input1, int output) {
 	if(garbledCircuit->wires[input0].id == 0) {
 		printf("ERROR: Uninitialized input at wire 0 %d, gate %ld\n", input0, garblingContext->gateIndex);
 	}
@@ -61,19 +58,24 @@ XORGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
 
 }
 
-int
-ORGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
-       int input0, int input1, int output)
-{
+#else
+int XORGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
+		int input0, int input1, int output) {
+	int vals[] = { 0, 1, 1, 0 };
+	return genericGate(garbledCircuit, garblingContext, input0, input1, output,
+			vals, XORGATE);
+}
+#endif
+
+int ORGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
+		int input0, int input1, int output) {
 	int vals[] = { 0, 1, 1, 1 };
 	return genericGate(garbledCircuit, garblingContext, input0, input1, output,
 			vals, ORGATE);
 }
 
-int
-fixedZeroWire(GarbledCircuit *garbledCircuit,
-              GarblingContext *garblingContext)
-{
+int fixedZeroWire(GarbledCircuit *garbledCircuit,
+		GarblingContext *garblingContext) {
 	int ind = getNextWire(garblingContext);
 	garblingContext->fixedWires[ind] = FIXED_ZERO_GATE;
 	Wire *wire = &garbledCircuit->wires[ind];
@@ -85,11 +87,8 @@ fixedZeroWire(GarbledCircuit *garbledCircuit,
 	return ind;
 
 }
-
-int
-fixedOneWire(GarbledCircuit *garbledCircuit,
-             GarblingContext *garblingContext)
-{
+int fixedOneWire(GarbledCircuit *garbledCircuit,
+		GarblingContext *garblingContext) {
 	int ind = getNextWire(garblingContext);
 	garblingContext->fixedWires[ind] = FIXED_ONE_GATE;
 	Wire *wire = &garbledCircuit->wires[ind];
@@ -99,23 +98,20 @@ fixedOneWire(GarbledCircuit *garbledCircuit,
 	return ind;
 }
 
-int
-NOTGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
-		int input0, int output)
-{
+int NOTGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
+		int input0, int output) {
 	int vals[] = { 1, 0, 1, 0 };
 	return genericGate(garbledCircuit, garblingContext, 0, input0, output, vals,
 			NOTGATE);
 }
 
-int
-genericGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
-            int input0, int input1, int output, int *vals, int type)
-{
+#ifdef ROW_REDUCTION
+
+int genericGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext, int input0, int input1, int output, int *vals, int type) {
 	createNewWire(&(garbledCircuit->wires[output]), garblingContext, output);
 
 	GarbledGate *garbledGate = &(garbledCircuit->garbledGates[garblingContext->gateIndex]);
-	/* GarbledTable *garbledTable = &(garbledCircuit->garbledTable[garblingContext->tableIndex]); */
+	GarbledTable *garbledTable = &(garbledCircuit->garbledTable[garblingContext->tableIndex]);
 
 	garbledGate->id = garblingContext->gateIndex;
 	garbledGate->type = type;
@@ -123,12 +119,12 @@ genericGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
 	garbledGate->input1 = input1;
 	garbledGate->output = output;
 
-	/* block blocks[4]; */
-	/* block keys[4]; */
-	/* long lsb0 = getLSB(garbledCircuit->wires[input0].label0); */
-	/* long lsb1 = getLSB(garbledCircuit->wires[input1].label0); */
+	block blocks[4];
+	block keys[4];
+	long lsb0 = getLSB(garbledCircuit->wires[input0].label0);
+	long lsb1 = getLSB(garbledCircuit->wires[input1].label0);
 	block tweak;
-	/* block keyToEncrypt; */
+	block keyToEncrypt;
 
 	tweak = makeBlock(garblingContext->gateIndex, (long)0);
 	garblingContext->gateIndex++;
@@ -136,3 +132,24 @@ genericGate(GarbledCircuit *garbledCircuit, GarblingContext *garblingContext,
 
 	return garbledGate->id;
 }
+#else
+
+int genericGate(GarbledCircuit *garbledCircuit,
+		GarblingContext *garblingContext, int input0, int input1, int output,
+		int *vals, int type) {
+	createNewWire(&(garbledCircuit->wires[output]), garblingContext, output);
+	GarbledGate *garbledGate =
+			&(garbledCircuit->garbledGates[garblingContext->gateIndex]);
+
+	garbledGate->id = garblingContext->gateIndex;
+	garbledGate->type = type;
+	garbledGate->input0 = input0;
+	garbledGate->input1 = input1;
+	garbledGate->output = output;
+
+	garblingContext->gateIndex++;
+	garblingContext->tableIndex++;
+	return garbledGate->id;
+}
+
+#endif

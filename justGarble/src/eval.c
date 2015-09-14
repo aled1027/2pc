@@ -28,10 +28,8 @@
 #include <malloc.h>
 #include <wmmintrin.h>
 
-int
-evaluate(GarbledCircuit *garbledCircuit, ExtractedLabels extractedLabels,
-         OutputMap outputMap)
-{
+int evaluate(GarbledCircuit *garbledCircuit, ExtractedLabels extractedLabels,
+		OutputMap outputMap) {
 	GarbledGate *garbledGate;
 	DKCipherContext dkCipherContext;
 	DKCipherInit(&(garbledCircuit->globalKey), &dkCipherContext);
@@ -52,11 +50,13 @@ evaluate(GarbledCircuit *garbledCircuit, ExtractedLabels extractedLabels,
 
 	for (i = 0; i < garbledCircuit->q; i++) {
 		garbledGate = &(garbledCircuit->garbledGates[i]);
+#ifdef FREE_XOR
 		if (garbledGate->type == XORGATE) {
 			garbledCircuit->wires[garbledGate->output].label =
 			xorBlocks(garbledCircuit->wires[garbledGate->input0].label,
 					garbledCircuit->wires[garbledGate->input1].label);
 		} else {
+#endif
 		A = DOUBLE(garbledCircuit->wires[garbledGate->input0].label);
 		B = DOUBLE(DOUBLE(garbledCircuit->wires[garbledGate->input1].label));
 
@@ -69,10 +69,14 @@ evaluate(GarbledCircuit *garbledCircuit, ExtractedLabels extractedLabels,
 		val = xorBlocks(A, B);
 		tweak = makeBlock(i, (long) 0);
 		val = xorBlocks(val, tweak);
+#ifdef ROW_REDUCTION
 		if (a+b==0)
-            cipherText = &zer;
+		cipherText = &zer;
 		else
-            cipherText = &garbledTable[tableIndex].table[2*a+b-1];
+		cipherText = &garbledTable[tableIndex].table[2*a+b-1];
+#else
+		cipherText = &garbledTable[tableIndex].table[2 * a + b];
+#endif
 
 		temp = xorBlocks(val, *cipherText);
 
@@ -83,7 +87,9 @@ evaluate(GarbledCircuit *garbledCircuit, ExtractedLabels extractedLabels,
 
 		*plainText = xorBlocks(val, temp);
 		tableIndex++;
+#ifdef FREE_XOR
 	}
+#endif
 
 	}
 

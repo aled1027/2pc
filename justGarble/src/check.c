@@ -24,10 +24,10 @@
 #include "../include/justGarble.h"
 
 
-int
-checkCircuit(GarbledCircuit *garbledCircuit, InputLabels inputLabels,
-             OutputMap outputMap, int check(int *a, int *out, int s))
-{
+int checkCircuit(GarbledCircuit *garbledCircuit, InputLabels inputLabels,
+		OutputMap outputMap, int check(int *a, int *out, int s)) {
+
+	int i, j;
 	int n = garbledCircuit->n;
 	int m = garbledCircuit->m;
 	block extractedLabels[n];
@@ -36,38 +36,34 @@ checkCircuit(GarbledCircuit *garbledCircuit, InputLabels inputLabels,
 	int outputReal[m];
 	int inputs[n];
 
-	for (int i = 0; i < TIMES; i++) {
-		for (int j = 0; j < n; j++) {
+	for (i = 0; i < TIMES; i++) {
+		for (j = 0; j < n; j++) {
 			inputs[j] = rand() % 2;
 		}
 		extractLabels(extractedLabels, inputLabels, inputs, n);
 		evaluate(garbledCircuit, extractedLabels, computedOutputMap);
-		if (mapOutputs(outputMap, computedOutputMap, outputVals, m) == FAILURE) {
-            break;
-        }
+		mapOutputs(outputMap, computedOutputMap, outputVals, m);
 		check(inputs, outputReal, n);
-		for (int j = 0; j < m; j++) {
+		for (j = 0; j < m; j++)
 			if (outputVals[j] != outputReal[j]) {
 				fprintf(stderr, "Check failed %u \n", j);
 			}
-        }
 	}
 	return 0;
 }
 
-unsigned long
-timedEval(GarbledCircuit *garbledCircuit, InputLabels inputLabels)
-{
+unsigned long timedEval(GarbledCircuit *garbledCircuit, InputLabels inputLabels) {
 
 	int n = garbledCircuit->n;
 	int m = garbledCircuit->m;
 	block extractedLabels[n];
 	block outputs[m];
+	int j;
 	int inputs[n];
 	unsigned long startTime, endTime;
 	unsigned long sum = 0;
-	for (int i = 0; i < n; i++) {
-		inputs[i] = rand() % 2;
+	for (j = 0; j < n; j++) {
+		inputs[j] = rand() % 2;
 	}
 	extractLabels(extractedLabels, inputLabels, inputs, n);
 	startTime = RDTSC;
@@ -75,4 +71,6 @@ timedEval(GarbledCircuit *garbledCircuit, InputLabels inputLabels)
 	endTime = RDTSC;
 	sum = endTime - startTime;
 	return sum;
+
 }
+

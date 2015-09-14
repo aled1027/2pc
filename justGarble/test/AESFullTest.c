@@ -29,13 +29,13 @@ int *final;
 #define AES_CIRCUIT_FILE_NAME "./aesCircuit"
 
 void
-buildAESCircuit()
+buildAESCircuit(GarbledCircuit *gc)
 {
 	srand(time(NULL));
-	GarbledCircuit garbledCircuit;
+    srand_sse(time(NULL));
 	GarblingContext garblingContext;
 
-	int roundLimit = 10;
+	int roundLimit = 1;
 	int n = 128 * (roundLimit + 1);
 	int m = 128;
 	int q = 50000; //Just an upper bound
@@ -54,27 +54,27 @@ buildAESCircuit()
 	int i;
 
 	createInputLabels(labels, n);
-	createEmptyGarbledCircuit(&garbledCircuit, n, m, q, r, inputLabels);
-	startBuilding(&garbledCircuit, &garblingContext);
+	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
+	startBuilding(gc, &garblingContext);
 
 	countToN(addKeyInputs, 256);
 
 	for (int round = 0; round < roundLimit; round++) {
 
-		AddRoundKey(&garbledCircuit, &garblingContext, addKeyInputs,
+		AddRoundKey(gc, &garblingContext, addKeyInputs,
                     addKeyOutputs);
 
 		for (i = 0; i < 16; i++) {
-			SubBytes(&garbledCircuit, &garblingContext, addKeyOutputs + 8 * i,
+			SubBytes(gc, &garblingContext, addKeyOutputs + 8 * i,
                      subBytesOutputs + 8 * i);
 		}
 
-		ShiftRows(&garbledCircuit, &garblingContext, subBytesOutputs,
+		ShiftRows(gc, &garblingContext, subBytesOutputs,
                   shiftRowsOutputs);
 
 		for (i = 0; i < 4; i++) {
 			if (round == roundLimit - 1)
-				MixColumns(&garbledCircuit, &garblingContext,
+				MixColumns(gc, &garblingContext,
                            shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
 		}
 		for (i = 0; i < 128; i++) {
@@ -84,8 +84,8 @@ buildAESCircuit()
 	}
 
 	final = mixColumnOutputs;
-	finishBuilding(&garbledCircuit, &garblingContext, outputMap, final);
-	writeCircuitToFile(&garbledCircuit, AES_CIRCUIT_FILE_NAME);
+	finishBuilding(gc, &garblingContext, outputMap, final);
+	writeCircuitToFile(gc, AES_CIRCUIT_FILE_NAME);
 }
 
 int
@@ -97,7 +97,7 @@ main(int argc, char *argv[])
 
 	GarbledCircuit aesCircuit;
 	block inputLabels[2 * n];
-	block outputMap[m];
+	block outputMap[2 * m];
 	int i, j;
 
 	int timeGarble[TIMES];
@@ -105,8 +105,8 @@ main(int argc, char *argv[])
 	double timeGarbleMedians[TIMES];
 	double timeEvalMedians[TIMES];
 
-    buildAESCircuit();
-	readCircuitFromFile(&aesCircuit, AES_CIRCUIT_FILE_NAME);
+    buildAESCircuit(&aesCircuit);
+	/* readCircuitFromFile(&aesCircuit, AES_CIRCUIT_FILE_NAME); */
 
     (void) garbleCircuit(&aesCircuit, inputLabels, outputMap);
     {

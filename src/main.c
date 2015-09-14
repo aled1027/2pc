@@ -11,12 +11,15 @@
 #include "net.h"
 #include "ot_np.h"
 
-/* static void */
-/* print_block(block blk) */
-/* { */
-/*     uint64_t *val = (uint64_t *) &blk; */
-/*     printf("%016lx%016lx", val[1], val[0]); */
-/* } */
+#define HOST "127.0.0.1"
+#define PORT "8000"
+
+static void
+print_block(block blk)
+{
+    uint64_t *val = (uint64_t *) &blk;
+    printf("%016lx%016lx", val[1], val[0]);
+}
 
 static void
 print_garbled_gate(GarbledGate *gg)
@@ -100,13 +103,14 @@ static void
 buildCircuit(GarbledCircuit *gc)
 {
 	srand(time(NULL));
+    srand_sse(time(NULL));
 	GarblingContext gctxt;
 
 	int roundLimit = 10;
 	int n = 128 * (roundLimit + 1);
 	int m = 128;
 	int q = 50000; //Just an upper bound
-	int r = 50000;
+	int r = q;
 	int inp[n];
 	countToN(inp, n);
 	int addKeyInputs[n * (roundLimit + 1)];
@@ -115,7 +119,7 @@ buildCircuit(GarbledCircuit *gc)
 	int shiftRowsOutputs[n];
 	int mixColumnOutputs[n];
 	block labels[2 * n];
-	block outputbs[m];
+	block outputbs[2 * m];
     int outputs[1];
 
 	createInputLabels(labels, n);
@@ -186,22 +190,31 @@ run_generator(arg_t *args)
     block *inputLabels, *extractedLabels;
     block *outputMap;
     int *inputs;
+    long start, end;
     struct state state;
 
     state_init(&state);
 
-    serverfd = net_init_server("127.0.0.1", "8000");
-    fd = net_server_accept(serverfd);
+    if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
+        perror("net_init_server");
+        exit(EXIT_FAILURE);
+    }
+    if ((fd = net_server_accept(serverfd)) == FAILURE) {
+        perror("net_server_accept");
+        exit(EXIT_FAILURE);
+    }
 
-    /* buildCircuit(&gc); */
-    (void) readCircuitFromFile(&gc, "aesCircuit");
+    buildCircuit(&gc);
+     /* (void) readCircuitFromFile(&gc, "aesCircuit"); */
 
     inputLabels = (block *) memalign(128, sizeof(block) * 2 * gc.n);
     outputMap = (block *) memalign(128, sizeof(block) * 2 * gc.m);
-
     (void) garbleCircuit(&gc, inputLabels, outputMap);
 
+    start = RDTSC;
     (void) gc_comm_send(fd, &gc);
+    end = RDTSC;
+    printf("Send GC: %ld\n", end - start);
     ot_np_send(&state, fd, inputLabels, sizeof(block), gc.n, 2,
                my_msg_reader, my_item_reader);
     net_send(fd, outputMap, sizeof(block) * 2 * gc.m, 0);
@@ -223,9 +236,15 @@ run_evaluator(arg_t *args)
     struct state state;
     int *input;
 
+    srand(time(NULL));
+    srand_sse(time(NULL));
+
     state_init(&state);
 
-    sockfd = net_init_client("127.0.01", "8000");
+    if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
+        perror("net_init_client");
+        exit(EXIT_FAILURE);
+    }
 
     (void) gc_comm_recv(sockfd, &gc);
     inputLabels = (block *) memalign(128, sizeof(block) * gc.n);
@@ -245,7 +264,6 @@ run_evaluator(arg_t *args)
     evaluate(&gc, inputLabels, computedOutputMap);
     if (mapOutputs(outputMap, computedOutputMap, outputVals, gc.m) == FAILURE) {
         fprintf(stderr, "mapOutputs failed!\n");
-        return -1;
     }
 
     printf("Output: ");

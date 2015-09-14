@@ -20,21 +20,15 @@
 #include "../include/common.h"
 #include "../include/justGarble.h"
 
-void
-DKCipher1Init(block *key, DKCipherContext *c)
-{
+void DKCipher1Init(block *key, DKCipherContext *c) {
 	AES_set_encrypt_key((unsigned char *) key, 128, &c->K);
 }
 
-void
-DKCipherKSSInit(block *key, DKCipherContext *c)
-{
+void DKCipherKSSInit(block *key, DKCipherContext *c) {
 }
 
-void
-DKCipherKSSEncrypt(block *ptext, block *ctext, block tweak,
-                   DKCipherContext *c)
-{
+void DKCipherKSSEncrypt(block *ptext, block *ctext, block tweak,
+		DKCipherContext *c) {
 	AES_KEY K1;
 	block temp;
 	unsigned char key[32];
@@ -45,10 +39,8 @@ DKCipherKSSEncrypt(block *ptext, block *ctext, block tweak,
 	*ctext = xorBlocks(*ptext ,temp);
 }
 
-void
-DKCipherKSSEncryptFull(block *key1, block *key2, block *ctext,
-                       block *tweak, block *ptext)
-{
+void DKCipherKSSEncryptFull(block *key1, block *key2, block *ctext,
+		block *tweak, block *ptext) {
 	AES_KEY K1;
 	block temp;
 	unsigned char key[32];
@@ -59,10 +51,8 @@ DKCipherKSSEncryptFull(block *key1, block *key2, block *ctext,
 	*ctext = xorBlocks(*ptext ,temp);
 }
 
-void
-DKCipherKSSDecrypt(block *ctext, block *ptext, block tweak,
-                   DKCipherContext *c)
-{
+void DKCipherKSSDecrypt(block *ctext, block *ptext, block tweak,
+		DKCipherContext *c) {
 	AES_KEY K1;
 	block temp;
 	unsigned char key[32];
@@ -72,3 +62,4 @@ DKCipherKSSDecrypt(block *ctext, block *ptext, block tweak,
 	AES_encrypt((unsigned char *) (&tweak), (unsigned char *) &temp, &K1);
 	*ptext = xorBlocks(*ctext ,temp);
 }
+

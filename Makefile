@@ -14,8 +14,8 @@ OBJECTS := $(wildcard $(SRCDIR)/*.o)
 JUSTGARBLE := $(wildcard justGarble/src/*.c)
 JUSTGARBLEOBJ := $(wildcard justGarble/obj/*.o)
 
-all: $(JUSTGARBLEOBJ) $(JUSTGARBLE) $(OBJECTS) $(SOURCES)
-	$(CC) $(JUSTGARBLEOBJ) $(SOURCES) $(CFLAGS) $(LIBS)
+all: $(OBJECTS)
+	$(CC) $(JUSTGARBLE) $(SOURCES) $(CFLAGS) $(LIBS)
 
 .PHONEY: clean
 clean:

@@ -119,8 +119,10 @@ void TRUNC_COPY(char *X, char *Y);
 #define SUCCESS 0
 #define FAILURE -1
 
+
+#define ROW_REDUCTION
+#define FREE_XOR
 #define DKC2
-/* #define TRUNCATED */
 
 #define TIMES 10
 #define RUNNING_TIME_ITER 100
