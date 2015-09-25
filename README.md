@@ -9,5 +9,7 @@ offline/online 2PC
     - A: gc context = fixed values, R, dkciphercontext, something about labels
     - They relate to each through StartBuilding()
 
+- TODO:
+
 
         

@@ -49,35 +49,90 @@ int
 main(int argc, char* argv[]) {
     printf("starting...\n");
 
+#ifdef FREE_XOR
+    printf("free xor turned on\n");
+#else
+    printf("free xor turned off\n");
+#endif
+
     // 1. build circuits
     GarbledCircuit gc1, gc2, gc3;
     buildAdderCircuit(&gc1);
     buildAdderCircuit(&gc2);
+    buildAdderCircuit(&gc3);
 
     // 2. garble the circuits
-    block* inputLabels = (block *) memalign(128, sizeof(block) * 2 * gc1.n);
-    block* outputMap = (block *) memalign(128, sizeof(block) * 2 * gc1.m);
-    garbleCircuit(&gc1, inputLabels, outputMap);
+    block* inputLabels1 = (block *) memalign(128, sizeof(block) * 2 * gc1.n);
+    block* outputMap1 = (block *) memalign(128, sizeof(block) * 2 * gc1.m);
+    garbleCircuit(&gc1, inputLabels1, outputMap1);
+
+    block* inputLabels2 = (block *) memalign(128, sizeof(block) * 2 * gc2.n);
+    block* outputMap2 = (block *) memalign(128, sizeof(block) * 2 * gc2.m);
+    garbleCircuit(&gc2, inputLabels2, outputMap2);
+
+    block* inputLabels3 = (block *) memalign(128, sizeof(block) * 2 * gc3.n);
+    block* outputMap3 = (block *) memalign(128, sizeof(block) * 2 * gc3.m);
+    garbleCircuit(&gc3, inputLabels3, outputMap3);
 
     // 3. evaluate circuits
-	block computedOutputMap[gc1.m], extractedLabels[gc1.n];
-	int inputs[gc1.n], outputVals[gc1.m];
+    // 3.1 initialize vars
+	block computedOutputMap1[gc1.m], extractedLabels1[gc1.n];
+	int inputs1[gc1.n], outputVals1[gc1.m];
 
-    inputs[0] = 1;
-    inputs[1] = 0;
+	block computedOutputMap2[gc2.m], extractedLabels2[gc2.n];
+	int inputs2[gc2.n], outputVals2[gc2.m];
 
-	extractLabels(extractedLabels, inputLabels, inputs, gc1.n);
-	evaluate(&gc1, extractedLabels, computedOutputMap);
-	mapOutputs(outputMap, computedOutputMap, outputVals, gc1.m);
+	block computedOutputMap3[gc3.m], extractedLabels3[gc3.n];
+	int* inputs3 = malloc(sizeof(int) * gc3.n);
+	int* outputVals3 = malloc(sizeof(int) * gc3.m);
 
-    printf("xor output: %d\n", outputVals[0]);
-    printf("and output: %d\n", outputVals[1]);
+    // 3.2 plug in 2-bit inputs
+    inputs1[0] = 1;
+    inputs1[1] = 0;
 
-    free(inputLabels);
-    free(outputMap);
+    inputs2[0] = 0;
+    inputs2[1] = 1;
+
+    // 3.3 evaluate gc1 and gc2
+	extractLabels(extractedLabels1, inputLabels1, inputs1, gc1.n);
+	evaluate(&gc1, extractedLabels1, computedOutputMap1);
+	mapOutputs(outputMap1, computedOutputMap1, outputVals1, gc1.m);
+
+	extractLabels(extractedLabels2, inputLabels2, inputs2, gc2.n);
+	evaluate(&gc2, extractedLabels2, computedOutputMap2);
+	mapOutputs(outputMap2, computedOutputMap2, outputVals2, gc2.m);
+
+    // 3.4 plug in output of gc1 and gc2 into gc3 and evalute
+    inputs3[0] = outputVals1[0];
+    inputs3[1] = outputVals2[0];
+
+	extractLabels(extractedLabels3, inputLabels3, inputs3, gc3.n);
+	evaluate(&gc3, extractedLabels3, computedOutputMap3);
+	mapOutputs(outputMap3, computedOutputMap3, outputVals3, gc3.m);
+
+    // 3.5 look at the output
+    printf("xor output1: %d\n", outputVals1[0]);
+    printf("and output1: %d\n", outputVals1[1]);
+    printf("xor output2: %d\n", outputVals2[0]);
+    printf("and output2: %d\n", outputVals2[1]);
+    printf("xor output3: %d\n", outputVals3[0]);
+    printf("and output3: %d\n", outputVals3[1]);
+
+    free(inputLabels1);
+    free(outputMap1);
+
+    free(inputLabels2);
+    free(outputMap2);
+
+    free(inputLabels3);
+    free(outputMap3);
+
+	free(inputs3);
+	free(outputVals3);
 
     printf("...ending\n");
     return 0;
+
 }
 
 
