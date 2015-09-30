@@ -213,7 +213,8 @@ run_generator(arg_t *args)
 
     inputLabels = (block *) memalign(128, sizeof(block) * 2 * gc.n);
     outputMap = (block *) memalign(128, sizeof(block) * 2 * gc.m);
-    (void) garbleCircuit(&gc, inputLabels, outputMap);
+    // TODO this is broken since changing R
+    // (void) garbleCircuit(&gc, inputLabels, outputMap);
 
     start = RDTSC;
     (void) gc_comm_send(fd, &gc);
