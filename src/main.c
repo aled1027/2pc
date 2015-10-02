@@ -10,12 +10,14 @@
 #include "arg.h"
 #include "circuit_builder.h" /* buildAdderCircuit */
 #include "common.h"
+#include "chaining.h"
 
 #include "util.h"
 
 
+
 int
-test() {
+test2() {
     printf("starting...\n");
     printf("\n");
 
@@ -76,7 +78,6 @@ test() {
 
     block* computedOutputMap3 = malloc(sizeof(block)*gc3.m);
     block* extractedLabels3 = malloc(sizeof(block)*gc3.n);
-	int* inputs3 = malloc(sizeof(int) * gc3.n);
 	int* outputVals3 = malloc(sizeof(int) * gc3.m);
 
     // 3.2 plug in 2-bit inputs
@@ -91,17 +92,10 @@ test() {
 	extractLabels(extractedLabels1, inputLabels1, inputs1, gc1.n);
 	evaluate(&gc1, extractedLabels1, computedOutputMap1);
 	mapOutputs(outputMap1, computedOutputMap1, outputVals1, gc1.m);
-    printf("check it\n");
 
 	extractLabels(extractedLabels2, inputLabels2, inputs2, gc2.n);
 	evaluate(&gc2, extractedLabels2, computedOutputMap2);
 	mapOutputs(outputMap2, computedOutputMap2, outputVals2, gc2.m);
-
-    // 3.4 plug in output of gc1 and gc2 into gc3 and evalute
-    inputs3[0] = outputVals1[0];
-    inputs3[1] = outputVals2[0];
-    
-    block a_xor_delta = xorBlocks(outputMap1[0], delta);
 
     // 3.5 Do the chaining
     block offset1 = xorBlocks(outputMap1[0], inputLabels3[0]); // would be sent by garbler
@@ -128,10 +122,60 @@ test() {
     free(outputMap2);
     free(inputLabels3);
     free(outputMap3);
-	free(inputs3);
 	free(outputVals3);
 
     printf("...ending\n");
+    return 0;
+}
+
+int 
+test() {
+    printf("..starting\n");
+
+    // initialize things, allocate memory
+    int num_circs = 10; // can be an upper bound
+    int num_maps = 10; // can be an upper bound
+    int n = 2; // number of inputs to each gc
+    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_circs);
+    ChainingMap* c_map = malloc(sizeof(ChainingMap) * num_maps); 
+
+    int* inputs0 = malloc(sizeof(int) * n);
+    int* inputs1 = malloc(sizeof(int) * n);
+    inputs0[0] = inputs0[1] = inputs1[0] = inputs1[1] = 1;
+
+    // TODO make into dynamic array:
+    //block** extractedLabels = memalign(128, sizeof(block)* n * num_circs);
+    InputLabels extractedLabels[2];
+    for (int i = 0; i < num_circs; i++) {
+        extractedLabels[i] = memalign(128, sizeof(block) * 2);
+    }
+
+    // the garbling
+    createGarbledCircuits(chained_gcs, num_circs);
+    createChainingMap(c_map, chained_gcs, num_maps);
+
+    // the "network" stuff
+    // 1. send garbled circuits over
+    GarbledCircuit* gcs = malloc(sizeof(GarbledCircuit) * num_circs);
+    for (int i=0; i<num_circs; i++) {
+        // note that this is a shallow copy; pointers are not copied.
+        gcs[i] = chained_gcs[i].gc;
+    }
+    // 2. send the ChainingMap Over
+    // 3. perform OT (replaced by extractLabels)
+	extractLabels(extractedLabels[0], chained_gcs[0].inputLabels, inputs0, n);
+	extractLabels(extractedLabels[1], chained_gcs[1].inputLabels, inputs1, n);
+
+    // the evaluating 
+    // inputs: (extractedLabels, gcs, c_map)
+    chainedEvaluate(gcs, c_map, num_maps, extractedLabels);
+
+    // other things
+    printf("..ending\n");
+
+    free(chained_gcs);
+    free(c_map);
+    // free inputlables output map
     return 0;
 }
 
