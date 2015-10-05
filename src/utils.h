@@ -21,4 +21,7 @@ ot_malloc(size_t size);
 void
 ot_free(void *p);
 
+long 
+filesize(const char *filename);
+
 #endif

@@ -5,8 +5,6 @@
 void
 buildAdderCircuit(GarbledCircuit *gc)
 {
-	srand(time(NULL));
-    srand_sse(time(NULL));
 
     int n = 2; // number of inputs 
     int m = 2; // number of outputs
@@ -24,9 +22,14 @@ buildAdderCircuit(GarbledCircuit *gc)
 	createInputLabels(labels, n);
 	createEmptyGarbledCircuit(gc, n, m, q, r, labels);
 	startBuilding(gc, &gc_context);
-
 	ADD22Circuit(gc, &gc_context, inputs, outputs);
 	finishBuilding(gc, &gc_context, outputmap, outputs);
+
+    free(gc_context.fixedWires);
+    free(inputs);
+    free(outputs);
+    free(labels);
+    free(outputmap);
 }
 
 void
@@ -36,9 +39,6 @@ buildAdderCircuitOld(GarbledCircuit *gc)
      * Build the 22 adder circuit from scratch. 
      * prefer buildAdderCircuit which uses ADD22CIRCUIT
      */
-
-	srand(time(NULL));
-    srand_sse(time(NULL));
 
     int n = 2; // number of inputs 
     int m = 2; // number of outputs

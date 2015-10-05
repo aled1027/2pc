@@ -17,8 +17,10 @@ typedef struct {
     // TODO looks like GarbledCircuit as a slot for inputLabels and outputLabels
     // Could use that. but would need to be careful about saving gc to disk.
     // I think I like them abstracted out.
-    InputLabels inputLabels; // block*
-    OutputMap outputMap; // block*
+    //InputLabels inputLabels; // block*
+    //OutputMap outputMap; // block*
+    block* inputLabels; // block*
+    block* outputMap; // block*
 } ChainedGarbledCircuit;
 
 typedef struct {
@@ -32,6 +34,9 @@ typedef struct {
 int go();
 int createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n);
 int createChainingMap(ChainingMap* c_map, ChainedGarbledCircuit* chained_gcs, int num_maps);
-int chainedEvaluate(GarbledCircuit *gcs, ChainingMap* c_map, int c_map_size, InputLabels* labels);
+int chainedEvaluate(GarbledCircuit *gcs, int num_gcs, 
+        ChainingMap* c_map, int c_map_size, 
+        InputLabels* labels, block* receivedOutputMap, int* output);
+int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
 
 #endif

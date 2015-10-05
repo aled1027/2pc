@@ -24,6 +24,13 @@ all: $(OBJECTS)
 
 run:
 	./a.out
+valgrind: 
+	make;
+	rm valg.out;
+	valgrind --track-origins=yes --leak-check=yes --log-file=valg.out ./a.out;
+
+# -q
+# -v
 
 .PHONEY: clean
 clean:
