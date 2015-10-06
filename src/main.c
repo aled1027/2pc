@@ -157,28 +157,32 @@ test() {
     int num_circs = 3; // can be an upper bound
     int num_maps = 3; // can be an upper bound
     int n = 2; // number of inputs to each gc
+    int num_instr = 7;
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_circs);
-    ChainingMap* c_map = malloc(sizeof(ChainingMap) * num_maps);
+    Instruction* instructions = malloc(sizeof(Instruction) *  8);
+    
     block* receivedOutputMap = (block *) memalign(128, sizeof(block) * 2 * 2);
     GarbledCircuit gcs[num_circs];
     InputLabels extractedLabels[num_circs];
-    assert(chained_gcs && c_map && receivedOutputMap);
+    assert(chained_gcs && instructions && receivedOutputMap);
 
     for (int i=0; i<num_circs; i++) {
         extractedLabels[i] = memalign(128, sizeof(block)*2);
         assert(extractedLabels[i]);
     }
 
-    int inputs[num_circs][2]; 
+    //int inputs[num_circs][2]; 
+    int* inputs[2];
+    inputs[0] = malloc(sizeof(int*)); inputs[1] = malloc(sizeof(int*));
+
     inputs[0][0] = 0;
     inputs[0][1] = 0;
     inputs[1][0] = 1;
     inputs[1][1] = 0;
     printf("inputs: (%d,%d), (%d,%d)\n", inputs[0][0], inputs[0][1], inputs[1][0], inputs[1][1]);
 
-
     createGarbledCircuits(chained_gcs, num_circs);
-    createChainingMap(c_map, chained_gcs, num_maps);
+    createInstructions(instructions, chained_gcs);
 
     // send garbled circuits over
     for (int i=0; i<num_circs; i++) {
@@ -188,13 +192,15 @@ test() {
     // send the ChainingMap and output map (receivedOutputMap) for final circuit over
     receivedOutputMap = chained_gcs[2].outputMap; // would be sent over by garbler
 
-    // perform OT (replaced by extractLabels)
-	extractLabels(extractedLabels[0], chained_gcs[0].inputLabels, inputs[0], n);
-	extractLabels(extractedLabels[1], chained_gcs[1].inputLabels, inputs[1], n);
+	//extractLabels(extractedLabels[0], chained_gcs[0].inputLabels, inputs[0], n);
+	//extractLabels(extractedLabels[1], chained_gcs[1].inputLabels, inputs[1], n);
+    block** inputLabels = malloc(sizeof(block*) * 2);
+    inputLabels[0] = chained_gcs[0].inputLabels;
+    inputLabels[1] = chained_gcs[1].inputLabels;
 
     int* output = malloc(sizeof(int) * chained_gcs[0].gc.m);
     assert(output);
-    chainedEvaluate(gcs, 3, c_map, 2, extractedLabels, receivedOutputMap, output);
+    chainedEvaluate(gcs, 3, instructions, num_instr, inputLabels, receivedOutputMap, inputs, output);
     printf("%d, %d\n", output[0], output[1]);
 
     for (int i=0; i<num_circs; i++) {
@@ -202,8 +208,11 @@ test() {
         free(extractedLabels[i]);
     }
     free(chained_gcs);
-    free(c_map);
+    free(instructions);
     free(output);
+    free(inputLabels);
+    free(inputs[0]);
+    free(inputs[1]);
     //free(receivedOutputMap); // points to same place as chained_gcs[2].outputMap
     
     printf("ending\n");
@@ -216,7 +225,7 @@ main(int argc, char* argv[])
 {
 	srand(time(NULL));
     srand_sse(time(NULL));
-    test2();
+    test();
     return 0;
 }
 

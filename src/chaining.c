@@ -7,6 +7,7 @@ go() {
     return 2;
 }
 
+
 int 
 createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n) {
 
@@ -34,8 +35,114 @@ createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n) {
     return 0;
 }
 
+int 
+createInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs) {
+    // Input normally would require OT, but in our case only requires extractLabels
+    // on other end, call extractLabels(extractedLabels[0], chained_gcs[0].inputLabels, inputs[0], n);
+    instr[0].instruction = INPUT;
+    instr[0].inCircId = 0;
+    // malloc space
+    instr[0].inInputLabels = chained_gcs[0].inputLabels;
+    
+    instr[1].instruction = INPUT;
+    instr[1].inCircId = 1;
+    // malloc space
+    instr[1].inInputLabels = chained_gcs[1].inputLabels;
+
+    instr[2].instruction = EVAL;
+    instr[2].evCircId = 0;
+    
+    instr[3].instruction = EVAL;
+    instr[3].evCircId = 1;
+
+    instr[4].instruction = CHAIN;
+    instr[4].chFromCircId = 0;
+    instr[4].chFromWireId = 0;
+    instr[4].chToCircId = 2;
+    instr[4].chToWireId = 0;
+    instr[4].chOffset = xorBlocks(chained_gcs[0].outputMap[0], chained_gcs[2].inputLabels[0]);
+
+    instr[5].instruction = CHAIN;
+    instr[5].chFromCircId = 1;
+    instr[5].chFromWireId = 0;
+    instr[5].chToCircId = 2;
+    instr[5].chToWireId = 1;
+    instr[5].chOffset = xorBlocks(chained_gcs[1].outputMap[0], chained_gcs[2].inputLabels[2]);
+
+    instr[6].instruction = EVAL;
+    instr[6].evCircId = 2;
+    return 0;
+}
+
+int 
+chainedEvaluate(GarbledCircuit *gcs, int num_gcs, Instruction* instructions, int num_instr, 
+        InputLabels* inputLabels, block* receivedOutputMap, 
+        int* inputs[], int* output) {
+
+    block** labels = malloc(sizeof(block*) * num_gcs);
+    block** computedOutputMap = malloc(sizeof(block*) * num_gcs);
+
+    for (int i=0; i<num_gcs; i++) {
+        labels[i] = memalign(128, sizeof(block)* gcs[i].n);
+        computedOutputMap[i] = memalign(128, sizeof(block) * gcs[i].m);
+        assert(labels[i] && computedOutputMap[i]);
+    }
+
+    for (int i=0; i<num_instr; i++) {
+        Instruction* cur = &instructions[i];
+        switch(cur->instruction) {
+            case INPUT:
+                // TODO figure this out later
+                printf("instruction %d is INPUTting into circuit %d\n", i, cur->inCircId);
+                if (cur->inCircId == 0) {
+                    extractLabels(labels[0], inputLabels[0], inputs[0], gcs[0].n);
+
+                } else if (cur->inCircId == 1) {
+                    extractLabels(labels[1], inputLabels[1], inputs[1], gcs[1].n);
+                }
+                break;
+
+            case REQUEST_INPUT:
+                printf("instruction %d is REQUEST_INPUT\n", i);
+                break;
+            case EVAL:
+                printf("instruction %d is EVALuating circuit %d\n", i, cur->evCircId);
+                evaluate(&gcs[cur->evCircId], labels[cur->evCircId], computedOutputMap[cur->evCircId]);
+
+                if (i == num_instr - 1) {
+                    printf("mapping\n");
+	                mapOutputs(receivedOutputMap, computedOutputMap[2], output, gcs[2].m);
+                }
+
+                break;
+            case CHAIN:
+                // problem in here
+                printf("instruction %d is CHAINing circuit %d to circuit %d\n", i, 
+                        cur->chFromCircId, cur->chToCircId);
+
+                labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
+                        computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
+                        cur->chOffset);
+                break;
+            default:
+                printf("Error\n");
+                printf("Instruction %d not a valid instruction\n", i);
+                return FAILURE;
+        }
+    }
+
+    for (int i=0; i<num_gcs; i++) {
+        free(computedOutputMap[i]);
+        free(labels[i]);
+    } 
+    free(computedOutputMap);
+    free(labels);
+
+    return SUCCESS;
+}
+
 int
-createChainingMap(ChainingMap* c_map, ChainedGarbledCircuit* chained_gcs, int num_maps) {
+createChainingMap(ChainingMap* c_map, ChainedGarbledCircuit* chained_gcs) {
     /// num_maps = number of wire pairs that need to be connected
     /// num_maps should be considered an upper bound: is used for memory allocation.
     ///
@@ -59,8 +166,9 @@ createChainingMap(ChainingMap* c_map, ChainedGarbledCircuit* chained_gcs, int nu
     return 0;
 }
 
+
 int 
-chainedEvaluate(GarbledCircuit *gcs, int num_gcs, ChainingMap* c_map, int c_map_size, InputLabels* labels, block* receivedOutputMap, int* output) {
+chainedEvaluateOld(GarbledCircuit *gcs, int num_gcs, ChainingMap* c_map, int c_map_size, InputLabels* labels, block* receivedOutputMap, int* output) {
     /*
      * GarbledCircuit* gcs is an array of GarbledCircuits
      * ChainingMap* c_map is an array of ChainingMaps
@@ -74,9 +182,6 @@ chainedEvaluate(GarbledCircuit *gcs, int num_gcs, ChainingMap* c_map, int c_map_
     for (int i=0; i<num_gcs; i++) {
         computedOutputMap[i] = memalign(128, sizeof(block) * gcs[i].m);
     }
-    //computedOutputMap[0] = memalign(128, sizeof(block)*2);
-    //computedOutputMap[1] = memalign(128, sizeof(block)*2);
-    //computedOutputMap[2] = memalign(128, sizeof(block)*2);
 
     // 1. evaluate necessary circuits
     // assume relevant circuits to compute fully right now are 0,1
