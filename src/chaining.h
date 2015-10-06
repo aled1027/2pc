@@ -56,7 +56,6 @@ typedef struct {
     block offset; // from_wire xor to_wire, assuming the same deltas
 } ChainingMap;
 
-int go();
 int createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n);
 int createInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs);
 int createChainingMap(ChainingMap* c_map, ChainedGarbledCircuit* chained_gcs);

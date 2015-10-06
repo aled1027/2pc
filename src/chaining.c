@@ -1,13 +1,5 @@
 #include "chaining.h"
 
-int
-go() {
-    ChainedGarbledCircuit cgc;
-    cgc.id = 10;
-    return 2;
-}
-
-
 int 
 createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n) {
 

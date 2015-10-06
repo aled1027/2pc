@@ -16,7 +16,7 @@
 #define HOST "127.0.0.1"
 #define PORT "8000"
 
-/* Original test made by Alex M */
+/* Original main made by Alex M */
 
 static void
 print_block(block blk)
