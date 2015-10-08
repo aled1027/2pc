@@ -85,7 +85,8 @@ main(int argc, char* argv[]) {
 	srand(time(NULL));
     srand_sse(time(NULL));
     //run_all_tests();
-    go();
+    //go();
+    test_saving_reading();
     return 0;
 }
 

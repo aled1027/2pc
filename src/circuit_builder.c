@@ -1,7 +1,6 @@
 #include "circuit_builder.h"
 #include "utils.h"
 
-
 void
 buildAdderCircuit(GarbledCircuit *gc)
 {
@@ -70,58 +69,120 @@ buildAdderCircuitOld(GarbledCircuit *gc)
 }
 
 int 
-mySave(struct Alex *gc, char* fileName) 
-{
+saveGarbledCircuit(GarbledCircuit* gc, char* fileName) {
+    /*
+     * Save the garbled circuit to fileName.
+     * The following fields are not saved:
+     *  - inputLabels
+     *  - outputLabels
+     *  - outputs
+     *  - id
+     *  - globalKey
+     */
+    /*
+    typedef struct {
+	    int n, m, q, r; 
+        block* inputLabels, outputLabels;  // 2*n inputLabels, 2*m outputLabels
+	    GarbledGate* garbledGates;
+	    GarbledTable* garbledTable;
+	    Wire* wires;
+	    int *outputs;
+	    long id;
+	    block globalKey;
+
+	    gc->garbledGates = (GarbledGate *) memalign(128, sizeof(GarbledGate) * q);
+	    gc->garbledTable = (GarbledTable *) memalign(128, sizeof(GarbledTable) * q);
+	    gc->wires = (Wire *) memalign(128, sizeof(Wire) * r);
+	    gc->outputs = (int *) memalign(128, sizeof(int) * m);
+
+    } GarbledCircuit;
+    */
+
     FILE *f = fopen(fileName, "w");
-    int fs = filesize(fileName);
-    char *buffer = malloc(sizeof(int)*4);
+    size_t buf_size = sizeof(int)*4 + sizeof(GarbledGate)*(gc->q + 2) + sizeof(GarbledTable)*gc->q
+        + sizeof(Wire)*(gc->r) + sizeof(block);
+        ;
+    char *buffer = malloc(buf_size);
 
     if (f == NULL) {
         printf("Write: Error in opening file.\n");
         return FAILURE;
     }
+    // save metdata
+    size_t p = 0;
+    memcpy(buffer+p, &(gc->n), sizeof(gc->n));
+    p += sizeof(gc->n);
+    memcpy(buffer+p, &(gc->m), sizeof(gc->m));
+    p += sizeof(gc->m);
+    memcpy(buffer+p, &(gc->q), sizeof(gc->q));
+    p += sizeof(gc->q);
+    memcpy(buffer+p, &(gc->r), sizeof(gc->r));
+    p += sizeof(gc->r);
 
-    memcpy(buffer, &gc->n, sizeof(int));
-    memcpy(buffer + sizeof(int)*1, &gc->m, sizeof(int));
-    memcpy(buffer + sizeof(int)*2, &gc->q, sizeof(int));
-    memcpy(buffer + sizeof(int)*3, &gc->r, sizeof(int));
+    // save garbled gates
+    memcpy(buffer+p, gc->garbledGates, sizeof(GarbledGate)*gc->q);
+    p += sizeof(GarbledGate) * gc->q;
 
-    int a,b,c,d;
-    memcpy(&a, buffer + sizeof(int)*0, sizeof(int));
-    memcpy(&b, buffer + sizeof(int)*1, sizeof(int));
-    memcpy(&c, buffer + sizeof(int)*2, sizeof(int));
-    memcpy(&d, buffer + sizeof(int)*3, sizeof(int));
-    printf("\n %d %d %d %d\n", a, b, c, d);
+    // save garbled table
+    memcpy(buffer+p, gc->garbledTable, sizeof(GarbledTable)*gc->q);
+    p += sizeof(GarbledTable)*gc->q;
 
-    fwrite(buffer, sizeof(char), sizeof(int)*4, f);
+    // save wires
+    memcpy(buffer+p, gc->wires, sizeof(Wire)*gc->r);
+    p += sizeof(Wire)*gc->r;
+
+    // save globalKey
+    memcpy(buffer + p, &(gc->globalKey), sizeof(gc->globalKey));
+    p += sizeof(gc->globalKey);
+
+    fwrite(buffer, sizeof(char), p, f);
     fclose(f);
-    int fs2 = filesize(fileName);
-    printf("asdf %d\n", fs2);
 
     return SUCCESS;
-
 }
 
-int myLoad(struct Alex *gc, char* fileName)
-{
+int 
+readGarbledCircuit(GarbledCircuit* gc, char* fileName) {
     FILE *f = fopen(fileName, "r");
-    int fs = filesize(fileName);
-    printf("asdf %d\n", fs);
-    char *buffer = malloc(sizeof(int)*4);
 
     if (f == NULL) {
         printf("Write: Error in opening file.\n");
         return FAILURE;
     }
 
-    //fread(buffer, 1, sizeof(int)*4, f);
-    fread(buffer, sizeof(char), sizeof(int)*4, f);
-    memcpy(&gc->n, buffer + sizeof(int)*0, sizeof(int));
-    memcpy(&gc->m, buffer + sizeof(int)*1, sizeof(int));
-    memcpy(&gc->q, buffer + sizeof(int)*2, sizeof(int));
-    memcpy(&gc->r, buffer + sizeof(int)*3, sizeof(int));
-    fclose(f);
+    long fs = filesize(fileName);
+    char *buffer = malloc(fs);
 
+    fread(buffer, sizeof(char), fs, f);
+
+    size_t p = 0;
+    memcpy(&(gc->n), buffer+p, sizeof(int));
+    p += sizeof(int);
+    memcpy(&(gc->m), buffer+p, sizeof(int));
+    p += sizeof(int);
+    memcpy(&(gc->q), buffer+p, sizeof(int));
+    p += sizeof(int);
+    memcpy(&(gc->r), buffer+p, sizeof(int));
+    p += sizeof(int);
+
+    gc->garbledGates = malloc(sizeof(GarbledGate) * gc->q);
+    gc->garbledTable = malloc(sizeof(GarbledTable) * gc->q);
+    gc->wires = malloc(sizeof(Wire) * gc->r);
+
+    // read garbledGates
+    memcpy(gc->garbledGates, buffer+p, sizeof(GarbledGate)*gc->q);
+    p += sizeof(GarbledGate) * gc->q;
+
+    memcpy(gc->garbledTable, buffer+p, sizeof(GarbledTable)*gc->q);
+    p += sizeof(GarbledTable) * gc->q;
+
+    memcpy(gc->wires, buffer+p, sizeof(Wire)*gc->r);
+    p += sizeof(Wire) * gc->q;
+
+    // save globalKey
+    memcpy(&(gc->globalKey), buffer+p, sizeof(gc->globalKey));
+    p += sizeof(gc->globalKey);
+
+    fclose(f);
     return SUCCESS;
 }
-

@@ -8,7 +8,7 @@
 
 #include "gc_comm.h"
 #include "arg.h"
-#include "circuit_builder.h" /* buildAdderCircuit */
+#include "circuit_builder.h"
 #include "common.h"
 #include "chaining.h"
 
@@ -35,6 +35,57 @@ int run_all_tests() {
         return FAILURE;
     } else {
         printf("All tests passed\n");
+        return SUCCESS;
+    }
+}
+
+
+int 
+test_saving_reading() {
+    printf("running test_saving\n");
+
+
+    GarbledCircuit gc, gc2;
+    block* inputLabels = memalign(128, sizeof(block) * 2 * gc.n);
+    block* extractedLabels = memalign(128, sizeof(block) * gc.n);
+    block* outputMap = memalign(128, sizeof(block) * 2 * gc.m);
+    block* computedOutputMap = memalign(128, sizeof(block) * gc.m);
+    block delta = randomBlock();
+    *((uint16_t *) (&delta)) |= 1;
+
+    buildAdderCircuit(&gc);
+    garbleCircuit(&gc, inputLabels, outputMap, &delta);
+
+    saveGarbledCircuit(&gc, "garbledCircuit.gc");
+    readGarbledCircuit(&gc2, "garbledCircuit.gc");
+
+    bool failed = false;
+    if ((gc.n == gc2.n &&
+        gc.m == gc2.m &&
+        gc.q == gc2.q &&
+        gc.r == gc2.r) == false) {
+        printf("metadata failed in test_saving_reading\n");
+        failed = true;
+    }
+    if (gc.garbledGates[0].id != gc2.garbledGates[0].id) {
+        printf("garbledGates failed in test_saving_reading\n");
+        failed = true;
+    }
+
+    if (gc.garbledTable[0].table[0][0] != gc2.garbledTable[0].table[0][0]) {
+        printf("garbledTables failed in test_saving_reading\n");
+        failed = true;
+    }
+
+    if (gc.wires[0].id != gc2.wires[0].id) {
+        printf("wires failed in test_saving_reading\n");
+        failed = true;
+    }
+
+    if (failed) {
+        printf("test_saving_reading() failed\n");
+        return FAILURE;
+    } else {
         return SUCCESS;
     }
 }
