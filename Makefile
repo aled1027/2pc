@@ -11,8 +11,8 @@ OBJFULL = obj/*.o
 JUSTGARBLE = JustGarble
 
 CC=clang
-CFLAGS= -g -Iinc -I$(JUSTGARBLE)/include -Wno-typedef-redefinition
-LIBS=-lmsgpack -march=native -maes -msse4 -lm -lrt -lcrypto -lssl -lgmp
+CFLAGS= -g -Iinc -I$(JUSTGARBLE)/include -Wno-typedef-redefinition 
+LIBS=-lmsgpack -march=native -maes -msse4 -lm -lrt -lcrypto -lssl -lgmp -ljansson
 
 SOURCES := $(wildcard $(SRCDIR)/*.c)
 OBJECTS := $(wildcard $(SRCDIR)/*.o)

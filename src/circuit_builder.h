@@ -20,6 +20,8 @@
 #define FAILURE -1
 #define SUCCESS 0
 
+
+
 void unpack(char const* buf, size_t len);
 void buildAdderCircuit(GarbledCircuit *gc);
 int saveBlock(block* bl, char* fileName);

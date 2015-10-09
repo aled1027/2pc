@@ -86,7 +86,9 @@ main(int argc, char* argv[]) {
     srand_sse(time(NULL));
     //run_all_tests();
     //go();
-    test_saving_reading();
+    //test_saving_reading();
+    json_test();
+
     return 0;
 }
 

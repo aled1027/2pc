@@ -6,6 +6,7 @@
 #include <time.h>
 #include <unistd.h>
 
+
 #include "gc_comm.h"
 #include "arg.h"
 #include "circuit_builder.h"
@@ -260,4 +261,73 @@ test2() {
         return SUCCESS;
 }
 
+int json_get_components(json_t *root) {
+    // TODO need to populate a struct or something
+    const char* type;
+    int num, *circuit_ids;
+    json_t *jComponents, *jComponent, *jType, *jNum, *jCircuit_ids, *jId;
+
+    jComponents = json_object_get(root, "components");
+
+    for (int i=0; i<json_array_size(jComponents); i++) {
+        jComponent = json_array_get(jComponents, i);
+        assert(json_is_object(jComponent));
+
+        // get type
+        jType = json_object_get(jComponent, "type");
+        assert(json_is_string(jType));
+        type = json_string_value(jType);
+
+        // get num
+        jNum = json_object_get(jComponent, "num");
+        assert (json_is_integer(jNum));
+        num = json_integer_value(jNum);
+
+        // get circuit ids
+        circuit_ids = malloc(sizeof(int) * num);
+        jCircuit_ids = json_object_get(jComponent, "circuit_ids");
+        assert (json_is_array(jCircuit_ids));
+        for (int k=0; k<num; k++) {
+            jId = json_array_get(jCircuit_ids, k);
+            circuit_ids[k] = json_integer_value(jId);
+        }
+    }
+    return SUCCESS;
+}
+
+int
+json_test() {
+    /* tests use loading in function specification via json
+     * uses jansson.h. See jansson docs for more details */
+
+    // there exists a function to load directly from file, 
+    // but I was getting runtime memory errors when using it.
+    
+    // load file into buffer
+    char* path = "functions/22Adder.json"; 
+    long fs = filesize(path); 
+    FILE *f = fopen(path, "r"); 
+    if (f == NULL) {
+        printf("Write: Error in opening file.\n");
+        return -1;
+    }   
+    char *buffer = malloc(fs); 
+    fread(buffer, sizeof(char), fs, f);
+
+    // read buffer into json_t object
+    json_error_t error; 
+    json_t *jRoot = json_loads(buffer, 0, &error);
+    free(buffer);
+    if (!jRoot) {
+        fprintf(stderr, "error load json on line %d: %s\n", error.line, error.text);
+        return FAILURE;
+    }
+
+    json_get_components(jRoot);
+
+    printf("about to end\n");
+    free(jRoot);
+    printf("successful json_test\n");
+    return SUCCESS;
+}
 

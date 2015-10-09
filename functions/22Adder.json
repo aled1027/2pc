@@ -1,0 +1,78 @@
+{
+  "name": "Adder",
+  "descrption": "Adds two 2-bit numbers together.",
+  "n": 4,
+  "m": 2,
+  "components": [
+    {
+      "type": "22Adder",
+      "num": 3,
+      "circuit_ids": [
+        0,
+        1,
+        2
+      ]
+    }
+  ],
+  "comment": "{input idx: [garbled circuit id, wire id]}",
+  "InputMapping": [
+    {
+      "input-idx": [
+        "gc id",
+        "wire id"
+      ]
+    },
+    {
+      "0": [
+        0,
+        0
+      ]
+    },
+    {
+      "1": [
+        0,
+        1
+      ]
+    },
+    {
+      "2": [
+        1,
+        0
+      ]
+    },
+    {
+      "3": [
+        1,
+        1
+      ]
+    }
+  ],
+  "instructions": [
+    {
+      "type": "EVAL",
+      "gc_id": 0
+    },
+    {
+      "type": "EVAL",
+      "circ_id": 1
+    },
+    {
+      "type": "CHAIN",
+      "from_gc_id": 0,
+      "from_wire_id": 0,
+      "to_gc_id": 2,
+      "to_wire_id": 0
+    },
+    {
+      "type": "CHAIN",
+      "from_gc_id": 1,
+      "from_wire_id": 0,
+      "to_gc_id": 2,
+      "to_wire_id": 1
+    },
+    {
+      "type": "EVAL",
+      "gc_id": 2
+    }
+  ]
+}
