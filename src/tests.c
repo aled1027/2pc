@@ -295,6 +295,139 @@ int json_get_components(json_t *root) {
     return SUCCESS;
 }
 
+void 
+print_input_mapping(InputMapping* inputMapping) {
+    printf("InputMapping:\n");
+    for (int i=0; i<inputMapping->size; i++) {
+        printf("%d -> (%d, %d)\n", inputMapping->input_idx[i], inputMapping->gc_id[i], inputMapping->wire_id[i]);
+    }
+}
+
+void 
+print_instructions(Instructions* instr) {
+    printf("Instructions:\n");
+    for (int i=0; i<instr->size; i++) {
+        switch(instr->instr[i].type) {
+            case EVAL:
+                printf("EVAL %d\n", instr->instr[i].evCircId);
+                break;
+            case CHAIN:
+                printf("CHAIN (%d, %d) -> (%d, %d)\n", instr->instr[i].chFromCircId, 
+                        instr->instr[i].chFromWireId,
+                        instr->instr[i].chToCircId,
+                        instr->instr[i].chToWireId);
+                break;
+            default:
+                printf("Not printing command\n");
+        }
+    }
+}
+
+
+int json_get_input_mapping(json_t *root, InputMapping* inputMapping) {
+    /* "InputMapping: [
+     *      { "gc_id": x, "wire_id: y"},
+     *      { "gc_id": a, "wire_id: b"}
+     * ]
+     * 
+     * where the ith element in the array is where the ith input is mapped to.
+     * 
+     */
+    json_t *jInputMapping, *jMap, *jGcId, *jWireId;
+    int size;
+
+    jInputMapping = json_object_get(root, "InputMapping");
+    assert(json_is_array(jInputMapping));
+    size = json_array_size(jInputMapping); // should be equal to n
+
+    // input_idx[i] maps to (gc_id[i], wire_id[i])
+    inputMapping->input_idx = malloc(sizeof(int) * size);
+    inputMapping->gc_id = malloc(sizeof(int) * size);
+    inputMapping->wire_id = malloc(sizeof(int) * size);
+    assert(inputMapping->input_idx && inputMapping->gc_id && inputMapping->wire_id);
+
+    inputMapping->size = size;
+    for (int i=0; i<size; i++) {
+       jMap = json_array_get(jInputMapping, i);
+       assert(json_is_object(jMap));
+
+       inputMapping->input_idx[i] = i;
+
+       jGcId = json_object_get(jMap, "gc_id");
+       assert(json_is_integer(jGcId));
+       inputMapping->gc_id[i] = json_integer_value(jGcId);
+
+       jWireId = json_object_get(jMap, "wire_id");
+       assert(json_is_integer(jWireId));
+       inputMapping->wire_id[i] = json_integer_value(jWireId);
+    }
+
+    return SUCCESS;
+}
+
+static InstructionType 
+get_instruction_type_from_string(const char* type) {
+    if (strcmp(type, "EVAL") == 0) {
+        return EVAL;
+    } else if (strcmp(type, "CHAIN") == 0) {
+        return CHAIN;
+    } else {
+        return INSTR_ERR;
+    }
+}
+
+int json_get_instructions(json_t *root, Instructions *instructions) {
+    json_t *jInstructions, *jInstr, *jGcId, *jPtr;
+    int size;
+    const char* sType;
+
+    jInstructions = json_object_get(root, "instructions");
+    assert(json_is_array(jInstructions));
+
+    size = json_array_size(jInstructions); 
+    instructions->size = size;
+    instructions->instr = malloc(sizeof(Instruction) * size);
+
+    for (int i=0; i<size; i++) {
+        jInstr = json_array_get(jInstructions, i);
+        assert(json_is_object(jInstr));
+
+        jPtr = json_object_get(jInstr, "type");
+        assert(json_is_string(jPtr));
+        sType = json_string_value(jPtr);
+
+        instructions->instr[i].type = get_instruction_type_from_string(sType);
+        switch (instructions->instr[i].type) {
+            case EVAL:
+                jPtr = json_object_get(jInstr, "gc_id");
+                assert(json_is_integer(jPtr));
+                instructions->instr[i].evCircId = json_integer_value(jPtr);
+                break;
+            case CHAIN:
+                jPtr = json_object_get(jInstr, "from_gc_id");
+                assert(json_is_integer(jPtr));
+                instructions->instr[i].chFromCircId = json_integer_value(jPtr);
+
+                jPtr = json_object_get(jInstr, "from_wire_id");
+                assert(json_is_integer(jPtr));
+                instructions->instr[i].chFromWireId = json_integer_value(jPtr);
+
+                jPtr = json_object_get(jInstr, "to_gc_id");
+                assert(json_is_integer(jPtr));
+                instructions->instr[i].chToCircId = json_integer_value(jPtr);
+
+                jPtr = json_object_get(jInstr, "to_wire_id");
+                assert(json_is_integer(jPtr));
+                instructions->instr[i].chToWireId = json_integer_value(jPtr);
+                break;
+            default:
+                fprintf(stderr, "Instruction %d was invalid: %s\n", i, sType);
+                return FAILURE;
+        }
+    }
+    return SUCCESS;
+}
+
 int
 json_test() {
     /* tests use loading in function specification via json
@@ -304,6 +437,10 @@ json_test() {
     // but I was getting runtime memory errors when using it.
     
     // load file into buffer
+    //
+    InputMapping inputMapping;  // memory allocated in json_get_input_mapping
+    Instructions instructions; // memory allocated in json_get_instructions
+
     char* path = "functions/22Adder.json"; 
     long fs = filesize(path); 
     FILE *f = fopen(path, "r"); 
@@ -315,17 +452,32 @@ json_test() {
     fread(buffer, sizeof(char), fs, f);
 
     // read buffer into json_t object
+    json_t *jRoot;
     json_error_t error; 
-    json_t *jRoot = json_loads(buffer, 0, &error);
-    free(buffer);
-    if (!jRoot) {
+    if (!(jRoot = json_loads(buffer, 0, &error))) {
         fprintf(stderr, "error load json on line %d: %s\n", error.line, error.text);
         return FAILURE;
     }
+    free(buffer);
 
-    json_get_components(jRoot);
+    if (json_get_components(jRoot) == FAILURE) {
+        fprintf(stderr, "error loading json components");
+        return FAILURE;
+    }
+    
+    if (json_get_input_mapping(jRoot, &inputMapping) == FAILURE) {
+        fprintf(stderr, "error loading json components");
+        return FAILURE;
+    }
 
-    printf("about to end\n");
+    if (json_get_instructions(jRoot, &instructions) == FAILURE) {
+        fprintf(stderr, "error loading json instructions");
+        return FAILURE;
+    }
+
+    print_input_mapping(&inputMapping);
+    print_instructions(&instructions);
+
     free(jRoot);
     printf("successful json_test\n");
     return SUCCESS;

@@ -10,7 +10,7 @@
 
 typedef enum {ADDER22, ADDER23} CircuitType;
 
-typedef enum {INPUT, REQUEST_INPUT, EVAL, CHAIN} InstructionType;
+typedef enum {INPUT, REQUEST_INPUT, EVAL, CHAIN, INSTR_ERR} InstructionType;
 
 typedef struct {
     CircuitType circuit_type;
@@ -19,13 +19,17 @@ typedef struct {
 } FunctionComponent;
 
 typedef struct {
+    int size;
     int* input_idx; // so input_idx[i] maps to (gc_id[i], wire_id[i])
     int* gc_id; // each int array should be sizeof(int)*n (where n is number of inputs)
     int* wire_id;
 } InputMapping;
 
+
 typedef struct {
+    // TODO remove instruciton; change to type. keeping to not break old things for now.
     InstructionType instruction; // todo remove input/chaining. will happen automatically.
+    InstructionType type; // todo remove input/chaining. will happen automatically.
     InputLabels inInputLabels; // type block*
     int inCircId;
     
@@ -43,6 +47,11 @@ typedef struct {
     int chToWireId;
     block chOffset; // from_wire xor to_wire, assuming the same deltas
 } Instruction;
+
+typedef struct {
+    int size;
+    Instruction* instr;
+} Instructions;
 
 typedef struct {
     char* name;
