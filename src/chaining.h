@@ -8,9 +8,9 @@
 #include "gates.h"
 #include "circuits.h"
 
-typedef enum {ADDER22, ADDER23} CircuitType;
+typedef enum {ADDER22, ADDER23, CIRCUIT_TYPE_ERR} CircuitType;
 
-typedef enum {INPUT, REQUEST_INPUT, EVAL, CHAIN, INSTR_ERR} InstructionType;
+typedef enum {EVAL, CHAIN, INSTR_ERR} InstructionType;
 
 typedef struct {
     CircuitType circuit_type;
@@ -28,7 +28,6 @@ typedef struct {
 
 typedef struct {
     // TODO remove instruciton; change to type. keeping to not break old things for now.
-    InstructionType instruction; // todo remove input/chaining. will happen automatically.
     InstructionType type; // todo remove input/chaining. will happen automatically.
     InputLabels inInputLabels; // type block*
     int inCircId;
@@ -57,9 +56,10 @@ typedef struct {
     char* name;
     char* description;
     int n,m;
+    int num_components;
     FunctionComponent* components;
     InputMapping input_mapping;
-    Instruction* instructions;
+    Instructions instructions;
 } FunctionSpec;
 
 typedef struct {

@@ -11,6 +11,7 @@
 #include "circuit_builder.h" /* buildAdderCircuit */
 #include "common.h"
 #include "chaining.h"
+#include "2pc_garbler.h"
 
 #include "util.h"
 #include "tests.h"
@@ -87,7 +88,8 @@ main(int argc, char* argv[]) {
     //run_all_tests();
     //go();
     //test_saving_reading();
-    json_test();
+    //json_test();
+    garbler_init();
     return 0;
 }
 

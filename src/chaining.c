@@ -31,39 +31,39 @@ int
 createInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs) {
     // Input normally would require OT, but in our case only requires extractLabels
     // on other end, call extractLabels(extractedLabels[0], chained_gcs[0].inputLabels, inputs[0], n);
-    instr[0].instruction = INPUT;
-    instr[0].inCircId = 0;
-    // malloc space
-    instr[0].inInputLabels = chained_gcs[0].inputLabels;
+    //instr[0].type = INPUT;
+    //instr[0].inCircId = 0;
+    //// malloc space
+    //instr[0].inInputLabels = chained_gcs[0].inputLabels;
+    //
+    //instr[1].type = INPUT;
+    //instr[1].inCircId = 1;
+    //// malloc space
+    //instr[1].inInputLabels = chained_gcs[1].inputLabels;
+
+    instr[0].type = EVAL;
+    instr[0].evCircId = 0;
     
-    instr[1].instruction = INPUT;
-    instr[1].inCircId = 1;
-    // malloc space
-    instr[1].inInputLabels = chained_gcs[1].inputLabels;
+    instr[1].type = EVAL;
+    instr[1].evCircId = 1;
 
-    instr[2].instruction = EVAL;
-    instr[2].evCircId = 0;
-    
-    instr[3].instruction = EVAL;
-    instr[3].evCircId = 1;
+    instr[2].type = CHAIN;
+    instr[2].chFromCircId = 0;
+    instr[2].chFromWireId = 0;
+    instr[2].chToCircId = 2;
+    instr[2].chToWireId = 0;
+    instr[2].chOffset = xorBlocks(chained_gcs[0].outputMap[0], chained_gcs[2].inputLabels[0]);
 
-    instr[4].instruction = CHAIN;
-    instr[4].chFromCircId = 0;
-    instr[4].chFromWireId = 0;
-    instr[4].chToCircId = 2;
-    instr[4].chToWireId = 0;
-    instr[4].chOffset = xorBlocks(chained_gcs[0].outputMap[0], chained_gcs[2].inputLabels[0]);
+    instr[3].type = CHAIN;
+    instr[3].chFromCircId = 1;
+    instr[3].chFromWireId = 0;
+    instr[3].chToCircId = 2;
+    instr[3].chToWireId = 1;
+    instr[3].chOffset = xorBlocks(chained_gcs[1].outputMap[0], chained_gcs[2].inputLabels[2]);
 
-    instr[5].instruction = CHAIN;
-    instr[5].chFromCircId = 1;
-    instr[5].chFromWireId = 0;
-    instr[5].chToCircId = 2;
-    instr[5].chToWireId = 1;
-    instr[5].chOffset = xorBlocks(chained_gcs[1].outputMap[0], chained_gcs[2].inputLabels[2]);
-
-    instr[6].instruction = EVAL;
-    instr[6].evCircId = 2;
-    return 0;
+    instr[4].type = EVAL;
+    instr[4].evCircId = 2;
+    return SUCCESS;
 }
 
 int 
@@ -82,23 +82,22 @@ chainedEvaluate(GarbledCircuit *gcs, int num_gcs, Instruction* instructions, int
 
     for (int i=0; i<num_instr; i++) {
         Instruction* cur = &instructions[i];
-        switch(cur->instruction) {
-            case INPUT:
-                // TODO figure this out later
-                printf("instruction %d is INPUTting into circuit %d\n", i, cur->inCircId);
-                if (cur->inCircId == 0) {
-                    extractLabels(labels[0], inputLabels[0], inputs[0], gcs[0].n);
+        switch(cur->type) {
+            //case INPUT:
+            //    // TODO figure this out later
+            //    printf("type %d is INPUTting into circuit %d\n", i, cur->inCircId);
+            //    if (cur->inCircId == 0) {
+            //        extractLabels(labels[0], inputLabels[0], inputs[0], gcs[0].n);
 
-                } else if (cur->inCircId == 1) {
-                    extractLabels(labels[1], inputLabels[1], inputs[1], gcs[1].n);
-                }
-                break;
-
-            case REQUEST_INPUT:
-                printf("instruction %d is REQUEST_INPUT\n", i);
-                break;
+            //    } else if (cur->inCircId == 1) {
+            //        extractLabels(labels[1], inputLabels[1], inputs[1], gcs[1].n);
+            //    }
+            //    break;
+            //case REQUEST_INPUT:
+            //    printf("type %d is REQUEST_INPUT\n", i);
+            //    break;
             case EVAL:
-                printf("instruction %d is EVALuating circuit %d\n", i, cur->evCircId);
+                printf("type %d is EVALuating circuit %d\n", i, cur->evCircId);
                 evaluate(&gcs[cur->evCircId], labels[cur->evCircId], computedOutputMap[cur->evCircId]);
 
                 if (i == num_instr - 1) {
@@ -109,7 +108,7 @@ chainedEvaluate(GarbledCircuit *gcs, int num_gcs, Instruction* instructions, int
                 break;
             case CHAIN:
                 // problem in here
-                printf("instruction %d is CHAINing circuit %d to circuit %d\n", i, 
+                printf("type %d is CHAINing circuit %d to circuit %d\n", i, 
                         cur->chFromCircId, cur->chToCircId);
 
                 labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
@@ -118,7 +117,7 @@ chainedEvaluate(GarbledCircuit *gcs, int num_gcs, Instruction* instructions, int
                 break;
             default:
                 printf("Error\n");
-                printf("Instruction %d not a valid instruction\n", i);
+                printf("type %d not a valid type\n", i);
                 return FAILURE;
         }
     }
