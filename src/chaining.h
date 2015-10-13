@@ -8,7 +8,11 @@
 #include "gates.h"
 #include "circuits.h"
 
-typedef enum {ADDER22, ADDER23, CIRCUIT_TYPE_ERR} CircuitType;
+typedef enum {
+    ADDER22 = 0, 
+    ADDER23 = 1, 
+    CIRCUIT_TYPE_ERR = -1
+    } CircuitType;
 
 typedef enum {EVAL, CHAIN, INSTR_ERR} InstructionType;
 
@@ -25,10 +29,9 @@ typedef struct {
     int* wire_id;
 } InputMapping;
 
-
 typedef struct {
-    // TODO remove instruciton; change to type. keeping to not break old things for now.
-    InstructionType type; // todo remove input/chaining. will happen automatically.
+    // TODO remove instruction; change to type. keeping to not break old things for now.
+    InstructionType type; 
     InputLabels inInputLabels; // type block*
     int inCircId;
     
@@ -53,6 +56,10 @@ typedef struct {
 } Instructions;
 
 typedef struct {
+    /* The specifiction for a function. 
+     * That is, the components, instructions for evaluating and chaining components,
+     * and everything else necessary for evaluating a function 
+     */
     char* name;
     char* description;
     int n,m;
@@ -63,36 +70,21 @@ typedef struct {
 } FunctionSpec;
 
 typedef struct {
+    /* Our abstraction/layer on top of GarbledCircuit */
     GarbledCircuit gc;
     int id;
     CircuitType type;
-    // TODO looks like GarbledCircuit as a slot for inputLabels and outputLabels
-    // Could use that. but would need to be careful about saving gc to disk.
-    // I think I like them abstracted out.
-    //InputLabels inputLabels; // block*
-    //OutputMap outputMap; // block*
     block* inputLabels; // block*
     block* outputMap; // block*
-} ChainedGarbledCircuit;
-
-typedef struct {
-    int from_gc_id;
-    int from_output_idx;
-    int to_gc_id;
-    int to_input_idx;
-    block offset; // from_wire xor to_wire, assuming the same deltas
-} ChainingMap;
+} ChainedGarbledCircuit; 
 
 int createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n);
 int createInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs);
-int createChainingMap(ChainingMap* c_map, ChainedGarbledCircuit* chained_gcs);
 int chainedEvaluate(GarbledCircuit *gcs, int num_gcs, 
         Instruction* instructions, int num_instr, 
         InputLabels* labels, block* receivedOutputMap, 
         int* inputs[], int* output);
-int chainedEvaluateOld(GarbledCircuit *gcs, int num_gcs, 
-        ChainingMap* c_map, int c_map_size, 
-        InputLabels* labels, block* receivedOutputMap, int* output);
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
+int freeFunctionSpec(FunctionSpec* function);
 
 #endif

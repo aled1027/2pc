@@ -54,7 +54,7 @@ test_saving_reading() {
     block* inputLabels = memalign(128, sizeof(block) * 2 * gc.n);
     block* extractedLabels = memalign(128, sizeof(block) * gc.n);
     block* outputMap = memalign(128, sizeof(block) * 2 * gc.m);
-    block* computedOutputMap = memalign(128, sizeof(block) * gc.m);
+    //block* computedOutputMap = memalign(128, sizeof(block) * gc.m);
     block delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
 
@@ -86,6 +86,10 @@ test_saving_reading() {
         printf("wires failed in test_saving_reading\n");
         failed = true;
     }
+
+    free(inputLabels);
+    free(extractedLabels);
+    free(outputMap);
 
     if (failed) {
         printf("test_saving_reading() failed\n");
