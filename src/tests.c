@@ -8,14 +8,14 @@
 
 #include "gc_comm.h"
 #include "arg.h"
-#include "circuit_builder.h"
 #include "common.h"
-#include "chaining.h"
+
 #include "2pc_garbler.h"
-
 #include "util.h"
-
 #include "tests.h"
+
+#include <stdbool.h>
+#include <stdint.h>
 
 
 int run_all_tests() {

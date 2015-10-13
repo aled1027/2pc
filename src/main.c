@@ -6,17 +6,15 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "gc_comm.h"
-#include "arg.h"
-#include "circuit_builder.h"
-#include "common.h"
-#include "chaining.h"
+// #include "gc_comm.h"
+// #include "common.h"
 #include "2pc_garbler.h" 
-#include "util.h"
+#include "2pc_evaluator.h" 
 #include "tests.h"
 
 int 
-go() {
+go() 
+{
     int num_circs = 3; // can be an upper bound
     int num_maps = 3; // can be an upper bound
     int n = 2; // number of inputs to each gc
@@ -79,7 +77,8 @@ go() {
 }
 
 int 
-go2() {
+go2() 
+{
     FunctionSpec function;
 
     int num_circs = 3, num_gcs = 3;
@@ -116,11 +115,12 @@ go2() {
 }
 
 int 
-main(int argc, char* argv[]) {
+main(int argc, char* argv[]) 
+{
 	srand(time(NULL));
     srand_sse(time(NULL));
-    //run_all_tests();
-    go();
+    run_all_tests();
+    //go();
     //go2();
     //test_saving_reading();
     //json_test();

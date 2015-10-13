@@ -1,75 +1,43 @@
-#include "circuit_builder.h"
+#include "2pc_garbled_circuit.h"
+
+#include <malloc.h>
+#include <assert.h>
+#include <stdint.h>
+
 #include "utils.h"
 
-void
-buildAdderCircuit(GarbledCircuit *gc)
+int 
+createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n) 
 {
+    block delta = randomBlock();
+    *((uint16_t *) (&delta)) |= 1;
 
-    int n = 2; // number of inputs 
-    int m = 2; // number of outputs
-    int q = 3; // number of gates
-	int r = n+q;  // number of wires
-
-	int *inputs = (int *) malloc(sizeof(int) * n);
-	countToN(inputs, n);
-    int* outputs = (int*) malloc(sizeof(int) * m);
-	block *labels = (block*) malloc(sizeof(block) * 2 * n);
-	block *outputmap = (block*) malloc(sizeof(block) * 2 * m);
-
-	GarblingContext gc_context;
-
-	createInputLabels(labels, n);
-	createEmptyGarbledCircuit(gc, n, m, q, r, labels);
-	startBuilding(gc, &gc_context);
-	ADD22Circuit(gc, &gc_context, inputs, outputs);
-	finishBuilding(gc, &gc_context, outputmap, outputs);
-
-    free(gc_context.fixedWires);
-    free(inputs);
-    free(outputs);
-    free(labels);
-    free(outputmap);
-}
-
-void
-buildAdderCircuitOld(GarbledCircuit *gc)
-{
-    /*
-     * Build the 22 adder circuit from scratch. 
-     * prefer buildAdderCircuit which uses ADD22CIRCUIT
-     */
-
-    int n = 2; // number of inputs 
-    int m = 2; // number of outputs
-    int q = 20; // number of gates
-	int r = n+q;  // number of wires
-
-	int *inputs = (int *) malloc(sizeof(int) * n);
-	countToN(inputs, n);
-    int* outputs = (int*) malloc(sizeof(int) * m);
-
-	block *labels = (block*) malloc(sizeof(block) * 2 * n);
-	block *outputmap = (block*) malloc(sizeof(block) * 2 * m);
-	GarblingContext gc_context;
-
-	createInputLabels(labels, n);
-	createEmptyGarbledCircuit(gc, n, m, q, r, labels);
-	startBuilding(gc, &gc_context);
-
-    int wire1 = getNextWire(&gc_context);
-    int wire2 = getNextWire(&gc_context);
-
-    XORGate(gc, &gc_context, inputs[0], inputs[1], wire1);
-	ANDGate(gc, &gc_context, inputs[0], inputs[1], wire2);
-
-	outputs[0] = wire1;
-	outputs[1] = wire2;
-
-	finishBuilding(gc, &gc_context, outputmap, outputs);
+    for (int i = 0; i < n; i++) {
+        GarbledCircuit* p_gc = &(chained_gcs[i].gc);
+        buildAdderCircuit(p_gc);
+        chained_gcs[i].id = i;
+        chained_gcs[i].type = ADDER22;
+        chained_gcs[i].inputLabels = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.n );
+        chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m);
+        assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
+        garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap, &delta);
+    }
+    return 0;
 }
 
 int 
-saveGarbledCircuit(GarbledCircuit* gc, char* fileName) {
+freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc) 
+{
+    removeGarbledCircuit(&chained_gc->gc); // frees memory in gc
+    free(chained_gc->inputLabels);
+    free(chained_gc->outputMap);
+    // TODO free other things
+    return 0;
+}
+
+int 
+saveGarbledCircuit(GarbledCircuit* gc, char* fileName) 
+{
     /*
      * Save the garbled circuit to fileName.
      * The following fields are not saved:
@@ -142,7 +110,8 @@ saveGarbledCircuit(GarbledCircuit* gc, char* fileName) {
 }
 
 int 
-readGarbledCircuit(GarbledCircuit* gc, char* fileName) {
+readGarbledCircuit(GarbledCircuit* gc, char* fileName) 
+{
     FILE *f = fopen(fileName, "r");
 
     if (f == NULL) {
@@ -186,3 +155,34 @@ readGarbledCircuit(GarbledCircuit* gc, char* fileName) {
     fclose(f);
     return SUCCESS;
 }
+
+void
+buildAdderCircuit(GarbledCircuit *gc) 
+{
+    int n = 2; // number of inputs 
+    int m = 2; // number of outputs
+    int q = 3; // number of gates
+	int r = n+q;  // number of wires
+
+	int *inputs = (int *) malloc(sizeof(int) * n);
+	countToN(inputs, n);
+    int* outputs = (int*) malloc(sizeof(int) * m);
+	block *labels = (block*) malloc(sizeof(block) * 2 * n);
+	block *outputmap = (block*) malloc(sizeof(block) * 2 * m);
+
+	GarblingContext gc_context;
+
+	createInputLabels(labels, n);
+	createEmptyGarbledCircuit(gc, n, m, q, r, labels);
+	startBuilding(gc, &gc_context);
+	ADD22Circuit(gc, &gc_context, inputs, outputs);
+	finishBuilding(gc, &gc_context, outputmap, outputs);
+
+    free(gc_context.fixedWires);
+    free(inputs);
+    free(outputs);
+    free(labels);
+    free(outputmap);
+}
+
+

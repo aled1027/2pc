@@ -1,18 +1,8 @@
+#ifndef MPC_FUNCTION_SPEC_H
+#define MPC_FUNCTION_SPEC_H
 
-#ifndef MPC_CHAINING_H
-#define MPC_CHAINING_H
-
-
-#include "circuit_builder.h" /* buildAdderCircuit */
-#include "gc_comm.h"
-#include "gates.h"
-#include "circuits.h"
-
-typedef enum {
-    ADDER22 = 0, 
-    ADDER23 = 1, 
-    CIRCUIT_TYPE_ERR = -1
-    } CircuitType;
+#include <jansson.h>
+#include "2pc_garbled_circuit.h"
 
 typedef enum {EVAL, CHAIN, INSTR_ERR} InstructionType;
 
@@ -69,22 +59,19 @@ typedef struct {
     Instructions instructions;
 } FunctionSpec;
 
-typedef struct {
-    /* Our abstraction/layer on top of GarbledCircuit */
-    GarbledCircuit gc;
-    int id;
-    CircuitType type;
-    block* inputLabels; // block*
-    block* outputMap; // block*
-} ChainedGarbledCircuit; 
 
-int createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n);
-int createInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs);
-int chainedEvaluate(GarbledCircuit *gcs, int num_gcs, 
-        Instruction* instructions, int num_instr, 
-        InputLabels* labels, block* receivedOutputMap, 
-        int* inputs[], int* output);
-int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
+// json loading functions
+int load_function_via_json(char* path, FunctionSpec *function);
+int json_load_components(json_t *root, FunctionSpec* function);
+int json_load_input_mapping(json_t *root, FunctionSpec* function);
+int json_load_instructions(json_t* root, FunctionSpec* function);
+InstructionType get_instruction_type_from_string(const char* type);
+CircuitType get_circuit_type_from_string(const char* type);
+void print_function(FunctionSpec* function);
+void print_components(FunctionComponent* components, int num_components);
+void print_input_mapping(InputMapping* inputMapping);
+void print_instructions(Instructions* instr);
+
 int freeFunctionSpec(FunctionSpec* function);
 
 #endif
