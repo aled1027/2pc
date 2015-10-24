@@ -11,7 +11,9 @@ OBJFULL = obj/*.o
 JUSTGARBLE = JustGarble
 
 CC=clang
-CFLAGS= -g -Iinc -I$(JUSTGARBLE)/include -Wno-typedef-redefinition 
+CFLAGS= -g -Iinc -I$(JUSTGARBLE)/include -Wno-typedef-redefinition -Wno-unused-function
+CFLAGS+= -Wno-unused-variable
+
 LIBS=-lmsgpack -march=native -maes -msse4 -lm -lrt -lcrypto -lssl -lgmp -ljansson
 
 SOURCES := $(wildcard $(SRCDIR)/*.c)
@@ -27,7 +29,7 @@ run:
 valgrind: 
 	make;
 	rm valg.out;
-	valgrind --track-origins=yes --leak-check=yes --log-file=valg.out ./a.out;
+	valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --leak-check=yes --log-file=valg.out ./a.out;
 
 # -q
 # -v

@@ -32,9 +32,14 @@ typedef struct {
 
 int createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n);
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
+void buildAdderCircuit(GarbledCircuit *gc);
+
+// reading and writing methods
 int saveGarbledCircuit(GarbledCircuit* gc, char* fileName);
 int loadGarbledCircuit(GarbledCircuit* gc, char* fileName);
+static int writeGarbledCircuitToBuffer(GarbledCircuit* gc, char* buffer, size_t max_buffer_size);
+static int readBufferIntoGarbledCircuit(GarbledCircuit *gc, char* buffer);
+static size_t sizeofGarbledCircuit(GarbledCircuit* gc);
 
-void buildAdderCircuit(GarbledCircuit *gc);
 
 #endif

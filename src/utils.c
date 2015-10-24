@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <wmmintrin.h>
 #include <sys/stat.h>
+#include <assert.h>
 
 #include "state.h"
 
@@ -36,4 +37,38 @@ filesize(const char *filename) {
 		return st.st_size;
 
 	return -1;
+}
+
+int 
+writeBufferToFile(char* buffer, size_t buf_size, char* fileName) {
+
+    FILE *f;
+    f = fopen(fileName, "w");
+    if (f == NULL) {
+        printf("Write: Error in opening file.\n");
+        return FAILURE;
+    }
+    fwrite(buffer, sizeof(char), buf_size, f);
+    fclose(f);
+    return SUCCESS;
+}
+
+int
+readFileIntoBuffer(char* buffer, char* fileName) {
+    /* assume buffer is already malloced */
+    assert(buffer);
+    FILE *f = fopen(fileName, "r");
+    long fs = filesize(fileName);
+
+    if (f == NULL) {
+        printf("Write: Error in opening file.\n");
+        return FAILURE;
+    }
+    fread(buffer, sizeof(char), fs, f);
+    fclose(f);
+    return SUCCESS;
+
+
+
+
 }

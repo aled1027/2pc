@@ -20,19 +20,26 @@
 
 int run_all_tests() {
     bool failed = false;
+    printf("------------------\n");
+    printf("Running all tests\n");
+    printf("------------------\n");
 
     if (test2() == FAILURE) {
-        printf("test2() failed\n");
+        printf("---test2() failed\n");
         failed = true;
     }
 
     if (simple_test() == FAILURE) {
-        printf("simple_test() failed\n");
+        printf("---simple_test() failed\n");
         failed = true;
     }
 
     if (json_test() == FAILURE) {
-        printf("json_test() failed\n");
+        printf("---json_test() failed\n");
+        failed = true;
+    }
+    if (test_saving_reading() == FAILURE) {
+        printf("---test_saving_reading() failed\n");
         failed = true;
     }
     
@@ -48,11 +55,12 @@ int run_all_tests() {
 }
 
 int 
-test_saving_reading() {
+test_saving_reading() 
+{
     printf("running test_saving\n");
 
-
     GarbledCircuit gc, gc2;
+    buildAdderCircuit(&gc);
     block* inputLabels = memalign(128, sizeof(block) * 2 * gc.n);
     block* extractedLabels = memalign(128, sizeof(block) * gc.n);
     block* outputMap = memalign(128, sizeof(block) * 2 * gc.m);
@@ -60,10 +68,9 @@ test_saving_reading() {
     block delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
 
-    buildAdderCircuit(&gc);
     garbleCircuit(&gc, inputLabels, outputMap, &delta);
 
-    saveGarbledCircuit(&gc, "garbledCircuit.gc");
+    saveGarbledCircuit(&gc,  "garbledCircuit.gc");
     loadGarbledCircuit(&gc2, "garbledCircuit.gc");
 
     bool failed = false;
@@ -88,13 +95,13 @@ test_saving_reading() {
         printf("wires failed in test_saving_reading\n");
         failed = true;
     }
+    printf("check it\n");
 
     free(inputLabels);
     free(extractedLabels);
     free(outputMap);
 
     if (failed) {
-        printf("test_saving_reading() failed\n");
         return FAILURE;
     } else {
         return SUCCESS;
@@ -280,7 +287,7 @@ json_test() {
         return FAILURE;
     }
 
-    print_function(&function);
+    //print_function(&function);
     return SUCCESS;
 }
 

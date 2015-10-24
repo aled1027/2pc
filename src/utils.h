@@ -24,4 +24,10 @@ ot_free(void *p);
 long 
 filesize(const char *filename);
 
+int 
+writeBufferToFile(char* buffer, size_t buf_size, char* fileName);
+
+int
+readFileIntoBuffer(char* buffer, char* fileName);
+
 #endif
