@@ -61,17 +61,20 @@ typedef struct {
 
 
 // json loading functions
+// public interface
 int load_function_via_json(char* path, FunctionSpec *function);
+void print_function(FunctionSpec* function);
+int freeFunctionSpec(FunctionSpec* function);
+
+// private interface - below this should be static:
 int json_load_components(json_t *root, FunctionSpec* function);
 int json_load_input_mapping(json_t *root, FunctionSpec* function);
 int json_load_instructions(json_t* root, FunctionSpec* function);
 InstructionType get_instruction_type_from_string(const char* type);
 CircuitType get_circuit_type_from_string(const char* type);
-void print_function(FunctionSpec* function);
 void print_components(FunctionComponent* components, int num_components);
 void print_input_mapping(InputMapping* inputMapping);
 void print_instructions(Instructions* instr);
 
-int freeFunctionSpec(FunctionSpec* function);
 
 #endif

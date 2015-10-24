@@ -9,5 +9,10 @@ int chainedEvaluate(GarbledCircuit *gcs, int num_gcs,
         InputLabels* labels, block* receivedOutputMap, 
         int* inputs[], int* output);
 
+// TODO:
+int receive_cs();
+int save_gcs();
+int load_gcs();
+
 
 #endif

@@ -110,7 +110,7 @@ saveGarbledCircuit(GarbledCircuit* gc, char* fileName)
 }
 
 int 
-readGarbledCircuit(GarbledCircuit* gc, char* fileName) 
+loadGarbledCircuit(GarbledCircuit* gc, char* fileName) 
 {
     FILE *f = fopen(fileName, "r");
 

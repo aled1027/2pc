@@ -40,7 +40,9 @@ int run_all_tests() {
     if (failed) {
         return FAILURE;
     } else {
+        printf("----------------\n");
         printf("All tests passed\n");
+        printf("----------------\n");
         return SUCCESS;
     }
 }
@@ -62,7 +64,7 @@ test_saving_reading() {
     garbleCircuit(&gc, inputLabels, outputMap, &delta);
 
     saveGarbledCircuit(&gc, "garbledCircuit.gc");
-    readGarbledCircuit(&gc2, "garbledCircuit.gc");
+    loadGarbledCircuit(&gc2, "garbledCircuit.gc");
 
     bool failed = false;
     if ((gc.n == gc2.n &&

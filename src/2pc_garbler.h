@@ -9,4 +9,9 @@ int garbler_make_real_instructions(FunctionSpec *function, CircuitType *saved_gc
         int num_saved_gcs, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs);
 int createInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs);
 
+// TO MAKE:
+int load_function_spec(char* path);
+int map_to_real_function(FunctionSpec* function, GCsMetadata* gcs_metadata);
+int send_gcs();
+
 #endif
