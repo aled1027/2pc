@@ -41,8 +41,7 @@ go()
     inputs[1][1] = 1;
     printf("inputs: (%d,%d), (%d,%d)\n", inputs[0][0], inputs[0][1], inputs[1][0], inputs[1][1]);
 
-    createGarbledCircuits(chained_gcs, num_circs);
-    createInstructions(instructions, chained_gcs);
+    createGarbledCircuits(chained_gcs, num_circs); createInstructions(instructions, chained_gcs);
 
     // send garbled circuits over
     for (int i=0; i<num_circs; i++) {
@@ -77,50 +76,12 @@ go()
 }
 
 int 
-go2() 
-{
-    FunctionSpec function;
-
-    int num_circs = 3, num_gcs = 3;
-    GarbledCircuit gcs[num_circs];
-    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_circs);
-    block** inputLabels = malloc(sizeof(block*) * 2);
-    block* receivedOutputMap; // = (block *) memalign(128, sizeof(block) * 2 * 2);
-    int* inputs[2];
-    inputs[0] = malloc(sizeof(int*)); inputs[1] = malloc(sizeof(int*));
-    int* output = malloc(sizeof(int) * chained_gcs[0].gc.m);
-
-    createGarbledCircuits(chained_gcs, num_circs);
-    garbler_init(&function, chained_gcs, num_gcs);
-
-    inputLabels[0] = chained_gcs[0].inputLabels;
-    inputLabels[1] = chained_gcs[1].inputLabels;
-    receivedOutputMap = chained_gcs[2].outputMap; 
-
-    for (int i=0; i<num_circs; i++) 
-        gcs[i] = chained_gcs[i].gc; // shallow copy; pointers are not copied.
-
-    inputs[0][0] = 1;
-    inputs[0][1] = 1;
-    inputs[1][0] = 1;
-    inputs[1][1] = 1;
-    printf("inputs: (%d,%d), (%d,%d)\n", inputs[0][0], inputs[0][1], inputs[1][0], inputs[1][1]);
-
-    chainedEvaluate(gcs, num_gcs, function.instructions.instr, function.instructions.size, 
-            inputLabels, receivedOutputMap, inputs, output);
-
-    freeFunctionSpec(&function);
-    return SUCCESS;
-}
-
-int 
 main(int argc, char* argv[]) 
 {
 	srand(time(NULL));
     srand_sse(time(NULL));
-    //run_all_tests();
+    run_all_tests();
     //go();
-    go2();
     return 0;
 }
 

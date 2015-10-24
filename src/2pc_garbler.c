@@ -7,7 +7,6 @@
 int 
 garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs) 
 {
-    // load function from file
     char* function_path = "functions/22Adder.json";
 
     if (load_function_via_json(function_path, function) == FAILURE) {
@@ -82,15 +81,17 @@ garbler_make_real_instructions(FunctionSpec *function, CircuitType *saved_gcs_ty
             case CHAIN:
                 cur->chFromCircId = functionCircuitToRealCircuit[cur->chFromCircId];
                 cur->chToCircId = functionCircuitToRealCircuit[cur->chToCircId];
+
                 cur->chOffset = xorBlocks(
                         chained_gcs[cur->chFromCircId].outputMap[cur->chFromWireId],
-                        chained_gcs[cur->chToCircId].outputMap[cur->chToWireId]);
+                        chained_gcs[cur->chToCircId].inputLabels[2*cur->chToWireId]); 
+                // pretty sure this 2 is right
                 break;
             default:
                 fprintf(stderr, "Instruction type not recognized\n");
         }
     }
-    print_instructions(&function->instructions);
+    //print_instructions(&function->instructions);
     return SUCCESS;
 }
 

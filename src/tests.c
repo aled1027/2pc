@@ -11,6 +11,7 @@
 #include "common.h"
 
 #include "2pc_garbler.h"
+#include "2pc_evaluator.h"
 #include "util.h"
 #include "tests.h"
 
@@ -18,7 +19,9 @@
 #include <stdint.h>
 
 
-int run_all_tests() {
+int 
+run_all_tests() 
+{
     bool failed = false;
     printf("------------------\n");
     printf("Running all tests\n");
@@ -38,6 +41,7 @@ int run_all_tests() {
         printf("---json_test() failed\n");
         failed = true;
     }
+
     if (test_saving_reading() == FAILURE) {
         printf("---test_saving_reading() failed\n");
         failed = true;
@@ -45,6 +49,12 @@ int run_all_tests() {
     
     if (function_spec_test() == FAILURE) {
         printf("--- function_spec_test() failed\n");
+        failed = true;
+    }
+
+
+    if (function_garb_eval_test() == FAILURE) {
+        printf("--- function_garb_eval_test() failed\n");
         failed = true;
     }
 
@@ -296,7 +306,8 @@ json_test()
     return SUCCESS;
 }
 
-int function_spec_test() 
+int 
+function_spec_test() 
 {
     char *path, *buffer, *buffer2; 
     size_t buf_size;
@@ -330,4 +341,50 @@ int function_spec_test()
     return SUCCESS;
 }
 
+int 
+function_garb_eval_test()
+{
+    // test reading function from file, 
+    // chaining some circuits and evaluating
+    
+    FunctionSpec function;
+
+    int num_circs = 3, num_gcs = 3;
+    GarbledCircuit gcs[num_circs];
+    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_circs);
+    block** inputLabels = malloc(sizeof(block*) * 2); 
+    block* receivedOutputMap; // = (block *) memalign(128, sizeof(block) * 2 * 2);
+    int* inputs[2];
+    inputs[0] = malloc(sizeof(int*)); inputs[1] = malloc(sizeof(int*));
+    int* output = malloc(sizeof(int) * chained_gcs[0].gc.m);
+
+    createGarbledCircuits(chained_gcs, num_circs);
+    garbler_init(&function, chained_gcs, num_gcs);
+
+    inputLabels[0] = chained_gcs[0].inputLabels;
+    inputLabels[1] = chained_gcs[1].inputLabels;
+    receivedOutputMap = chained_gcs[2].outputMap; 
+
+    for (int i=0; i<num_circs; i++) 
+        gcs[i] = chained_gcs[i].gc; // shallow copy; pointers are not copied.
+
+    inputs[0][0] = rand() % 2;
+    inputs[0][1] = rand() % 2;
+    inputs[1][0] = rand() % 2;
+    inputs[1][1] = rand() % 2;
+    //printf("inputs: (%d,%d), (%d,%d)\n", inputs[0][0], inputs[0][1], inputs[1][0], inputs[1][1]);
+
+    chainedEvaluate(gcs, num_gcs, function.instructions.instr, function.instructions.size, 
+            inputLabels, receivedOutputMap, inputs, output);
+
+    freeFunctionSpec(&function);
+    //printf("outputs: (%d, %d)\n", output[0], output[1]);
+
+    if ((((inputs[0][0] ^ inputs[0][1]) ^ (inputs[1][0] ^ inputs[1][1])) != output[0]) || 
+        (((inputs[0][0] ^ inputs[0][1]) && (inputs[1][0] ^ inputs[1][1])) != output[1]))
+    {
+        return FAILURE;
+    }
+    return SUCCESS;
+}
 

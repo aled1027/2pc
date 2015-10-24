@@ -15,11 +15,10 @@ chainedEvaluate(GarbledCircuit *gcs, int num_gcs, Instruction* instructions, int
         InputLabels* inputLabels, block* receivedOutputMap, 
         int* inputs[], int* output) {
 
-    printf("------------------starting chained evaluate------------------\n");
+    //printf("------------------starting chained evaluate------------------\n");
     Instructions iss;
     iss.instr = instructions;
     iss.size = num_instr;
-    print_instructions(&iss);
 
     block** labels = malloc(sizeof(block*) * num_gcs);
     block** computedOutputMap = malloc(sizeof(block*) * num_gcs);
@@ -33,33 +32,30 @@ chainedEvaluate(GarbledCircuit *gcs, int num_gcs, Instruction* instructions, int
 
     // This step would normally happen with OT
     // (labels_to_fill, all labells, inputs, num_inputs)
-    //getLabels(labels[0], inputs[0], gcs[0].n, inputLabels[0]);
-    //getLabels(labels[1], inputs[1], gcs[1].n, inputLabels[1]);
-    extractLabels(labels[0], inputLabels[0], inputs[0], gcs[0].n);
-    extractLabels(labels[1], inputLabels[1], inputs[1], gcs[1].n);
-    printf("break\n");
+    getLabels(labels[0], inputs[0], gcs[0].n, inputLabels[0]);
+    getLabels(labels[1], inputs[1], gcs[1].n, inputLabels[1]);
+    //extractLabels(labels[0], inputLabels[0], inputs[0], gcs[0].n);
+    //extractLabels(labels[1], inputLabels[1], inputs[1], gcs[1].n);
 
     for (int i=0; i<num_instr; i++) {
         Instruction* cur = &instructions[i];
         switch(cur->type) {
             case EVAL:
-                printf("instruction %d is EVALuating circuit %d\n", i, cur->evCircId);
+                //printf("instruction %d is EVALuating circuit %d\n", i, cur->evCircId);
                 evaluate(&gcs[cur->evCircId], labels[cur->evCircId], computedOutputMap[cur->evCircId]);
 
-                printf("computed outputmap %lld, %lld\n", computedOutputMap[cur->evCircId][0][0], 
-                    computedOutputMap[cur->evCircId][0][1]);
+                //printf("computed outputmap %lld, %lld\n", computedOutputMap[cur->evCircId][0][0], 
+                    //computedOutputMap[cur->evCircId][0][1]);
 
-                printf("check it\n");
                 if (i == num_instr - 1) {
-                    printf("mapping\n");
 	                mapOutputs(receivedOutputMap, computedOutputMap[2], output, gcs[2].m);
                 }
 
                 break;
             case CHAIN:
                 // problem in here
-                printf("instruction %d is CHAINing circuit %d to circuit %d\n", i, 
-                        cur->chFromCircId, cur->chToCircId);
+                //printf("instruction %d is CHAINing circuit %d to circuit %d\n", i, 
+                        //cur->chFromCircId, cur->chToCircId);
 
                 labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
                         computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
