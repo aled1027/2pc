@@ -284,3 +284,89 @@ json_load_instructions(json_t *root, FunctionSpec *function)
 }
 
 
+int 
+writeInstructionsToBuffer(Instructions* instructions, char* buffer) 
+{
+    size_t p = 0;
+    memcpy(buffer+p, &(instructions->size), sizeof(int));
+    p += sizeof(int);
+
+    for (int i=0; i<instructions->size; i++) {
+        Instruction* instr = &(instructions->instr[i]);
+        memcpy(buffer+p, &(instr->type), sizeof(InstructionType));
+        p += sizeof(InstructionType);
+
+        switch(instr->type) {
+            case EVAL:
+                memcpy(buffer+p, &(instr->chFromCircId), sizeof(int));
+                p += sizeof(int);
+            
+                memcpy(buffer+p, &(instr->chFromWireId), sizeof(int));
+                p += sizeof(int);
+            
+                memcpy(buffer+p, &(instr->chToCircId), sizeof(int));
+                p += sizeof(int);
+                
+                memcpy(buffer+p, &(instr->chToWireId), sizeof(int));
+                p += sizeof(int);
+            
+                memcpy(buffer+p, &(instr->chOffset), sizeof(block));
+                p += sizeof(block);
+                break;
+            case CHAIN:
+                memcpy(buffer+p, &(instr->evCircId), sizeof(int));
+                p += sizeof(int);
+                break;
+            default:
+                // do nothing
+                break;
+        }
+
+    }
+    return SUCCESS;
+}
+
+int 
+readBufferIntoInstructions(Instructions* instructions, char* buffer) 
+{
+    size_t p = 0;
+    memcpy(&(instructions->size), buffer+p, sizeof(int));
+    p += sizeof(int);
+
+    int size = instructions->size;
+    instructions->instr = (Instruction *) malloc(sizeof(Instruction) * instructions->size);
+    assert(instructions->instr);
+
+    for (int i=0; i< instructions->size; i++) {
+        Instruction* instr = &(instructions->instr[i]);
+        memcpy(&(instr->type), buffer+p, sizeof(InstructionType));
+        p += sizeof(InstructionType);
+
+        switch(instr->type) {
+            case EVAL:
+                memcpy(&(instr->chFromCircId), buffer+p, sizeof(int));
+                p += sizeof(int);
+            
+                memcpy(&(instr->chFromWireId), buffer+p, sizeof(int));
+                p += sizeof(int);
+            
+                memcpy(&(instr->chToCircId), buffer+p, sizeof(int));
+                p += sizeof(int);
+                
+                memcpy(&(instr->chToWireId), buffer+p, sizeof(int));
+                p += sizeof(int);
+            
+                memcpy(&(instr->chOffset), buffer+p, sizeof(block));
+                p += sizeof(block);
+                break;
+            case CHAIN:
+                memcpy(&(instr->evCircId), buffer+p, sizeof(int));
+                p += sizeof(int);
+                break;
+            default:
+                // do nothing
+                break;
+        }
+    }
+    return SUCCESS;
+}

@@ -122,8 +122,6 @@ main(int argc, char* argv[])
     run_all_tests();
     //go();
     //go2();
-    //test_saving_reading();
-    //json_test();
     return 0;
 }
 

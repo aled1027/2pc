@@ -175,7 +175,6 @@ readBufferIntoGarbledCircuit(GarbledCircuit *gc, char* buffer)
     p += sizeof(int);
     memcpy(&(gc->r), buffer+p, sizeof(int));
     p += sizeof(int);
-    printf("break it\n");
 
     gc->garbledGates = malloc(sizeof(GarbledGate) * gc->q);
     gc->garbledTable = malloc(sizeof(GarbledTable) * gc->q);

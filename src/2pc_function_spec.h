@@ -20,16 +20,10 @@ typedef struct {
 } InputMapping;
 
 typedef struct {
-    // TODO remove instruction; change to type. keeping to not break old things for now.
     InstructionType type; 
-    InputLabels inInputLabels; // type block*
-    int inCircId;
-    
-    // REQUEST_INPUT:
-    // what input to request, where will it go?
-    
+
     // EVAL:
-    // assume inputs are already plugged in
+    // assume inputs are already plugged into the circuit evCircId.
     int evCircId;
 
     // CHAIN:
@@ -50,10 +44,9 @@ typedef struct {
      * That is, the components, instructions for evaluating and chaining components,
      * and everything else necessary for evaluating a function 
      */
-    char* name;
-    char* description;
-    int n,m;
-    int num_components;
+    char* name; // make 128
+    char* description; // make 128
+    int n, m, num_components;
     FunctionComponent* components;
     InputMapping input_mapping;
     Instructions instructions;
@@ -75,6 +68,9 @@ CircuitType get_circuit_type_from_string(const char* type);
 void print_components(FunctionComponent* components, int num_components);
 void print_input_mapping(InputMapping* inputMapping);
 void print_instructions(Instructions* instr);
+
+int writeInstructionsToBuffer(Instructions* instructions, char* buffer);
+int readBufferIntoInstructions(Instructions* instructions, char* buffer);
 
 
 #endif

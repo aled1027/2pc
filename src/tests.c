@@ -43,6 +43,10 @@ int run_all_tests() {
         failed = true;
     }
     
+    if (function_spec_test() == FAILURE) {
+        printf("--- function_spec_test() failed\n");
+        failed = true;
+    }
 
     if (failed) {
         return FAILURE;
@@ -57,8 +61,6 @@ int run_all_tests() {
 int 
 test_saving_reading() 
 {
-    printf("running test_saving\n");
-
     GarbledCircuit gc, gc2;
     buildAdderCircuit(&gc);
     block* inputLabels = memalign(128, sizeof(block) * 2 * gc.n);
@@ -95,7 +97,6 @@ test_saving_reading()
         printf("wires failed in test_saving_reading\n");
         failed = true;
     }
-    printf("check it\n");
 
     free(inputLabels);
     free(extractedLabels);
@@ -290,4 +291,38 @@ json_test() {
     //print_function(&function);
     return SUCCESS;
 }
+
+int function_spec_test() {
+    char *path, *buffer, *buffer2; 
+    size_t buf_size;
+    FunctionSpec function;
+    Instructions* instructions = (Instructions*) malloc(sizeof(Instructions));
+
+    path = "functions/22Adder.json"; 
+    if (load_function_via_json(path, &function) == FAILURE) {
+        return FAILURE;
+    }
+
+    buf_size = sizeof(int) + function.instructions.size*(sizeof(InstructionType) + sizeof(int)*6 + sizeof(block));
+    buffer = malloc(buf_size);
+
+    // write and then read from same buffer
+    writeInstructionsToBuffer(&(function.instructions), buffer);
+    readBufferIntoInstructions(instructions, buffer);
+
+    // check if instructions and function.instructions are the same
+    if (instructions->size != function.instructions.size) {
+        printf("Instructions are of different size\n");
+        return FAILURE;
+    }
+    for (int i=0; i<instructions->size; i++) {
+        if (instructions->instr[i].type != function.instructions.instr[i].type) {
+            printf("An instruction is of incorrect type\n");
+            return FAILURE;
+        } 
+    }
+
+    return SUCCESS;
+}
+
 
