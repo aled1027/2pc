@@ -90,7 +90,6 @@ go2()
     inputs[0] = malloc(sizeof(int*)); inputs[1] = malloc(sizeof(int*));
     int* output = malloc(sizeof(int) * chained_gcs[0].gc.m);
 
-    
     createGarbledCircuits(chained_gcs, num_circs);
     garbler_init(&function, chained_gcs, num_gcs);
 
@@ -101,10 +100,10 @@ go2()
     for (int i=0; i<num_circs; i++) 
         gcs[i] = chained_gcs[i].gc; // shallow copy; pointers are not copied.
 
-    inputs[0][0] = 0;
-    inputs[0][1] = 0;
+    inputs[0][0] = 1;
+    inputs[0][1] = 1;
     inputs[1][0] = 1;
-    inputs[1][1] = 0;
+    inputs[1][1] = 1;
     printf("inputs: (%d,%d), (%d,%d)\n", inputs[0][0], inputs[0][1], inputs[1][0], inputs[1][1]);
 
     chainedEvaluate(gcs, num_gcs, function.instructions.instr, function.instructions.size, 
@@ -119,9 +118,9 @@ main(int argc, char* argv[])
 {
 	srand(time(NULL));
     srand_sse(time(NULL));
-    run_all_tests();
+    //run_all_tests();
     //go();
-    //go2();
+    go2();
     return 0;
 }
 

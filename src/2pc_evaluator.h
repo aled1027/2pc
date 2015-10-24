@@ -9,10 +9,13 @@ int chainedEvaluate(GarbledCircuit *gcs, int num_gcs,
         InputLabels* labels, block* receivedOutputMap, 
         int* inputs[], int* output);
 
+// abstraction of OT transfer of labels and extractLabels
+int getLabels(block* labels, int* inputs, int n, block* inputLabels);
+
 // TODO:
-int receive_cs();
-int save_gcs();
-int load_gcs();
+// int receive_cs();
+// int save_gcs();
+// int load_gcs();
 
 
 #endif

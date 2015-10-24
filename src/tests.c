@@ -110,7 +110,9 @@ test_saving_reading()
 }
 
 int 
-simple_test() {
+simple_test() 
+{
+    // Doesn't use function spec or instructions
     GarbledCircuit gc;
     buildAdderCircuit(&gc);
 
@@ -149,7 +151,8 @@ simple_test() {
 }
 
 int
-test2() {
+test2() 
+{
 //#ifdef FREE_XOR
 //    printf("free xor turned on\n");
 //#else
@@ -280,7 +283,8 @@ test2() {
 }
 
 int
-json_test() {
+json_test() 
+{
     char* path = "functions/22Adder.json"; 
     FunctionSpec function;
 
@@ -292,7 +296,8 @@ json_test() {
     return SUCCESS;
 }
 
-int function_spec_test() {
+int function_spec_test() 
+{
     char *path, *buffer, *buffer2; 
     size_t buf_size;
     FunctionSpec function;
