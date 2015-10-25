@@ -74,5 +74,7 @@ void print_instructions(Instructions* instr);
 int writeInstructionsToBuffer(Instructions* instructions, char* buffer);
 int readBufferIntoInstructions(Instructions* instructions, char* buffer);
 
+int writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer);
+int readBufferIntoInputMapping(InputMapping* input_mapping, char* buffer);
 
 #endif

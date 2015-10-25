@@ -5,16 +5,18 @@
 #include "2pc_garbled_circuit.h"
 
 
+void evaluator_receive_gcs(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs);
 int chainedEvaluate(GarbledCircuit *gcs, int num_gcs, Instruction* instructions, int num_instr, 
         block* inputLabels, block* receivedOutputMap, 
         int* inputs, int* output, InputMapping* input_mapping);
-// abstraction of OT transfer of labels and extractLabels
+
+int evaluator_go(ChainedGarbledCircuit* chained_gcs, int* eval_inputs);
 int getLabels(block** labels, int* eval_inputs, int eval_num_inputs, 
         block* input_labels, InputMapping *input_mapping) ;
 
-static void array_slice(int* dest, int* src, int a, int b) ;
 int new_choice_reader(void *choices, int idx);
 int new_msg_writer(void *array, int idx, void *msg, size_t msglength);
+void recv_instructions_and_input_mapping(FunctionSpec *function, int sockfd);
 
 //int newChainedEvaluate(FunctionSpec *function, GarbledCircuit *gcs, int num_gcs, 
         //block* receivedOutputMap, int* inputs, int* outputs, InputLabels* inputLabels);

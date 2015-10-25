@@ -337,7 +337,7 @@ writeInstructionsToBuffer(Instructions* instructions, char* buffer)
         }
 
     }
-    return SUCCESS;
+    return p;
 }
 
 int 
@@ -382,5 +382,62 @@ readBufferIntoInstructions(Instructions* instructions, char* buffer)
                 break;
         }
     }
-    return SUCCESS;
+    return p;
 }
+
+int 
+writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer) 
+{
+    size_t p =0;
+
+    memcpy(buffer+p, &(input_mapping->size), sizeof(int));
+    p += sizeof(int);
+
+    for (int i=0; i<input_mapping->size; i++) {
+        memcpy(buffer+p, &(input_mapping->input_idx[i]), sizeof(int));
+        p += sizeof(int);
+
+        memcpy(buffer+p, &(input_mapping->gc_id[i]), sizeof(int));
+        p += sizeof(int);
+
+        memcpy(buffer+p, &(input_mapping->wire_id[i]), sizeof(int));
+        p += sizeof(int);
+
+        memcpy(buffer+p, &(input_mapping->inputter[i]), sizeof(Person));
+        p += sizeof(Person);
+    }
+    return p;
+}
+
+int 
+readBufferIntoInputMapping(InputMapping* input_mapping, char* buffer) 
+{
+    size_t p = 0;
+
+    memcpy(&(input_mapping->size), buffer+p, sizeof(int));
+    p += sizeof(int);
+
+    int size = input_mapping->size;
+    input_mapping->input_idx = malloc(sizeof(int) * size);
+    input_mapping->gc_id = malloc(sizeof(int) * size);
+    input_mapping->wire_id = malloc(sizeof(int) * size);
+    input_mapping->inputter = malloc(sizeof(Person) * size);
+    assert(input_mapping->input_idx && input_mapping->gc_id && 
+            input_mapping->wire_id && input_mapping->inputter);
+
+    for (int i=0; i<input_mapping->size; i++) {
+        memcpy(&(input_mapping->input_idx[i]), buffer+p, sizeof(int));
+        p += sizeof(int);
+
+        memcpy(&(input_mapping->gc_id[i]), buffer+p, sizeof(int));
+        p += sizeof(int);
+
+        memcpy(&(input_mapping->wire_id[i]), buffer+p, sizeof(int));
+        p += sizeof(int);
+
+        memcpy(&(input_mapping->inputter[i]), buffer+p, sizeof(Person));
+        p += sizeof(Person);
+    }
+    return p;
+}
+

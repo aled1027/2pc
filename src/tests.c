@@ -14,6 +14,7 @@
 #include "2pc_evaluator.h"
 #include "util.h"
 #include "tests.h"
+#include "2pc_common.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -52,13 +53,24 @@ run_all_tests()
         failed = true;
     }
 
+    if (input_mapping_serialize_test() == FAILURE) {
+        printf("--- input_mapping_serialize_test() failed\n");
+        failed = true;
+    } else {
+        printf("--- input_mapping_serialize_test() passed\n");
+    }
 
     if (function_garb_eval_test() == FAILURE) {
         printf("--- function_garb_eval_test() failed\n");
         failed = true;
+    } else {
+        printf("--- function_garb_eval_test() passed\n");
     }
 
     if (failed) {
+        printf("----------------\n");
+        printf("At least one test failed\n");
+        printf("----------------\n");
         return FAILURE;
     } else {
         printf("----------------\n");
@@ -331,6 +343,7 @@ function_spec_test()
         printf("Instructions are of different size\n");
         return FAILURE;
     }
+
     for (int i=0; i<instructions->size; i++) {
         if (instructions->instr[i].type != function.instructions.instr[i].type) {
             printf("An instruction is of incorrect type\n");
@@ -339,6 +352,40 @@ function_spec_test()
     }
 
     return SUCCESS;
+}
+
+int 
+input_mapping_serialize_test() 
+{
+    char *buffer, *path;
+    FunctionSpec function;
+    InputMapping imap;
+    size_t buf_size;
+
+    path = "functions/22Adder.json"; 
+    if (load_function_via_json(path, &function) == FAILURE) {
+        return FAILURE;
+    }
+
+    buffer = malloc(MAX_BUF_SIZE);
+    
+    writeInputMappingToBuffer(&function.input_mapping, buffer);
+    readBufferIntoInputMapping(&imap, buffer);
+
+    if (function.input_mapping.size != imap.size) {
+        printf("InputMappings are of a different size\n");
+        return FAILURE;
+    }
+
+    printf("break here\n");
+    for (int i=0; i<function.input_mapping.size; i++) {
+        if (function.input_mapping.wire_id[i] != imap.wire_id[i]) {
+        printf("InputMappings have a different wire id at index %d\n", i);
+        return FAILURE;
+        }
+    }
+    return SUCCESS;
+
 }
 
 int 

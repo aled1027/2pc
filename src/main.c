@@ -91,74 +91,56 @@ garbler()
     
     FunctionSpec function;
 
-    int num_circs = 3, num_gcs = 3;
-    GarbledCircuit gcs[num_circs];
-    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_circs);
-    block* receivedOutputMap; // = (block *) memalign(128, sizeof(block) * 2 * 2);
+    GarbledCircuit gcs[NUM_GCS]; // NUM_GCS defined in 2pc_common.h
+    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
+    block* receivedOutputMap; 
     int* inputs = malloc(sizeof(int) * 4);
-    int* output = malloc(sizeof(int) * chained_gcs[0].gc.m);
 
-    createGarbledCircuits(chained_gcs, num_circs);
+    createGarbledCircuits(chained_gcs, NUM_GCS);
 
-    garbler_send_gcs(chained_gcs, num_gcs);
-    garbler_init(&function, chained_gcs, num_gcs);
+    garbler_send_gcs(chained_gcs, NUM_GCS);
+    garbler_init(&function, chained_gcs, NUM_GCS);
 
     // fill inputLabels
-    for (int i=0; i<num_circs; i++) {
+    for (int i=0; i<NUM_GCS; i++) {
         gcs[i] = chained_gcs[i].gc; // shallow copy; pointers are not copied.
     }
 
-    inputs[0] = 0;
-    inputs[1] = 0;
-    inputs[2] = 0;
-    inputs[3] = 0;
-    printf("inputs: (%d,%d), (%d,%d)\n", inputs[0], inputs[1], inputs[2], inputs[3]);
 
-    garbler_go(&function, chained_gcs, num_gcs, inputs);
+    garbler_go(&function, chained_gcs, NUM_GCS, inputs);
 
-    freeFunctionSpec(&function);
+    //freeFunctionSpec(&function);
 }
 
 int evaluator() 
 {
-    FunctionSpec function;
-
-    int num_circs = 3, num_gcs = 3;
-    GarbledCircuit gcs[num_circs];
-    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_circs);
-    block* inputLabels = malloc(sizeof(block) * 2 * 2 * num_gcs);
-    block* receivedOutputMap; // = (block *) memalign(128, sizeof(block) * 2 * 2);
-    int* inputs = malloc(sizeof(int) * 4);
-    int* output = malloc(sizeof(int) * chained_gcs[0].gc.m);
-
-    createGarbledCircuits(chained_gcs, num_circs);
-    garbler_init(&function, chained_gcs, num_gcs);
-
-    for (int i=0; i<num_circs; i++) {
-        gcs[i] = chained_gcs[i].gc; // shallow copy; pointers are not copied.
-    }
-
+    // make a new function, evaluator_go()... which receives everything and then calls chained evaluate
+    // get labels should probably be a part of evaluator_go(), not chained evaluate, so it really happens before
+    // evaluation happens.
+    int *inputs = malloc(sizeof(int) * 4);
     inputs[0] = 0;
     inputs[1] = 0;
     inputs[2] = 0;
     inputs[3] = 0;
     printf("inputs: (%d,%d), (%d,%d)\n", inputs[0], inputs[1], inputs[2], inputs[3]);
+    
+    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
+    evaluator_receive_gcs(chained_gcs, NUM_GCS); // NUM_GCS defined in 2pc_common.h
+    evaluator_go(chained_gcs, inputs);
+    printf("here\n");
 
-    // make a new function, evaluator_go()... which receives everything and then calls chained evaluate
-    // get labels should probably be a part of evaluator_go(), not chained evaluate, so it really happens before
-    // evaluation happens.
-    chainedEvaluate(gcs, num_gcs, function.instructions.instr, function.instructions.size, 
-            inputLabels, receivedOutputMap, inputs, output, &function.input_mapping);
+    //chainedEvaluate(gcs, num_gcs, function.instructions.instr, function.instructions.size, 
+    //        inputLabels, receivedOutputMap, inputs, output, &function.input_mapping);
 
-    freeFunctionSpec(&function);
+    //freeFunctionSpec(&function);
 
-    printf("outputs: (%d, %d)\n", output[0], output[1]);
+    //printf("outputs: (%d, %d)\n", output[0], output[1]);
 
-    if ((((inputs[0] ^ inputs[1]) ^ (inputs[2] ^ inputs[3])) != output[0]) || 
-        (((inputs[0] ^ inputs[1]) && (inputs[2] ^ inputs[3])) != output[1]))
-    {
-        return FAILURE;
-    }
+    //if ((((inputs[0] ^ inputs[1]) ^ (inputs[2] ^ inputs[3])) != output[0]) || 
+    //    (((inputs[0] ^ inputs[1]) && (inputs[2] ^ inputs[3])) != output[1]))
+    //{
+    //    return FAILURE;
+    //}
     return SUCCESS;
 }
 
@@ -168,10 +150,10 @@ main(int argc, char* argv[])
 	srand(time(NULL));
     srand_sse(time(NULL));
 
-    //garbler();
+    garbler();
     //evaluator();
     
-    run_all_tests();
+    //run_all_tests();
     //go();
     return 0;
 }

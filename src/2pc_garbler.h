@@ -18,6 +18,7 @@ void *new_item_reader(void *item, int idx, ssize_t *mlen);
 
 // other functions
 int createInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs);
+void send_instructions_and_input_mapping(FunctionSpec *function, int fd);
 
 // TO MAKE:
 //int load_function_spec(char* path);
