@@ -352,36 +352,37 @@ function_garb_eval_test()
     int num_circs = 3, num_gcs = 3;
     GarbledCircuit gcs[num_circs];
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_circs);
-    block** inputLabels = malloc(sizeof(block*) * 2); 
+    block* inputLabels = malloc(sizeof(block) * 2 * 2 * num_gcs);
     block* receivedOutputMap; // = (block *) memalign(128, sizeof(block) * 2 * 2);
-    int* inputs[2];
-    inputs[0] = malloc(sizeof(int*)); inputs[1] = malloc(sizeof(int*));
+    int* inputs = malloc(sizeof(int) * 4);
     int* output = malloc(sizeof(int) * chained_gcs[0].gc.m);
 
     createGarbledCircuits(chained_gcs, num_circs);
     garbler_init(&function, chained_gcs, num_gcs);
 
-    inputLabels[0] = chained_gcs[0].inputLabels;
-    inputLabels[1] = chained_gcs[1].inputLabels;
+    // fill inputLabels
+    memcpy(inputLabels, chained_gcs[0].inputLabels, sizeof(block)*2*2);
+    memcpy(&inputLabels[4], chained_gcs[1].inputLabels, sizeof(block)*2*2);
     receivedOutputMap = chained_gcs[2].outputMap; 
 
-    for (int i=0; i<num_circs; i++) 
+    for (int i=0; i<num_circs; i++) {
         gcs[i] = chained_gcs[i].gc; // shallow copy; pointers are not copied.
+    }
 
-    inputs[0][0] = rand() % 2;
-    inputs[0][1] = rand() % 2;
-    inputs[1][0] = rand() % 2;
-    inputs[1][1] = rand() % 2;
-    //printf("inputs: (%d,%d), (%d,%d)\n", inputs[0][0], inputs[0][1], inputs[1][0], inputs[1][1]);
+    inputs[0] = rand() % 2;
+    inputs[1] = rand() % 2;
+    inputs[2] = rand() % 2;
+    inputs[3] = rand() % 2;
+    printf("inputs: (%d,%d), (%d,%d)\n", inputs[0], inputs[1], inputs[2], inputs[3]);
 
     chainedEvaluate(gcs, num_gcs, function.instructions.instr, function.instructions.size, 
-            inputLabels, receivedOutputMap, inputs, output);
+            inputLabels, receivedOutputMap, inputs, output, &function.input_mapping);
 
     freeFunctionSpec(&function);
-    //printf("outputs: (%d, %d)\n", output[0], output[1]);
+    printf("outputs: (%d, %d)\n", output[0], output[1]);
 
-    if ((((inputs[0][0] ^ inputs[0][1]) ^ (inputs[1][0] ^ inputs[1][1])) != output[0]) || 
-        (((inputs[0][0] ^ inputs[0][1]) && (inputs[1][0] ^ inputs[1][1])) != output[1]))
+    if ((((inputs[0] ^ inputs[1]) ^ (inputs[2] ^ inputs[3])) != output[0]) || 
+        (((inputs[0] ^ inputs[1]) && (inputs[2] ^ inputs[3])) != output[1]))
     {
         return FAILURE;
     }

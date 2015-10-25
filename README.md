@@ -9,11 +9,18 @@
     - http://www.jsoneditoronline.org/
 
 ### TODO:
+- Add networking + OT
+    - adding networking to garbler
+        - not yet done
+    - next will add networking to evaluator
 - saving garbled circuit to disk
-    - GC fields: n,m,q,r,inputLabels, outputLabels, garbledGates, garbledTable
-- saving instructions to disk (err sending over network in char pointer bufffer)
-    - http://stackoverflow.com/questions/19311568/msgpack-packing-char-array-in-c 
-- Add OT
+    - need two versions. garbler version and evaluator version
+    - garbler version has the extra info about labels and the such.
+
+### Have done:
+- read/write instructions to a `char* buffer*` (consequently can save to disk.
+- fixed reading/writing garbledCircuit to `char* buffer` bug
+- files are well organized... for now.
 
 ### The Gist
 1. Init Phase

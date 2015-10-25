@@ -163,15 +163,15 @@ int
 json_load_input_mapping(json_t *root, FunctionSpec* function) 
 {
     /* "InputMapping: [
-     *      { "gc_id": x, "wire_id: y"},
-     *      { "gc_id": a, "wire_id: b"}
+     *      { "gc_id": x, "wire_id: y", "inputter": "garbler"},
+     *      { "gc_id": a, "wire_id: b", "inputter": "evaluator"}
      * ]
      * 
      * where the ith element in the array is where the ith input is mapped to.
      * 
      */
     InputMapping* inputMapping = &(function->input_mapping);
-    json_t *jInputMapping, *jMap, *jGcId, *jWireId;
+    json_t *jInputMapping, *jMap, *jGcId, *jWireId, *jInputter;
     int size;
 
     jInputMapping = json_object_get(root, "InputMapping");
@@ -182,6 +182,7 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
     inputMapping->input_idx = malloc(sizeof(int) * size);
     inputMapping->gc_id = malloc(sizeof(int) * size);
     inputMapping->wire_id = malloc(sizeof(int) * size);
+    inputMapping->inputter = malloc(sizeof(Person) * size);
     assert(inputMapping->input_idx && inputMapping->gc_id && inputMapping->wire_id);
 
     inputMapping->size = size;
@@ -198,6 +199,19 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
        jWireId = json_object_get(jMap, "wire_id");
        assert(json_is_integer(jWireId));
        inputMapping->wire_id[i] = json_integer_value(jWireId);
+
+       jInputter = json_object_get(jMap, "inputter");
+       assert(json_is_string(jInputter));
+       const char* the_inputter = json_string_value(jInputter);
+
+       if (strcmp(the_inputter, "garbler") == 0) {
+           inputMapping->inputter[i] = PERSON_GARBLER;
+       } else if (strcmp(the_inputter, "evaluator") == 0) {
+           inputMapping->inputter[i] = PERSON_EVALUATOR;
+       } else { 
+           inputMapping->inputter[i] = PERSON_ERR;
+       }
+
     }
 
     return SUCCESS;

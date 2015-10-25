@@ -24,6 +24,12 @@ JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
 all: $(OBJECTS)
 	$(CC) $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
 
+evaluator: $(OBJECTS)
+	$(CC) -o evaluator $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
+
+garbler: $(OBJECTS)
+	$(CC) -o garbler $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
+
 run:
 	./a.out
 valgrind: 
@@ -36,5 +42,6 @@ valgrind:
 
 .PHONEY: clean
 clean:
+	rm garbler evaluator a.out
 
 

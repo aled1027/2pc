@@ -13,8 +13,7 @@
 #include "net.h"
 #include "ot_np.h"
 
-#define HOST "127.0.0.1"
-#define PORT "8000"
+#include "2pc_common.h"
 
 /* Original main made by Alex M */
 

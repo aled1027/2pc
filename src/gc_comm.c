@@ -41,3 +41,21 @@ gc_comm_recv(int sock, GarbledCircuit *gc)
 
     return 0;
 }
+
+int
+chained_gc_comm_send(int sock, ChainedGarbledCircuit *chained_gc)
+{
+    gc_comm_send(sock, &chained_gc->gc);
+    net_send(sock, &chained_gc->id, sizeof(chained_gc->id), 0);
+    net_send(sock, &chained_gc->type, sizeof(chained_gc->type), 0);
+    return 0;
+}
+
+int 
+chained_gc_comm_recv(int sock, ChainedGarbledCircuit *chained_gc) 
+{
+    gc_comm_recv(sock, &chained_gc->gc);
+    net_recv(sock, &chained_gc->id, sizeof(chained_gc->id), 0);
+    net_recv(sock, &chained_gc->type, sizeof(chained_gc->type), 0);
+    return 0;
+}

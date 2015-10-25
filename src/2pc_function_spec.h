@@ -5,6 +5,7 @@
 #include "2pc_garbled_circuit.h"
 
 typedef enum {EVAL, CHAIN, INSTR_ERR} InstructionType;
+typedef enum {PERSON_GARBLER, PERSON_EVALUATOR, PERSON_ERR} Person;
 
 typedef struct {
     CircuitType circuit_type;
@@ -17,6 +18,7 @@ typedef struct {
     int* input_idx; // so input_idx[i] maps to (gc_id[i], wire_id[i])
     int* gc_id; // each int array should be sizeof(int)*n (where n is number of inputs)
     int* wire_id;
+    Person* inputter; // inputter[i] == GARBLER means the ith input should be inputted by the garbler.
 } InputMapping;
 
 typedef struct {

@@ -4,9 +4,51 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "arg.h"
+#include "gc_comm.h"
+#include "net.h"
+#include "ot_np.h"
+#include "2pc_common.h"
+
+#include "gc_comm.h"
+
+int 
+garbler_send_gcs(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs) 
+{
+    /* sends chained gcs over to evaluator */
+
+    // setup connection
+    int serverfd, fd, res;
+    struct state state;
+    state_init(&state);
+
+    if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
+        perror("net_init_server");
+        exit(EXIT_FAILURE);
+    }
+
+    if ((fd = net_server_accept(serverfd)) == FAILURE) {
+        perror("net_server_accept");
+        exit(EXIT_FAILURE);
+    }
+
+    // send chained_gcs over
+    for (int i=0; i<num_chained_gcs; i++) {
+        chained_gc_comm_send(fd, &chained_gcs[i]);
+    }
+
+    // clean up
+    state_cleanup(&state);
+    close(fd);
+    close(serverfd);
+
+    return SUCCESS;
+}
+
 int 
 garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs) 
 {
+    /* primary role: fill function function with information provided by chained_gcs */
     char* function_path = "functions/22Adder.json";
 
     if (load_function_via_json(function_path, function) == FAILURE) {
@@ -28,6 +70,56 @@ garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num
     int num_saved_gcs = 10;
     garbler_make_real_instructions(function, saved_gcs_type, num_saved_gcs, chained_gcs, num_chained_gcs);
     return SUCCESS;
+}
+
+void 
+garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
+        int *inputs) 
+{
+    /* primary role: send appropriate labels to evaluator and garbled circuits*/
+    // hardcoding 22adder for now
+    
+    // 1. setup connection
+    int serverfd, fd, res;
+    struct state state;
+    state_init(&state);
+
+    if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
+        perror("net_init_server");
+        exit(EXIT_FAILURE);
+    }
+
+    if ((fd = net_server_accept(serverfd)) == FAILURE) {
+        perror("net_server_accept");
+        exit(EXIT_FAILURE);
+    }
+
+    // 3. send labels for evaluator's inputs
+    int num_gcs = 2;
+    block* evalLabels = malloc(sizeof(block) * 2 * 2 * num_gcs); 
+    memcpy(evalLabels, chained_gcs[0].inputLabels, sizeof(block)*2*2);
+    memcpy(&evalLabels[4], chained_gcs[1].inputLabels, sizeof(block)*2*2);
+
+    ot_np_send(&state, fd, evalLabels, sizeof(block), 4, 2,
+               new_msg_reader, new_item_reader);
+
+    // 4. send labels for garbler's inputs.
+    //net_send(fd, outputMap, sizeof(block) * 2 * gc.m, 0);
+    
+    // 5. send output map
+    // chained_gcs[2].outputMap;  // check FunctionSpec for which circuit id is the output circuit. 
+    // it should say in the final instruction in 
+    // function.instructions.instr[function.instruction.instr.size -1 ]
+    // send that shit.
+    
+    // 6. clean up
+    state_cleanup(&state);
+    close(fd);
+    close(serverfd);
+   
+
+
+    // send things over to evaluator
 }
 
 int
@@ -122,6 +214,21 @@ createInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs)
     instr[4].type = EVAL;
     instr[4].evCircId = 2;
     return SUCCESS;
+}
+
+void *
+new_msg_reader(void *msgs, int idx)
+{
+    block *m = (block *) msgs;
+    return &m[2 * idx];
+}
+
+void *
+new_item_reader(void *item, int idx, ssize_t *mlen)
+{
+    block *a = (block *) item;
+    *mlen = sizeof(block);
+    return &a[idx];
 }
 
 
