@@ -6,11 +6,11 @@
 
 
 void evaluator_receive_gcs(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs);
-int chainedEvaluate(GarbledCircuit *gcs, int num_gcs, Instruction* instructions, int num_instr, 
-        block* inputLabels, block* receivedOutputMap, 
-        int* inputs, int* output, InputMapping* input_mapping);
 
-int evaluator_go(ChainedGarbledCircuit* chained_gcs, int* eval_inputs);
+int chainedEvaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
+        Instructions* instructions, block** labels, block* outputmap, int* output);
+
+int evaluator_go(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* eval_inputs, int num_eval_inputs);
 int getLabels(block** labels, int* eval_inputs, int eval_num_inputs, 
         block* input_labels, InputMapping *input_mapping) ;
 

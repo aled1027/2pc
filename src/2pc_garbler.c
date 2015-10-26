@@ -96,29 +96,28 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
 
 
     // 3. send labels for evaluator's inputs
-    //int num_gcs = 2;
-    //block* evalLabels = malloc(sizeof(block) * 2 * 2 * num_gcs); 
-    //memcpy(evalLabels, chained_gcs[0].inputLabels, sizeof(block)*2*2);
-    //memcpy(&evalLabels[4], chained_gcs[1].inputLabels, sizeof(block)*2*2);
+    block* evalLabels = malloc(sizeof(block) * 2 * 2 * num_chained_gcs); 
 
-    //ot_np_send(&state, fd, evalLabels, sizeof(block), 4, 2,
-    //           new_msg_reader, new_item_reader);
+    // how do we know how to grab these?
+    memcpy(evalLabels, chained_gcs[0].inputLabels, sizeof(block)*2*2);
+    memcpy(&evalLabels[4], chained_gcs[1].inputLabels, sizeof(block)*2*2);
 
-    //// 4. send labels for garbler's inputs.
-    ////net_send(fd, outputMap, sizeof(block) * 2 * gc.m, 0);
-    //
-    //// 5. send output map
-    //// chained_gcs[2].outputMap;  // check FunctionSpec for which circuit id is the output circuit. 
-    //// it should say in the final instruction in 
-    //// function.instructions.instr[function.instruction.instr.size -1 ]
-    //// send that shit.
-    //
-    //// 6. clean up
-    //state_cleanup(&state);
-    //close(fd);
-    //close(serverfd);
+    ot_np_send(&state, fd, evalLabels, sizeof(block), 4, 2,
+               new_msg_reader, new_item_reader);
+
+    // 4. send labels for garbler's inputs.
+    //net_send(fd, outputMap, sizeof(block) * 2 * gc.m, 0);
+    
+    // 5. send output map
+    net_send(fd, chained_gcs[2].outputMap, sizeof(block)*2*2, 0); 
+    // function.instructions.instr[function.instruction.instr.size -1 ]
+    // send that shit.
+    
+    // 6. clean up
+    state_cleanup(&state);
+    close(fd);
+    close(serverfd);
    
-
 
     // send things over to evaluator
 }
@@ -241,13 +240,16 @@ send_instructions_and_input_mapping(FunctionSpec *function, int fd)
     buffer2 = malloc(MAX_BUF_SIZE);
 
     buf_size1 = writeInstructionsToBuffer(&function->instructions, buffer1);
-
     buf_size2 = writeInputMappingToBuffer(&function->input_mapping, buffer2);
 
     net_send(fd, &buf_size1, sizeof(buf_size1), 0);
     net_send(fd, &buf_size2, sizeof(buf_size2), 0);
     net_send(fd, buffer1, buf_size1, 0);
     net_send(fd, buffer2, buf_size2, 0);
+
+    Instructions is;
+    readBufferIntoInstructions(&is, buffer1);
+    printf("Brrreak me\n");
 }
 
 

@@ -106,7 +106,6 @@ garbler()
         gcs[i] = chained_gcs[i].gc; // shallow copy; pointers are not copied.
     }
 
-
     garbler_go(&function, chained_gcs, NUM_GCS, inputs);
 
     //freeFunctionSpec(&function);
@@ -118,7 +117,7 @@ int evaluator()
     // get labels should probably be a part of evaluator_go(), not chained evaluate, so it really happens before
     // evaluation happens.
     int *inputs = malloc(sizeof(int) * 4);
-    inputs[0] = 0;
+    inputs[0] = 1;
     inputs[1] = 0;
     inputs[2] = 0;
     inputs[3] = 0;
@@ -126,11 +125,9 @@ int evaluator()
     
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
     evaluator_receive_gcs(chained_gcs, NUM_GCS); // NUM_GCS defined in 2pc_common.h
-    evaluator_go(chained_gcs, inputs);
-    printf("here\n");
+    evaluator_go(chained_gcs, NUM_GCS, inputs, 4);
 
-    //chainedEvaluate(gcs, num_gcs, function.instructions.instr, function.instructions.size, 
-    //        inputLabels, receivedOutputMap, inputs, output, &function.input_mapping);
+    printf("here\n");
 
     //freeFunctionSpec(&function);
 
@@ -150,8 +147,8 @@ main(int argc, char* argv[])
 	srand(time(NULL));
     srand_sse(time(NULL));
 
-    garbler();
-    //evaluator();
+    //garbler();
+    evaluator();
     
     //run_all_tests();
     //go();

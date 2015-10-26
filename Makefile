@@ -24,10 +24,12 @@ JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
 all: $(OBJECTS)
 	$(CC) $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
 
-evaluator: $(OBJECTS)
+e: 
+	rm evaluator;
 	$(CC) -o evaluator $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
 
-garbler: $(OBJECTS)
+g: 
+	rm garbler;
 	$(CC) -o garbler $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
 
 run:

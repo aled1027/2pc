@@ -311,7 +311,7 @@ writeInstructionsToBuffer(Instructions* instructions, char* buffer)
         p += sizeof(InstructionType);
 
         switch(instr->type) {
-            case EVAL:
+            case CHAIN:
                 memcpy(buffer+p, &(instr->chFromCircId), sizeof(int));
                 p += sizeof(int);
             
@@ -327,7 +327,8 @@ writeInstructionsToBuffer(Instructions* instructions, char* buffer)
                 memcpy(buffer+p, &(instr->chOffset), sizeof(block));
                 p += sizeof(block);
                 break;
-            case CHAIN:
+
+            case EVAL:
                 memcpy(buffer+p, &(instr->evCircId), sizeof(int));
                 p += sizeof(int);
                 break;
@@ -357,7 +358,7 @@ readBufferIntoInstructions(Instructions* instructions, char* buffer)
         p += sizeof(InstructionType);
 
         switch(instr->type) {
-            case EVAL:
+            case CHAIN:
                 memcpy(&(instr->chFromCircId), buffer+p, sizeof(int));
                 p += sizeof(int);
             
@@ -373,7 +374,8 @@ readBufferIntoInstructions(Instructions* instructions, char* buffer)
                 memcpy(&(instr->chOffset), buffer+p, sizeof(block));
                 p += sizeof(block);
                 break;
-            case CHAIN:
+
+            case EVAL:
                 memcpy(&(instr->evCircId), buffer+p, sizeof(int));
                 p += sizeof(int);
                 break;
