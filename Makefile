@@ -24,20 +24,25 @@ JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
 all: $(OBJECTS)
 	$(CC) $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
 
-e: 
-	rm evaluator;
-	$(CC) -o evaluator $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
+run_eval:
+	./a.out eval
 
-g: 
-	rm garbler;
-	$(CC) -o garbler $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
+run_garb:
+	./a.out garb
 
-run:
-	./a.out
+make run_tests: 
+	./a.out tests
+
 valgrind: 
 	make;
 	rm valg.out;
 	valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --leak-check=yes --log-file=valg.out ./a.out;
+
+gdb_garb:
+	gdb --args a.out garb
+
+gdb_eval:
+	gdb --args a.out eval
 
 # -q
 # -v

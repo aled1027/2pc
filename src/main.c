@@ -144,13 +144,29 @@ int evaluator()
 int 
 main(int argc, char* argv[]) 
 {
+
+    if (argc != 2) {
+        printf("usage: %s eval\n", argv[0]);
+        printf("usage: %s garb\n", argv[0]);
+        printf("usage: %s tests\n", argv[0]);
+        return -1;
+    }
+
 	srand(time(NULL));
     srand_sse(time(NULL));
 
-    //garbler();
-    evaluator();
-    
-    //run_all_tests();
+    if (strcmp(argv[1], "eval") == 0) {
+        evaluator();
+    } else if (strcmp(argv[1], "garb") == 0) {
+        garbler();
+    } else if (strcmp(argv[1], "tests") == 0) {
+        run_all_tests();
+    } else {
+        printf("usage: %s eval\n", argv[0]);
+        printf("usage: %s garb\n", argv[0]);
+        printf("usage: %s tests\n", argv[0]);
+        return -1;
+    } 
     //go();
     return 0;
 }
