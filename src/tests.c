@@ -43,10 +43,10 @@ run_all_tests()
         failed = true;
     }
 
-    if (test_saving_reading() == FAILURE) {
-        printf("---test_saving_reading() failed\n");
-        failed = true;
-    }
+    //if (test_saving_reading() == FAILURE) {
+    //    printf("---test_saving_reading() failed\n");
+    //    failed = true;
+    //}
     
     if (function_spec_test() == FAILURE) {
         printf("--- function_spec_test() failed\n");
@@ -58,13 +58,6 @@ run_all_tests()
         failed = true;
     } else {
         printf("--- input_mapping_serialize_test() passed\n");
-    }
-
-    if (function_garb_eval_test() == FAILURE) {
-        printf("--- function_garb_eval_test() failed\n");
-        failed = true;
-    } else {
-        printf("--- function_garb_eval_test() passed\n");
     }
 
     if (failed) {
@@ -80,56 +73,57 @@ run_all_tests()
     }
 }
 
-int 
-test_saving_reading() 
-{
-    GarbledCircuit gc, gc2;
-    buildAdderCircuit(&gc);
-    block* inputLabels = memalign(128, sizeof(block) * 2 * gc.n);
-    block* extractedLabels = memalign(128, sizeof(block) * gc.n);
-    block* outputMap = memalign(128, sizeof(block) * 2 * gc.m);
-    //block* computedOutputMap = memalign(128, sizeof(block) * gc.m);
-    block delta = randomBlock();
-    *((uint16_t *) (&delta)) |= 1;
-
-    garbleCircuit(&gc, inputLabels, outputMap, &delta);
-
-    saveGarbledCircuit(&gc,  "garbledCircuit.gc");
-    loadGarbledCircuit(&gc2, "garbledCircuit.gc");
-
-    bool failed = false;
-    if ((gc.n == gc2.n &&
-        gc.m == gc2.m &&
-        gc.q == gc2.q &&
-        gc.r == gc2.r) == false) {
-        printf("metadata failed in test_saving_reading\n");
-        failed = true;
-    }
-    if (gc.garbledGates[0].id != gc2.garbledGates[0].id) {
-        printf("garbledGates failed in test_saving_reading\n");
-        failed = true;
-    }
-
-    if (gc.garbledTable[0].table[0][0] != gc2.garbledTable[0].table[0][0]) {
-        printf("garbledTables failed in test_saving_reading\n");
-        failed = true;
-    }
-
-    if (gc.wires[0].id != gc2.wires[0].id) {
-        printf("wires failed in test_saving_reading\n");
-        failed = true;
-    }
-
-    free(inputLabels);
-    free(extractedLabels);
-    free(outputMap);
-
-    if (failed) {
-        return FAILURE;
-    } else {
-        return SUCCESS;
-    }
-}
+//int 
+//test_saving_reading() 
+//{
+// ======REMOVING THESE FUNCTIONS, SO DONT NEED TEST ==========
+//    GarbledCircuit gc, gc2;
+//    buildAdderCircuit(&gc);
+//    block* inputLabels = memalign(128, sizeof(block) * 2 * gc.n);
+//    block* extractedLabels = memalign(128, sizeof(block) * gc.n);
+//    block* outputMap = memalign(128, sizeof(block) * 2 * gc.m);
+//    //block* computedOutputMap = memalign(128, sizeof(block) * gc.m);
+//    block delta = randomBlock();
+//    *((uint16_t *) (&delta)) |= 1;
+//
+//    garbleCircuit(&gc, inputLabels, outputMap, &delta);
+//
+//    saveGarbledCircuit(&gc,  "garbledCircuit.gc");
+//    loadGarbledCircuit(&gc2, "garbledCircuit.gc");
+//
+//    bool failed = false;
+//    if ((gc.n == gc2.n &&
+//        gc.m == gc2.m &&
+//        gc.q == gc2.q &&
+//        gc.r == gc2.r) == false) {
+//        printf("metadata failed in test_saving_reading\n");
+//        failed = true;
+//    }
+//    if (gc.garbledGates[0].id != gc2.garbledGates[0].id) {
+//        printf("garbledGates failed in test_saving_reading\n");
+//        failed = true;
+//    }
+//
+//    if (gc.garbledTable[0].table[0][0] != gc2.garbledTable[0].table[0][0]) {
+//        printf("garbledTables failed in test_saving_reading\n");
+//        failed = true;
+//    }
+//
+//    if (gc.wires[0].id != gc2.wires[0].id) {
+//        printf("wires failed in test_saving_reading\n");
+//        failed = true;
+//    }
+//
+//    free(inputLabels);
+//    free(extractedLabels);
+//    free(outputMap);
+//
+//    if (failed) {
+//        return FAILURE;
+//    } else {
+//        return SUCCESS;
+//    }
+//}
 
 int 
 simple_test() 
@@ -386,54 +380,5 @@ input_mapping_serialize_test()
     }
     return SUCCESS;
 
-}
-
-int 
-function_garb_eval_test()
-{
-    // test reading function from file, 
-    // chaining some circuits and evaluating
-    
-    FunctionSpec function;
-
-    int num_circs = 3, num_gcs = 3;
-    GarbledCircuit gcs[num_circs];
-    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_circs);
-    block* inputLabels = malloc(sizeof(block) * 2 * 2 * num_gcs);
-    block* receivedOutputMap; // = (block *) memalign(128, sizeof(block) * 2 * 2);
-    int* inputs = malloc(sizeof(int) * 4);
-    int* output = malloc(sizeof(int) * chained_gcs[0].gc.m);
-
-    createGarbledCircuits(chained_gcs, num_circs);
-    garbler_init(&function, chained_gcs, num_gcs);
-
-    // fill inputLabels
-    memcpy(inputLabels, chained_gcs[0].inputLabels, sizeof(block)*2*2);
-    memcpy(&inputLabels[4], chained_gcs[1].inputLabels, sizeof(block)*2*2);
-    receivedOutputMap = chained_gcs[2].outputMap; 
-
-    for (int i=0; i<num_circs; i++) {
-        gcs[i] = chained_gcs[i].gc; // shallow copy; pointers are not copied.
-    }
-
-    inputs[0] = rand() % 2;
-    inputs[1] = rand() % 2;
-    inputs[2] = rand() % 2;
-    inputs[3] = rand() % 2;
-    printf("inputs: (%d,%d), (%d,%d)\n", inputs[0], inputs[1], inputs[2], inputs[3]);
-
-    // TODO Adapt this to new version of chainedEvaluate
-    //chainedEvaluate(gcs, num_gcs, function.instructions.instr, function.instructions.size, 
-    //        inputLabels, receivedOutputMap, inputs, output, &function.input_mapping);
-
-    freeFunctionSpec(&function);
-    printf("outputs: (%d, %d)\n", output[0], output[1]);
-
-    if ((((inputs[0] ^ inputs[1]) ^ (inputs[2] ^ inputs[3])) != output[0]) || 
-        (((inputs[0] ^ inputs[1]) && (inputs[2] ^ inputs[3])) != output[1]))
-    {
-        return FAILURE;
-    }
-    return SUCCESS;
 }
 

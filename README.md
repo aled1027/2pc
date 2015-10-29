@@ -8,20 +8,6 @@
 - to look at json files
     - http://www.jsoneditoronline.org/
 
-### TODO:
-- Add networking + OT
-    - adding networking to garbler
-        - not yet done
-    - next will add networking to evaluator
-- saving garbled circuit to disk
-    - need two versions. garbler version and evaluator version
-    - garbler version has the extra info about labels and the such.
-
-### Have done:
-- read/write instructions to a `char* buffer*` (consequently can save to disk.
-- fixed reading/writing garbledCircuit to `char* buffer` bug
-- files are well organized... for now.
-
 ### The Gist
 1. Init Phase
     1. Garbler generates a bunch of GCs
@@ -32,6 +18,7 @@
     1. garbler chooses fn from json files
     2. creates instructions from json function spec
     3. sends instructions to evaluator
+
 3. Online Phase - Evaluator Side
     1. Receive instructions from garbler.
     2. Follow instructions. This step involves OT.

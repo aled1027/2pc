@@ -11,7 +11,8 @@ typedef struct {
     CircuitType circuit_type;
     int num;
     int* circuit_ids; // e.g if circuit ids 4,5,9 correspond to 22adder, this would be {4,5,9}.
-} FunctionComponent;
+} 
+FunctionComponent;
 
 typedef struct {
     int size;
@@ -19,7 +20,8 @@ typedef struct {
     int* gc_id; // each int array should be sizeof(int)*n (where n is number of inputs)
     int* wire_id;
     Person* inputter; // inputter[i] == GARBLER means the ith input should be inputted by the garbler.
-} InputMapping;
+} 
+InputMapping;
 
 typedef struct {
     InstructionType type; 
@@ -34,12 +36,14 @@ typedef struct {
     int chToCircId;
     int chToWireId;
     block chOffset; // from_wire xor to_wire, assuming the same deltas
-} Instruction;
+} 
+Instruction;
 
 typedef struct {
     int size;
     Instruction* instr;
-} Instructions;
+} 
+Instructions;
 
 typedef struct {
     /* The specifiction for a function. 
@@ -52,7 +56,8 @@ typedef struct {
     FunctionComponent* components;
     InputMapping input_mapping;
     Instructions instructions;
-} FunctionSpec;
+} 
+FunctionSpec;
 
 
 // json loading functions

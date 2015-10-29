@@ -34,14 +34,13 @@ int createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n);
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
 void buildAdderCircuit(GarbledCircuit *gc);
 
-// reading and writing methods
-// these methods are for writing/reading garbled circuit for evaluator stream
-// they do not save wire labels, which the garbler will need if they want to save to disk and load again later.
-int saveGarbledCircuit(GarbledCircuit* gc, char* fileName);
-int loadGarbledCircuit(GarbledCircuit* gc, char* fileName);
-static int writeGarbledCircuitToBuffer(GarbledCircuit* gc, char* buffer, size_t max_buffer_size);
-static int readBufferIntoGarbledCircuit(GarbledCircuit *gc, char* buffer);
-static size_t sizeofGarbledCircuit(GarbledCircuit* gc);
+int saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler);
+int loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler);
 
-
+void print_block(block blk);
+void print_garbled_gate(GarbledGate *gg);
+void print_garbled_table(GarbledTable *gt);
+void print_wire(Wire *w);
+void print_gc(GarbledCircuit *gc);
+void print_blocks(const char *str, block *blks, int length);
 #endif

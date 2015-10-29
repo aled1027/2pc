@@ -30,4 +30,5 @@ writeBufferToFile(char* buffer, size_t buf_size, char* fileName);
 int
 readFileIntoBuffer(char* buffer, char* fileName);
 
+//void print_block(block blk);
 #endif

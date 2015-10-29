@@ -5,7 +5,7 @@
 #include "2pc_garbled_circuit.h"
 
 // core functions
-int garbler_send_gcs(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs);
+int garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs);
 int garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs);
 void garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, 
         int *inputs);
@@ -19,6 +19,7 @@ void *new_item_reader(void *item, int idx, ssize_t *mlen);
 // other functions
 int createInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs);
 void send_instructions_and_input_mapping(FunctionSpec *function, int fd);
+void m_print_block(block blk);
 
 // TO MAKE:
 //int load_function_spec(char* path);

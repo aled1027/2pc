@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "utils.h"
+#include "2pc_common.h"
 
 int 
 createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n) 
@@ -65,70 +66,29 @@ buildAdderCircuit(GarbledCircuit *gc)
 }
 
 int 
-saveGarbledCircuit(GarbledCircuit* gc, char* fileName) 
+saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler) 
 {
     char* buffer;
-    size_t buffer_size;
+    size_t buffer_size = 1;
 
-    buffer_size = sizeofGarbledCircuit(gc);
+    GarbledCircuit* gc = &chained_gc->gc;
+
+    buffer_size += sizeof(int) * 4;
+    buffer_size += sizeof(GarbledGate) * gc->q;
+    buffer_size += sizeof(GarbledTable) * gc->q;
+    buffer_size += sizeof(Wire) * gc->r; // wires
+    buffer_size += sizeof(int) * gc->m; // outputs
+    buffer_size += sizeof(block);
+    buffer_size += sizeof(int); // id
+    buffer_size += sizeof(CircuitType); 
+    
+    if (isGarbler) {
+        buffer_size += sizeof(block)* 2 * gc->n; // inputLabels
+        buffer_size += sizeof(block) * 2 *gc->m; // outputMap
+    }
+
     buffer = malloc(buffer_size);
 
-    if (writeGarbledCircuitToBuffer(gc, buffer, buffer_size) == FAILURE)  {
-        return FAILURE;
-    }
-
-    if (writeBufferToFile(buffer, buffer_size, fileName) == FAILURE) {
-        return FAILURE;
-    }
-
-    return SUCCESS;
-}
-
-int 
-loadGarbledCircuit(GarbledCircuit* gc, char* fileName) 
-{
-    char* buffer;
-    long fs;
-
-    fs = filesize(fileName);
-    buffer = malloc(fs);
-
-    readFileIntoBuffer(buffer, fileName);
-    readBufferIntoGarbledCircuit(gc, buffer);
-
-    return SUCCESS;
-}
-
-static int 
-writeGarbledCircuitToBuffer(GarbledCircuit* gc, char* buffer, size_t max_buffer_size) 
-{
-    /*
-     * Save the garbled circuit to fileName.
-	    - int n, m, q, r; 
-     * The following fields are not saved:
-     *  - inputLabels
-     *  - outputLabels
-     *  - outputs
-     *  - id
-     *  - globalKey
-     */
-    /*
-    typedef struct {
-        block* inputLabels, outputLabels;  // 2*n inputLabels, 2*m outputLabels
-	    GarbledGate* garbledGates;
-	    GarbledTable* garbledTable;
-	    Wire* wires;
-	    int *outputs;
-	    long id;
-	    block globalKey;
-
-	    gc->garbledGates = (GarbledGate *) memalign(128, sizeof(GarbledGate) * q);
-	    gc->garbledTable = (GarbledTable *) memalign(128, sizeof(GarbledTable) * q);
-	    gc->wires = (Wire *) memalign(128, sizeof(Wire) * r);
-	    gc->outputs = (int *) memalign(128, sizeof(int) * m);
-
-    } GarbledCircuit;
-    */
     size_t p = 0;
     memcpy(buffer+p, &(gc->n), sizeof(gc->n));
     p += sizeof(gc->n);
@@ -151,11 +111,126 @@ writeGarbledCircuitToBuffer(GarbledCircuit* gc, char* buffer, size_t max_buffer_
     memcpy(buffer+p, gc->wires, sizeof(Wire)*gc->r);
     p += sizeof(Wire)*gc->r;
 
-    // save globalKey
-    memcpy(buffer + p, &(gc->globalKey), sizeof(gc->globalKey));
-    p += sizeof(gc->globalKey);
+    // save outputs
+    memcpy(buffer+p, gc->outputs, sizeof(int)*gc->m);
+    p += sizeof(int) * gc->m; 
 
-    if (p >= max_buffer_size) {
+    // save globalKey
+    memcpy(buffer + p, &(gc->globalKey), sizeof(block));
+    p += sizeof(block);
+
+    // id, type, inputLabels, outputmap
+    memcpy(buffer + p, &(chained_gc->id), sizeof(int));
+    p += sizeof(int);
+
+    memcpy(buffer + p, &(chained_gc->type), sizeof(CircuitType));
+    p += sizeof(CircuitType);
+
+    if (isGarbler) {
+        memcpy(buffer + p, chained_gc->inputLabels, sizeof(block)*2*gc->n);
+        p += sizeof(block) * 2 * gc->n;
+
+        memcpy(buffer + p, chained_gc->outputMap, sizeof(block)*2*gc->m);
+        p += sizeof(block) * 2 * gc->m;
+    }
+
+    if (p >= buffer_size) {
+        printf("Buffer overflow error in save.\n"); 
+        return FAILURE;
+    }
+
+    char fileName[50];
+
+    if (isGarbler) {
+        sprintf(fileName, GARBLER_GC_PATH, chained_gc->id);
+    } else { 
+        sprintf(fileName, EVALUATOR_GC_PATH, chained_gc->id);
+    }
+
+    if (writeBufferToFile(buffer, buffer_size, fileName) == FAILURE) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+    
+int 
+loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler) 
+{
+    char* buffer, fileName[50];
+    long fs;
+
+    if (isGarbler) {
+        sprintf(fileName, GARBLER_GC_PATH, id);
+    } else { 
+        sprintf(fileName, EVALUATOR_GC_PATH, id);
+    }
+
+    fs = filesize(fileName);
+    buffer=malloc(fs);
+
+    if (readFileIntoBuffer(buffer, fileName) == FAILURE) {
+        return FAILURE;
+    }
+
+    GarbledCircuit* gc = &chained_gc->gc;
+
+    size_t p = 0;
+    memcpy(&(gc->n), buffer+p, sizeof(gc->n));
+    p += sizeof(gc->n);
+    memcpy(&(gc->m), buffer+p, sizeof(gc->m));
+    p += sizeof(gc->m);
+    memcpy(&(gc->q), buffer+p, sizeof(gc->q));
+    p += sizeof(gc->q);
+    memcpy(&(gc->r), buffer+p, sizeof(gc->r));
+    p += sizeof(gc->r);
+
+    // load garbled gates
+    gc->garbledGates = malloc(sizeof(GarbledGate) * gc->q);
+    memcpy(gc->garbledGates, buffer+p, sizeof(GarbledGate)*gc->q);
+    p += sizeof(GarbledGate) * gc->q;
+
+    // load garbled table
+    gc->garbledTable = malloc(sizeof(GarbledTable) * gc->q);
+    memcpy(gc->garbledTable, buffer+p, sizeof(GarbledTable)*gc->q);
+    p += sizeof(GarbledTable)*gc->q;
+
+    // load wires
+    gc->wires = malloc(sizeof(Wire) * gc->r);
+    memcpy(gc->wires, buffer+p, sizeof(Wire)*gc->r);
+    p += sizeof(Wire)*gc->r;
+
+    // load outputs
+    gc->outputs = malloc(sizeof(int) * gc->m);
+    memcpy(gc->outputs, buffer+p, sizeof(int) * gc->m);
+    p += sizeof(int) * gc->m;
+
+    // save globalKey
+    memcpy(&(gc->globalKey), buffer+p, sizeof(block));
+    p += sizeof(block);
+
+    // id
+    memcpy(&(chained_gc->id), buffer+p, sizeof(int));
+    p += sizeof(int);
+
+    // type
+    memcpy(&(chained_gc->type), buffer+p, sizeof(CircuitType));
+    p += sizeof(CircuitType);
+    
+
+    if (isGarbler) {
+        // inputLabels
+        chained_gc->inputLabels = memalign(128, sizeof(block)*2*gc->n);
+        memcpy(chained_gc->inputLabels, buffer+p, sizeof(block)*2*gc->n);
+        p += sizeof(block) * 2 * gc->n;
+
+        // outputMap
+        chained_gc->outputMap = memalign(128, sizeof(block)*2*gc->m);
+        memcpy(chained_gc->outputMap, buffer+p, sizeof(block)*2*gc->m);
+        p += sizeof(block) * 2*gc->m;
+    }
+
+    if (p > fs) {
         printf("Buffer overflow error\n"); 
         return FAILURE;
     }
@@ -163,51 +238,71 @@ writeGarbledCircuitToBuffer(GarbledCircuit* gc, char* buffer, size_t max_buffer_
     return SUCCESS;
 }
 
-static int
-readBufferIntoGarbledCircuit(GarbledCircuit *gc, char* buffer) 
+void
+print_block(block blk)
 {
-    size_t p = 0;
-    memcpy(&(gc->n), buffer+p, sizeof(int));
-    p += sizeof(int);
-    memcpy(&(gc->m), buffer+p, sizeof(int));
-    p += sizeof(int);
-    memcpy(&(gc->q), buffer+p, sizeof(int));
-    p += sizeof(int);
-    memcpy(&(gc->r), buffer+p, sizeof(int));
-    p += sizeof(int);
-
-    gc->garbledGates = malloc(sizeof(GarbledGate) * gc->q);
-    gc->garbledTable = malloc(sizeof(GarbledTable) * gc->q);
-    gc->wires = malloc(sizeof(Wire) * gc->r);
-
-    // read garbledGates
-    memcpy(gc->garbledGates, buffer+p, sizeof(GarbledGate)*gc->q);
-    p += sizeof(GarbledGate) * gc->q;
-
-    // read garbledTable
-    memcpy(gc->garbledTable, buffer+p, sizeof(GarbledTable)*gc->q);
-    p += sizeof(GarbledTable) * gc->q;
-
-    memcpy(gc->wires, buffer+p, sizeof(Wire)*gc->r);
-    p += sizeof(Wire) * gc->r;
-
-    // save globalKey
-    memcpy(&(gc->globalKey), buffer+p, sizeof(gc->globalKey));
-    p += sizeof(gc->globalKey);
-
-    return SUCCESS;
+    uint64_t *val = (uint64_t *) &blk;
+    printf("%016lx%016lx", val[1], val[0]);
 }
 
-
-static size_t 
-sizeofGarbledCircuit(GarbledCircuit* gc) 
+void
+print_garbled_gate(GarbledGate *gg)
 {
-    size_t size;
-    size = sizeof(int)*4 + sizeof(GarbledGate)*(gc->q + 2) + sizeof(GarbledTable)*gc->q
-        + sizeof(Wire)*(gc->r) + sizeof(block);
-    return size;
+    printf("%ld %ld %ld %d %d\n", gg->input0, gg->input1, gg->output, gg->id,
+           gg->type);
 }
 
+void
+print_garbled_table(GarbledTable *gt)
+{
+    print_block(gt->table[0]);
+    printf(" ");
+    print_block(gt->table[1]);
+    printf(" ");
+    print_block(gt->table[2]);
+    printf(" ");
+    print_block(gt->table[3]);
+    printf("\n");
+}
 
+void
+print_wire(Wire *w)
+{
+    printf("%ld ", w->id);
+    print_block(w->label0);
+    printf(" ");
+    print_block(w->label1);
+    printf("\n");
+}
 
+void
+print_gc(GarbledCircuit *gc)
+{
+    printf("n = %d\n", gc->n);
+    printf("m = %d\n", gc->m);
+    printf("q = %d\n", gc->q);
+    printf("r = %d\n", gc->r);
+    for (int i = 0; i < gc->q; ++i) {
+        printf("garbled gate %d: ", i);
+        print_garbled_gate(&gc->garbledGates[i]);
+        printf("garbled table %d: ", i);
+        print_garbled_table(&gc->garbledTable[i]);
+    }
+    for (int i = 0; i < gc->r; ++i) {
+        printf("wire %d: ", i);
+        print_wire(&gc->wires[i]);
+    }
+    for (int i = 0; i < gc->m; ++i) {
+        printf("%d\n", gc->outputs[i]);
+    }
+}
 
+void
+print_blocks(const char *str, block *blks, int length)
+{
+    for (int i = 0; i < length; ++i) {
+        printf("%s ", str);
+        print_block(blks[i]);
+        printf("\n");
+    }
+}

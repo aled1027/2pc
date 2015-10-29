@@ -13,78 +13,19 @@
 #include "net.h"
 #include "ot_np.h"
 
+#include "utils.h"
+
 #include "2pc_common.h"
 
 /* Original main made by Alex M */
 
-static void
-print_block(block blk)
-{
-    uint64_t *val = (uint64_t *) &blk;
-    printf("%016lx%016lx", val[1], val[0]);
-}
+//static void
+//print_block(block blk)
+//{
+//    uint64_t *val = (uint64_t *) &blk;
+//    printf("%016lx%016lx", val[1], val[0]);
+//}
 
-static void
-print_garbled_gate(GarbledGate *gg)
-{
-    printf("%ld %ld %ld %d %d\n", gg->input0, gg->input1, gg->output, gg->id,
-           gg->type);
-}
-
-static void
-print_garbled_table(GarbledTable *gt)
-{
-    print_block(gt->table[0]);
-    printf(" ");
-    print_block(gt->table[1]);
-    printf(" ");
-    print_block(gt->table[2]);
-    printf(" ");
-    print_block(gt->table[3]);
-    printf("\n");
-}
-
-static void
-print_wire(Wire *w)
-{
-    printf("%ld ", w->id);
-    print_block(w->label0);
-    printf(" ");
-    print_block(w->label1);
-    printf("\n");
-}
-
-static void
-print_gc(GarbledCircuit *gc)
-{
-    printf("n = %d\n", gc->n);
-    printf("m = %d\n", gc->m);
-    printf("q = %d\n", gc->q);
-    printf("r = %d\n", gc->r);
-    for (int i = 0; i < gc->q; ++i) {
-        printf("garbled gate %d: ", i);
-        print_garbled_gate(&gc->garbledGates[i]);
-        printf("garbled table %d: ", i);
-        print_garbled_table(&gc->garbledTable[i]);
-    }
-    for (int i = 0; i < gc->r; ++i) {
-        printf("wire %d: ", i);
-        print_wire(&gc->wires[i]);
-    }
-    for (int i = 0; i < gc->m; ++i) {
-        printf("%d\n", gc->outputs[i]);
-    }
-}
-
-static void
-print_blocks(const char *str, block *blks, int length)
-{
-    for (int i = 0; i < length; ++i) {
-        printf("%s ", str);
-        print_block(blks[i]);
-        printf("\n");
-    }
-}
 
 /* static int */
 /* checkfn(int *a, int *outputs, int n) */

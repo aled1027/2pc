@@ -13,10 +13,9 @@
 #include "gc_comm.h"
 
 int 
-garbler_send_gcs(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs) 
+garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs) 
 {
-    /* sends chained gcs over to evaluator */
-
+    /* sends ChainedGcs to evaluator and saves ChainedGcs to disk */
     // setup connection
     int serverfd, fd, res;
     struct state state;
@@ -35,6 +34,7 @@ garbler_send_gcs(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs)
     // send chained_gcs over
     for (int i=0; i<num_chained_gcs; i++) {
         chained_gc_comm_send(fd, &chained_gcs[i]);
+        saveChainedGC(&chained_gcs[i], true);
     }
 
     // clean up
@@ -44,7 +44,6 @@ garbler_send_gcs(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs)
 
     return SUCCESS;
 }
-
 int 
 garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs) 
 {
@@ -89,37 +88,47 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
         exit(EXIT_FAILURE);
     }
     // 2. send instructions, input_mapping, relevant info from function
-
     send_instructions_and_input_mapping(function, fd);
-
-    // ---- unfinished past here ---
-
 
     // 3. send labels for evaluator's inputs
     block* evalLabels = malloc(sizeof(block) * 2 * 2 * num_chained_gcs); 
+    block* garbLabels = malloc(sizeof(block) * 2 * 2 * num_chained_gcs); 
+    block* temp = malloc(sizeof(block) * 2 * 2 * num_chained_gcs); 
 
-    // how do we know how to grab these?
-    memcpy(evalLabels, chained_gcs[0].inputLabels, sizeof(block)*2*2);
-    memcpy(&evalLabels[4], chained_gcs[1].inputLabels, sizeof(block)*2*2);
+    InputMapping imap = function->input_mapping;
+    int eval_p = 0, garb_p = 0;
+    for (int i=0; i<imap.size; i++) {
+        if (imap.inputter[i] == PERSON_GARBLER) {
+            memcpy(&garbLabels[garb_p], &chained_gcs[imap.gc_id[i]].inputLabels[2*imap.wire_id[i]], 
+                    sizeof(block)*2);
+            garb_p+=2;
+        } else if (imap.inputter[i] == PERSON_EVALUATOR) {
+            memcpy(&evalLabels[eval_p], &chained_gcs[imap.gc_id[i]].inputLabels[2*imap.wire_id[i]], 
+                    sizeof(block)*2);
+            eval_p+=2;
+        } 
+    }
 
-    ot_np_send(&state, fd, evalLabels, sizeof(block), 4, 2,
+    ot_np_send(&state, fd, evalLabels, sizeof(block), eval_p / 2 , 2,
                new_msg_reader, new_item_reader);
 
     // 4. send labels for garbler's inputs.
+    // use garbLabels and grab the inputs we want. Or do it up above.
     //net_send(fd, outputMap, sizeof(block) * 2 * gc.m, 0);
     
     // 5. send output map
-    net_send(fd, chained_gcs[2].outputMap, sizeof(block)*2*2, 0); 
-    // function.instructions.instr[function.instruction.instr.size -1 ]
-    // send that shit.
+    // TODO there may be a bug here. This might not be the correct id of the final circuit
+    // because of the mapping in garbler_make_real_instructions()
+    // TODO this value is input_idx?
+    int final_circuit = function->instructions.instr[ function->instructions.size - 1].evCircId;
+    int output_size = chained_gcs[final_circuit].gc.m;
+    net_send(fd, &output_size, sizeof(int), 0); 
+    net_send(fd, chained_gcs[final_circuit].outputMap, sizeof(block)*2*output_size, 0); 
     
     // 6. clean up
     state_cleanup(&state);
     close(fd);
     close(serverfd);
-   
-
-    // send things over to evaluator
 }
 
 int
@@ -249,7 +258,6 @@ send_instructions_and_input_mapping(FunctionSpec *function, int fd)
 
     Instructions is;
     readBufferIntoInstructions(&is, buffer1);
-    printf("Brrreak me\n");
 }
 
 

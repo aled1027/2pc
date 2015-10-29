@@ -24,6 +24,7 @@ evaluator_receive_gcs(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs)
 
     for (int i=0; i<num_chained_gcs; i++) {
         chained_gc_comm_recv(sockfd, &chained_gcs[i]);
+        saveChainedGC(&chained_gcs[i], false);
     }
 
     close(sockfd);
@@ -67,8 +68,6 @@ evaluator_go(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* eval_
     // allocates memory for them as needed.
     recv_instructions_and_input_mapping(&function, sockfd);
 
-    // -------- not done past here--------------
-
     // 3. received labels based on evaluator's inputs
 
     block* eval_labels = memalign(128, sizeof(block) * num_eval_inputs);
@@ -86,14 +85,21 @@ evaluator_go(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* eval_
     }
 
     // 5. receive outputmap
-    block* outputmap = memalign(128, sizeof(block) * 2 * 2);
-    net_recv(sockfd, outputmap, sizeof(block)*2*2, 0); 
+    int output_size;
+    net_recv(sockfd, &output_size, sizeof(int), 0);
+
+    block* outputmap = memalign(128, sizeof(block) * 2 * output_size);
+    net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0); 
 
     // 6. evaluate
-    
-    int *output = malloc(sizeof(int) * 2);
+    int *output = malloc(sizeof(int) * output_size);
     chainedEvaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output);
-    printf("output: (%d, %d)\n", output[0], output[1]);
+    printf("Output: (");
+    for (int i=0; i<output_size; i++) {
+        printf("%d, ", output[i]);
+    }
+    printf(")\n");
+    //printf("output: (%d, %d)\n", output[0], output[1]);
     
     // 7. clean up
     close(sockfd);
@@ -111,11 +117,7 @@ evaluator_go(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* eval_
 int chainedEvaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         Instructions* instructions, block** labels, block* outputmap, int* output)
 {
-
-    printf("------------------starting chained evaluate------------------\n");
-
     block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
-
     for (int i=0; i<num_chained_gcs; i++) {
         computedOutputMap[i] = memalign(128, sizeof(block) * 2);
         assert(computedOutputMap[i]);
@@ -136,8 +138,7 @@ int chainedEvaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                         cur->chOffset);
                 break;
             default:
-                printf("Error\n");
-                printf("Instruction %d is not of a valid type\n", i);
+                printf("Error: Instruction %d is not of a valid type\n", i);
                 return FAILURE;
         }
     }
@@ -160,7 +161,6 @@ getLabels(block** labels, int* eval_inputs, int eval_num_inputs,
     block* raw_labels = memalign(128, sizeof(block) * eval_num_inputs);
 
 #ifdef USE_OT
-    printf("break here\n");
     int sockfd, len;
     struct state state;
     state_init(&state);
