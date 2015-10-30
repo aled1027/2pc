@@ -7,7 +7,7 @@
 int 
 freeFunctionSpec(FunctionSpec* function) 
 {
-    for (int i=0; i<function->num_components; i++) {
+    for (int i=0; i<function->num_component_types; i++) {
         free(function->components[i].circuit_ids);
     }
     free(function->components);
@@ -17,15 +17,13 @@ freeFunctionSpec(FunctionSpec* function)
     free(function->input_mapping.wire_id);
 
     free(function->instructions.instr);
-
-
     return 0;
 }
 
 void
 print_function(FunctionSpec* function) 
 {
-    print_components(function->components, function->num_components);
+    print_components(function->components, function->num_component_types);
     print_input_mapping(&(function->input_mapping));
     print_instructions(&(function->instructions));
 }
@@ -87,7 +85,8 @@ json_load_components(json_t *root, FunctionSpec *function)
 
     jComponents = json_object_get(root, "components");
     size = json_array_size(jComponents);
-    function->num_components = size;
+    function->num_components = 0;
+    function->num_component_types = size;
     function->components = malloc(sizeof(FunctionComponent) * size);
 
     for (int i=0; i<size; i++) {
@@ -105,6 +104,7 @@ json_load_components(json_t *root, FunctionSpec *function)
         assert (json_is_integer(jNum));
         num = json_integer_value(jNum);
         function->components[i].num = num;
+        function->num_components += num;
 
         // get circuit ids
         function->components[i].circuit_ids = malloc(sizeof(int) * num);
@@ -120,7 +120,7 @@ json_load_components(json_t *root, FunctionSpec *function)
 }
 
 void
-print_components(FunctionComponent* components, int num_components) 
+print_components(FunctionComponent* components, int num_component_types) 
 {
     printf("print_components not yet implemented\n");
 }

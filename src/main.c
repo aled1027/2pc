@@ -47,24 +47,6 @@ void e_offline()
     evaluator_receive_gcs(chained_gcs, NUM_GCS); // NUM_GCS defined in 2pc_common.h
 }
 
-void
-garbler()
-{
-    FunctionSpec function;
-    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
-
-    for (int i=0; i<NUM_GCS; i++) {
-        loadChainedGC(&chained_gcs[i], i, true);
-    }
-    
-    garbler_init(&function, chained_gcs, NUM_GCS);
-
-    int* inputs; // not used yet
-    garbler_go(&function, chained_gcs, NUM_GCS, inputs);
-
-    freeFunctionSpec(&function);
-}
-
 int evaluator() 
 {
     int *inputs = malloc(sizeof(int) * 4);
@@ -86,6 +68,20 @@ int evaluator()
     return SUCCESS;
 }
 
+//void foo(int ** arr) {
+//    *arr = malloc(100);
+//    //(*arr)[2] = 12;
+//}
+//
+//void test() {
+//    int* arr;
+//    foo(&arr);
+//    arr[0] = 10;
+//    arr[1] = 11;
+//    arr[2] = 12;
+//    arr[3] = 13;
+//}
+
 int 
 main(int argc, char* argv[]) 
 {
@@ -105,7 +101,7 @@ main(int argc, char* argv[])
         evaluator();
     } else if (strcmp(argv[1], "garb_online") == 0) {
         printf("Running garb online\n");
-        garbler();
+        run_garbler();
     } else if (strcmp(argv[1], "garb_offline") == 0) {
         printf("Running garb offline\n");
         g_offline();

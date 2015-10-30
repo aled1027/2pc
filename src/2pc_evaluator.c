@@ -35,8 +35,6 @@ int
 evaluator_go(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* eval_inputs, int num_eval_inputs) 
 {
     sleep(1);
-
-    printf("Starting evaluator_g()\n");
     // 1. setup connection
     int sockfd, len;
     struct state state;
@@ -66,18 +64,39 @@ evaluator_go(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* eval_
     // 2. receive input_mapping, instructions
     // popualtes instructions and input_mapping field of function
     // allocates memory for them as needed.
-    recv_instructions_and_input_mapping(&function, sockfd);
+    char *buffer1, *buffer2;
+    size_t buf_size1, buf_size2;
 
-    // 3. received labels based on evaluator's inputs
+    net_recv(sockfd, &buf_size1, sizeof(size_t), 0);
+    net_recv(sockfd, &buf_size2, sizeof(size_t), 0);
 
+    buffer1 = malloc(buf_size1);
+    buffer2 = malloc(buf_size2);
+
+    net_recv(sockfd, buffer1, buf_size1, 0);
+    net_recv(sockfd, buffer2, buf_size2, 0);
+
+    readBufferIntoInstructions(&function.instructions, buffer1);
+    readBufferIntoInputMapping(&function.input_mapping, buffer2);
+    free(buffer1);
+    free(buffer2);
+
+    // 3. receive circuitMapping
+    // circuitMapping maps instruction-gc-ids --> saved-gc-ids 
+    int circuitMappingSize, *circuitMapping;
+    net_recv(sockfd, &circuitMappingSize, sizeof(int), 0);
+    circuitMapping = malloc(sizeof(int) * circuitMappingSize);
+    net_recv(sockfd, circuitMapping, sizeof(int)*circuitMappingSize, 0);
+
+    // 4. received labels based on evaluator's inputs
     block* eval_labels = memalign(128, sizeof(block) * num_eval_inputs);
     ot_np_recv(&state, sockfd, eval_inputs, num_eval_inputs, sizeof(block), 2, eval_labels,
                new_choice_reader, new_msg_writer);
 
-    // 4. receive labels based on garbler's inputs
+    // 5. receive labels based on garbler's inputs
     // none so ignoring for now
     
-    // 5. process eval_labels and garb_labels into labels
+    // 6. process eval_labels and garb_labels into labels
     // TODO improve to include garbler inputs
     InputMapping* input_mapping = &function.input_mapping;
     for (int i=0; i<input_mapping->size; i++) {
@@ -93,13 +112,12 @@ evaluator_go(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* eval_
 
     // 6. evaluate
     int *output = malloc(sizeof(int) * output_size);
-    chainedEvaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output);
+    chainedEvaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output, circuitMapping);
     printf("Output: (");
     for (int i=0; i<output_size; i++) {
         printf("%d, ", output[i]);
     }
     printf(")\n");
-    //printf("output: (%d, %d)\n", output[0], output[1]);
     
     // 7. clean up
     close(sockfd);
@@ -115,21 +133,32 @@ evaluator_go(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* eval_
 }
 
 int chainedEvaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
-        Instructions* instructions, block** labels, block* outputmap, int* output)
+        Instructions* instructions, block** labels, block* outputmap, int* output, int* circuitMapping)
 {
+    /* only used circuitMapping when evaluating. 
+     * all other labels, outputmap are basedon the indicies of instructions.
+     * This is because instruction's circuits are id'ed 0,..,n-1
+     * whereas saved gc id'ed arbitrarily.
+     */
+
     block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
     for (int i=0; i<num_chained_gcs; i++) {
-        computedOutputMap[i] = memalign(128, sizeof(block) * 2);
+        computedOutputMap[i] = memalign(128, sizeof(block) * chained_gcs[i].gc.m);
         assert(computedOutputMap[i]);
     }
 
+    int savedCircId;
     for (int i=0; i<instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
         switch(cur->type) {
             case EVAL:
-                evaluate(&chained_gcs[cur->evCircId].gc, labels[cur->evCircId], computedOutputMap[cur->evCircId]);
+                savedCircId = circuitMapping[cur->evCircId];
+                evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
+                        computedOutputMap[cur->evCircId]);
+
                 if (i == instructions->size - 1) {
-	                mapOutputs(outputmap, computedOutputMap[2], output, chained_gcs[2].gc.m);
+	                mapOutputs(outputmap, computedOutputMap[cur->evCircId], 
+                            output, chained_gcs[savedCircId].gc.m);
                 }
                 break;
             case CHAIN:
@@ -142,52 +171,6 @@ int chainedEvaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                 return FAILURE;
         }
     }
-    return SUCCESS;
-}
-
-int 
-getLabels(block** labels, int* eval_inputs, int eval_num_inputs, 
-        block* input_labels, InputMapping *input_mapping) 
-{
-    /* Manages online networking for evaluator
-     *
-     * labels: destination of grabbed labels. Memory should already be allocated 
-     * eval_inputs: evaluator's inputs.
-     * eval_num_inputs: number of evaluators inputs.
-     * inputLabels: only used if not using OT. Garbler sends over all labels, 
-     *  and we just grab the ones we need
-     */
-
-    block* raw_labels = memalign(128, sizeof(block) * eval_num_inputs);
-
-#ifdef USE_OT
-    int sockfd, len;
-    struct state state;
-    state_init(&state);
-
-    if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
-        perror("net_init_client");
-        exit(EXIT_FAILURE);
-    }
-
-    ot_np_recv(&state, sockfd, eval_inputs, eval_num_inputs, sizeof(block), 2, raw_labels,
-               new_choice_reader, new_msg_writer);
-
-    // get outputmap
-    //net_recv(sockfd, outputMap, sizeof(block) * 2 * gc.m, 0);
-#else
-    printf("We are entering new get labels\n");
-    assert(raw_labels && input_labels); // input_labels should be malloced and filled before
-
-    // fill raw_labels will all relevant labels.
-    extractLabels(raw_labels, input_labels, eval_inputs, eval_num_inputs);
-
-    // plug raw_labels into labels using input_mapping
-    for (int i=0; i<input_mapping->size; i++) {
-        // TODO double check this is correct.
-        labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = raw_labels[i]; 
-    } // also get outputLabels?
-#endif
     return SUCCESS;
 }
 
@@ -204,23 +187,4 @@ new_msg_writer(void *array, int idx, void *msg, size_t msglength)
     block *a = (block *) array;
     a[idx] = *((block *) msg);
     return 0;
-}
-
-
-void 
-recv_instructions_and_input_mapping(FunctionSpec *function, int sockfd) {
-    char *buffer1, *buffer2;
-    size_t buf_size1, buf_size2;
-
-    net_recv(sockfd, &buf_size1, sizeof(size_t), 0);
-    net_recv(sockfd, &buf_size2, sizeof(size_t), 0);
-
-    buffer1 = malloc(buf_size1);
-    buffer2 = malloc(buf_size2);
-
-    net_recv(sockfd, buffer1, buf_size1, 0);
-    net_recv(sockfd, buffer2, buf_size2, 0);
-
-    readBufferIntoInstructions(&function->instructions, buffer1);
-    readBufferIntoInputMapping(&function->input_mapping, buffer2);
 }

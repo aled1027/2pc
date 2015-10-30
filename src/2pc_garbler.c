@@ -44,8 +44,29 @@ garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs)
 
     return SUCCESS;
 }
+
+int run_garbler() 
+{
+    FunctionSpec function;
+    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
+
+    for (int i=0; i<NUM_GCS; i++) {
+        loadChainedGC(&chained_gcs[i], i, true);
+    }
+    
+    int* circuitMapping;
+    int* inputs; // not used yet
+
+    garbler_init(&function, chained_gcs, NUM_GCS, &circuitMapping);
+    garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs);
+
+    freeFunctionSpec(&function);
+
+    return SUCCESS;
+}
+
 int 
-garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs) 
+garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int **circuitMapping) 
 {
     /* primary role: fill function function with information provided by chained_gcs */
     char* function_path = "functions/22Adder.json";
@@ -61,14 +82,15 @@ garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num
     }
 
     // make instructions based on these circuits. Instructions are saved inside of function.
-    garbler_make_real_instructions(function, saved_gcs_type, num_chained_gcs, chained_gcs, num_chained_gcs);
+    *circuitMapping = (int*) malloc(sizeof(int) * function->num_components);
+    garbler_make_real_instructions(function, chained_gcs, num_chained_gcs, *circuitMapping);
 
     return SUCCESS;
 }
 
 void 
 garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
-        int *inputs) 
+        int* circuitMapping, int *inputs) 
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
     // hardcoding 22adder for now
@@ -90,7 +112,11 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     // 2. send instructions, input_mapping, relevant info from function
     send_instructions_and_input_mapping(function, fd);
 
-    // 3. send labels for evaluator's inputs
+    // 3. send circuitMapping
+    net_send(fd, &function->num_components, sizeof(int), 0);
+    net_send(fd, circuitMapping, sizeof(int) * function->num_components, 0);
+
+    // 4. send labels for evaluator's inputs
     block* evalLabels = malloc(sizeof(block) * 2 * 2 * num_chained_gcs); 
     block* garbLabels = malloc(sizeof(block) * 2 * 2 * num_chained_gcs); 
     block* temp = malloc(sizeof(block) * 2 * 2 * num_chained_gcs); 
@@ -98,12 +124,13 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     InputMapping imap = function->input_mapping;
     int eval_p = 0, garb_p = 0;
     for (int i=0; i<imap.size; i++) {
+        // need to use circuitMapping.
         if (imap.inputter[i] == PERSON_GARBLER) {
-            memcpy(&garbLabels[garb_p], &chained_gcs[imap.gc_id[i]].inputLabels[2*imap.wire_id[i]], 
+            memcpy(&garbLabels[garb_p], &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]], 
                     sizeof(block)*2);
             garb_p+=2;
         } else if (imap.inputter[i] == PERSON_EVALUATOR) {
-            memcpy(&evalLabels[eval_p], &chained_gcs[imap.gc_id[i]].inputLabels[2*imap.wire_id[i]], 
+            memcpy(&evalLabels[eval_p], &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]], 
                     sizeof(block)*2);
             eval_p+=2;
         } 
@@ -112,15 +139,12 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     ot_np_send(&state, fd, evalLabels, sizeof(block), eval_p / 2 , 2,
                new_msg_reader, new_item_reader);
 
-    // 4. send labels for garbler's inputs.
+    // 5. send labels for garbler's inputs.
     // use garbLabels and grab the inputs we want. Or do it up above.
     //net_send(fd, outputMap, sizeof(block) * 2 * gc.m, 0);
     
-    // 5. send output map
-    // TODO there may be a bug here. This might not be the correct id of the final circuit
-    // because of the mapping in garbler_make_real_instructions()
-    // TODO this value is input_idx?
-    int final_circuit = function->instructions.instr[ function->instructions.size - 1].evCircId;
+    // 6. send output map
+    int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];
     int output_size = chained_gcs[final_circuit].gc.m;
     net_send(fd, &output_size, sizeof(int), 0); 
     net_send(fd, chained_gcs[final_circuit].outputMap, sizeof(block)*2*output_size, 0); 
@@ -132,96 +156,58 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
 }
 
 int
-garbler_make_real_instructions(FunctionSpec *function, CircuitType *saved_gcs_type, int num_saved_gcs,
-        ChainedGarbledCircuit* chained_gcs, int num_chained_gcs) 
+garbler_make_real_instructions(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* circuitMapping) 
 {
-    // suppose we have N garbled circuits total
-    // 6 ADDER22 and 4 ADDER23
-    bool* is_circuit_used = malloc(sizeof(bool) * num_saved_gcs);
-    assert(is_circuit_used);
-    memset(is_circuit_used, 0, sizeof(bool) * num_saved_gcs);
+    /* primary role: populate circuitMapping
+     * circuitMapping maps instruction-gc-ids --> saved-gc-ids 
+     */
 
-    // create mapping functionCircuitToRealCircuit: FunctionCircuit int id -> Real Circuit id
-    int num_components = function->num_components;
-    int* functionCircuitToRealCircuit = malloc(sizeof(int) * num_components);
+    bool* is_circuit_used;
+    int num_component_types;
+        
+    is_circuit_used = malloc(sizeof(bool) * num_chained_gcs);
+
+    assert(is_circuit_used);
+    memset(is_circuit_used, 0, sizeof(bool) * num_chained_gcs);
+    num_component_types = function->num_component_types;
 
     // loop over type of circuit
-    for (int i=0; i<num_components; i++) {
-        CircuitType type = function->components[i].circuit_type;
-        int num = function->components[i].num;
+    for (int i=0; i<num_component_types; i++) {
+        CircuitType needed_type = function->components[i].circuit_type;
+        int num_needed = function->components[i].num;
         int* circuit_ids = function->components[i].circuit_ids; // = {0,1,2};
         
         // j indexes circuit_ids, k indexes is_circuit_used and saved_gcs
         int j = 0, k = 0;
 
         // find an available circuit
-        for (int k=0; k<num_saved_gcs; k++) {
-            if (!is_circuit_used[k] && saved_gcs_type[k] == type) {
+        for (int k=0; k<num_chained_gcs; k++) {
+            if (!is_circuit_used[k] && chained_gcs[k].type == needed_type) {
                 // map it, and increment j
-                functionCircuitToRealCircuit[circuit_ids[j]] = k;
+                circuitMapping[circuit_ids[j]] = k;
                 is_circuit_used[k] = true;
                 j++;
             }
-            if (num == j) break;
+            if (num_needed == j) break;
         }
-        if (j < num) {
-            fprintf(stderr, "Not enough circuits of type %d available\n", type);
+        if (j < num_needed) {
+            fprintf(stderr, "Not enough circuits of type %d available\n", needed_type);
             return FAILURE;
         }
     }
     
-    // Apply FunctionCircuitToRealCircuit to update instructions to reflect real circuit ids
+    // set the chaining offsets.
     int num_instructions = function->instructions.size;
     Instruction *cur;
     for (int i=0; i<num_instructions; i++) {
         cur = &(function->instructions.instr[i]);
-        switch(cur->type) {
-            case EVAL:
-                cur->evCircId = functionCircuitToRealCircuit[cur->evCircId];
-                break;
-            case CHAIN:
-                cur->chFromCircId = functionCircuitToRealCircuit[cur->chFromCircId];
-                cur->chToCircId = functionCircuitToRealCircuit[cur->chToCircId];
+        if (cur->type == CHAIN) {
+            cur->chOffset = xorBlocks(
+                chained_gcs[circuitMapping[cur->chFromCircId]].outputMap[cur->chFromWireId],
+                chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
 
-                cur->chOffset = xorBlocks(
-                        chained_gcs[cur->chFromCircId].outputMap[cur->chFromWireId],
-                        chained_gcs[cur->chToCircId].inputLabels[2*cur->chToWireId]); 
-                // pretty sure this 2 is right
-                break;
-            default:
-                fprintf(stderr, "Instruction type not recognized\n");
         }
     }
-    //print_instructions(&function->instructions);
-    return SUCCESS;
-}
-
-
-int 
-createInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs) 
-{
-    instr[0].type = EVAL;
-    instr[0].evCircId = 0;
-    
-    instr[1].type = EVAL;
-    instr[1].evCircId = 1;
-
-    instr[2].type = CHAIN;
-    instr[2].chFromCircId = 0;
-    instr[2].chFromWireId = 0;
-    instr[2].chToCircId = 2;
-    instr[2].chToWireId = 0;
-    instr[2].chOffset = xorBlocks(chained_gcs[0].outputMap[0], chained_gcs[2].inputLabels[0]);
-
-    instr[3].type = CHAIN;
-    instr[3].chFromCircId = 1;
-    instr[3].chFromWireId = 0;
-    instr[3].chToCircId = 2;
-    instr[3].chToWireId = 1;
-    instr[3].chOffset = xorBlocks(chained_gcs[1].outputMap[0], chained_gcs[2].inputLabels[2]);
-
-    instr[4].type = EVAL;
-    instr[4].evCircId = 2;
     return SUCCESS;
 }
 
@@ -258,6 +244,34 @@ send_instructions_and_input_mapping(FunctionSpec *function, int fd)
 
     Instructions is;
     readBufferIntoInstructions(&is, buffer1);
+}
+
+int 
+hardcodeInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs) 
+{
+    instr[0].type = EVAL;
+    instr[0].evCircId = 0;
+    
+    instr[1].type = EVAL;
+    instr[1].evCircId = 1;
+
+    instr[2].type = CHAIN;
+    instr[2].chFromCircId = 0;
+    instr[2].chFromWireId = 0;
+    instr[2].chToCircId = 2;
+    instr[2].chToWireId = 0;
+    instr[2].chOffset = xorBlocks(chained_gcs[0].outputMap[0], chained_gcs[2].inputLabels[0]);
+
+    instr[3].type = CHAIN;
+    instr[3].chFromCircId = 1;
+    instr[3].chFromWireId = 0;
+    instr[3].chToCircId = 2;
+    instr[3].chToWireId = 1;
+    instr[3].chOffset = xorBlocks(chained_gcs[1].outputMap[0], chained_gcs[2].inputLabels[2]);
+
+    instr[4].type = EVAL;
+    instr[4].evCircId = 2;
+    return SUCCESS;
 }
 
 

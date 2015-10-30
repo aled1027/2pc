@@ -1,6 +1,15 @@
 # 2pc
 - offline/online 2PC
 
+## To run:
+```
+make
+make run_garb_off
+make run_eval_off
+make run_garb
+make run_eval
+```
+
 ## Alex's notes
 - `__m128i`
     - used for inputLabels, outputLabels, and wires
