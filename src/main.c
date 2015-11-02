@@ -49,21 +49,19 @@ void e_offline()
 
 int evaluator() 
 {
-    int *inputs = malloc(sizeof(int) * 4);
+    int *inputs = malloc(sizeof(int) * 2);
+    int num_inputs = 2;
 
     inputs[0] = rand() % 2;
     inputs[1] = rand() % 2;
-    inputs[2] = rand() % 2;
-    inputs[3] = rand() % 2;
-
-    printf("inputs: (%d,%d), (%d,%d)\n", inputs[0], inputs[1], inputs[2], inputs[3]);
+    printf("inputs: (%d,%d)\n", inputs[0], inputs[1]);
     
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
 
     for (int i=0; i<NUM_GCS; i++) {
         loadChainedGC(&chained_gcs[i], i, false);
     }
-    evaluator_go(chained_gcs, NUM_GCS, inputs, 4);
+    evaluator_go(chained_gcs, NUM_GCS, inputs, num_inputs);
 
     return SUCCESS;
 }
@@ -73,14 +71,15 @@ int evaluator()
 //    //(*arr)[2] = 12;
 //}
 //
-//void test() {
-//    int* arr;
-//    foo(&arr);
-//    arr[0] = 10;
-//    arr[1] = 11;
-//    arr[2] = 12;
-//    arr[3] = 13;
-//}
+void test() {
+    block a = randomBlock();
+    block b;
+    memcpy(&a, &b, sizeof(block));
+    printf("\n");
+    print_block(a);
+    printf("\n");
+    print_block(b);
+}
 
 int 
 main(int argc, char* argv[]) 
@@ -109,8 +108,9 @@ main(int argc, char* argv[])
         printf("Running val offline\n");
         e_offline();
     } else if (strcmp(argv[1], "tests") == 0) {
-        test_read_write();
+        //test_read_write();
         //run_all_tests();
+        test();
     } else {
         printf("usage: %s eval\n", argv[0]);
         printf("usage: %s garb\n", argv[0]);

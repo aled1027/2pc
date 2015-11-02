@@ -3,6 +3,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <malloc.h>
+#include <assert.h>
+#include <stdlib.h> // memalign
 
 #include "arg.h"
 #include "gc_comm.h"
@@ -55,7 +58,11 @@ int run_garbler()
     }
     
     int* circuitMapping;
-    int* inputs; // not used yet
+    int inputs[2];
+    inputs[0] = rand() % 2;
+    inputs[1] = rand() % 2;
+    printf("inputs: (%d,%d)\n", inputs[0], inputs[1]);
+
 
     garbler_init(&function, chained_gcs, NUM_GCS, &circuitMapping);
     garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs);
@@ -109,41 +116,44 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
         perror("net_server_accept");
         exit(EXIT_FAILURE);
     }
-    // 2. send instructions, input_mapping, relevant info from function
+    // 2. send instructions, input_mapping
     send_instructions_and_input_mapping(function, fd);
 
     // 3. send circuitMapping
     net_send(fd, &function->num_components, sizeof(int), 0);
     net_send(fd, circuitMapping, sizeof(int) * function->num_components, 0);
 
-    // 4. send labels for evaluator's inputs
-    block* evalLabels = malloc(sizeof(block) * 2 * 2 * num_chained_gcs); 
-    block* garbLabels = malloc(sizeof(block) * 2 * 2 * num_chained_gcs); 
-    block* temp = malloc(sizeof(block) * 2 * 2 * num_chained_gcs); 
+    // 4. send labels
+    // upper bounding memory with n
+    block* evalLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
+    block* garbLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
 
     InputMapping imap = function->input_mapping;
     int eval_p = 0, garb_p = 0;
     for (int i=0; i<imap.size; i++) {
-        // need to use circuitMapping.
         if (imap.inputter[i] == PERSON_GARBLER) {
-            memcpy(&garbLabels[garb_p], &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]], 
-                    sizeof(block)*2);
-            garb_p+=2;
+            // check input here.
+            assert(inputs[i] == 0 || inputs[i] == 1);
+            memcpy(&garbLabels[garb_p], 
+                    &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i] + inputs[i]], 
+                    sizeof(block));
+            garb_p++;
         } else if (imap.inputter[i] == PERSON_EVALUATOR) {
-            memcpy(&evalLabels[eval_p], &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]], 
+            memcpy(&evalLabels[eval_p], 
+                    &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]], 
                     sizeof(block)*2);
             eval_p+=2;
         } 
     }
+    int num_eval_inputs = eval_p / 2, num_garb_inputs = garb_p;
+    net_send(fd, &num_garb_inputs, sizeof(int), 0);
+    net_send(fd, garbLabels, sizeof(block)*num_garb_inputs, 0);
 
-    ot_np_send(&state, fd, evalLabels, sizeof(block), eval_p / 2 , 2,
+    // send evaluator's labels
+    ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs , 2,
                new_msg_reader, new_item_reader);
 
-    // 5. send labels for garbler's inputs.
-    // use garbLabels and grab the inputs we want. Or do it up above.
-    //net_send(fd, outputMap, sizeof(block) * 2 * gc.m, 0);
-    
-    // 6. send output map
+    // 5. send output map
     int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];
     int output_size = chained_gcs[final_circuit].gc.m;
     net_send(fd, &output_size, sizeof(int), 0); 

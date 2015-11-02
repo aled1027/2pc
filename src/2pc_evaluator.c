@@ -88,19 +88,31 @@ evaluator_go(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* eval_
     circuitMapping = malloc(sizeof(int) * circuitMappingSize);
     net_recv(sockfd, circuitMapping, sizeof(int)*circuitMappingSize, 0);
 
-    // 4. received labels based on evaluator's inputs
+    // 4. receive labels
+    // receieve labels based on garblers inputs
+    int num_garb_inputs;
+    net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
+    block* garb_labels = memalign(128, sizeof(block) * num_garb_inputs);
+    assert(garb_labels && num_garb_inputs >= 0);
+    net_recv(sockfd, garb_labels, sizeof(block)*num_garb_inputs, 0);
+    
+    // receive labels based on evaluator's inputs
     block* eval_labels = memalign(128, sizeof(block) * num_eval_inputs);
     ot_np_recv(&state, sockfd, eval_inputs, num_eval_inputs, sizeof(block), 2, eval_labels,
                new_choice_reader, new_msg_writer);
 
-    // 5. receive labels based on garbler's inputs
-    // none so ignoring for now
-    
-    // 6. process eval_labels and garb_labels into labels
+    // 5. process eval_labels and garb_labels into labels
     // TODO improve to include garbler inputs
     InputMapping* input_mapping = &function.input_mapping;
+    int garb_p = 0, eval_p = 0;
     for (int i=0; i<input_mapping->size; i++) {
-        labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = eval_labels[i]; 
+        if (input_mapping->inputter[i] == PERSON_GARBLER) {
+            labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = garb_labels[garb_p]; 
+            garb_p++;
+        } else if (input_mapping->inputter[i] == PERSON_EVALUATOR) {
+            labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = eval_labels[eval_p]; 
+            eval_p++;
+        }
     }
 
     // 5. receive outputmap
