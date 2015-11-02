@@ -48,7 +48,7 @@ load_function_via_json(char* path, FunctionSpec* function)
     fread(buffer, sizeof(char), fs, f);
     buffer[fs-1] = '\0';
 
-    json_t *jRoot;
+    json_t *jRoot, *jN, *jM;
     json_error_t error; 
     if (!(jRoot = json_loads(buffer, 0, &error))) {
         fprintf(stderr, "error load json on line %d: %s\n", error.line, error.text);
@@ -56,8 +56,16 @@ load_function_via_json(char* path, FunctionSpec* function)
     }
     free(buffer);
 
-    // Grab things from the json_t object
 
+    jN = json_object_get(jRoot, "n");
+    assert(json_is_integer(jN));
+    function->n = json_integer_value(jN);
+
+    jM = json_object_get(jRoot, "m");
+    assert(json_is_integer(jM));
+    function->m = json_integer_value(jM);
+
+    // Grab things from the json_t object
     if (json_load_components(jRoot, function) == FAILURE) {
         fprintf(stderr, "error loading json components");
         return FAILURE;

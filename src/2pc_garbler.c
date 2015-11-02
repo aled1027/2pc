@@ -15,10 +15,13 @@
 
 #include "gc_comm.h"
 
-int 
-garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs) 
+void garbler_offline()
 {
     /* sends ChainedGcs to evaluator and saves ChainedGcs to disk */
+    int num_chained_gcs = NUM_GCS;
+    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
+    createGarbledCircuits(chained_gcs, num_chained_gcs);
+
     // setup connection
     int serverfd, fd, res;
     struct state state;
@@ -44,8 +47,6 @@ garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs)
     state_cleanup(&state);
     close(fd);
     close(serverfd);
-
-    return SUCCESS;
 }
 
 int run_garbler() 
@@ -62,7 +63,6 @@ int run_garbler()
     inputs[0] = rand() % 2;
     inputs[1] = rand() % 2;
     printf("inputs: (%d,%d)\n", inputs[0], inputs[1]);
-
 
     garbler_init(&function, chained_gcs, NUM_GCS, &circuitMapping);
     garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs);
@@ -127,6 +127,7 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     // upper bounding memory with n
     block* evalLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
     block* garbLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
+    assert(evalLabels && garbLabels);
 
     InputMapping imap = function->input_mapping;
     int eval_p = 0, garb_p = 0;
