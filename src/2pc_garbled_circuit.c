@@ -14,6 +14,11 @@ createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n)
     *((uint16_t *) (&delta)) |= 1;
 
     for (int i = 0; i < n; i++) {
+        //if (i < n/2) {
+
+        //} else {
+
+        //}
         GarbledCircuit* p_gc = &(chained_gcs[i].gc);
         buildAdderCircuit(p_gc);
         chained_gcs[i].id = i;
@@ -63,6 +68,63 @@ buildAdderCircuit(GarbledCircuit *gc)
     free(outputs);
     free(labels);
     free(outputmap);
+}
+
+void 
+buildAESCircuit(GarbledCircuit *gc)
+{
+	GarblingContext garblingContext;
+
+	int roundLimit = 10;
+	int n = 128 * (roundLimit + 1);
+	int m = 128;
+	int q = 50000; //Just an upper bound
+	int r = 50000;
+    int* final;
+	int inp[n];
+	countToN(inp, n);
+	int addKeyInputs[n * (roundLimit + 1)];
+	int addKeyOutputs[n];
+	int subBytesOutputs[n];
+	int shiftRowsOutputs[n];
+	int mixColumnOutputs[n];
+	block labels[2 * n];
+	block outputbs[m];
+	OutputMap outputMap = outputbs;
+	InputLabels inputLabels = labels;
+	int i;
+
+	createInputLabels(labels, n);
+	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
+	startBuilding(gc, &garblingContext);
+
+	countToN(addKeyInputs, 256);
+
+	for (int round = 0; round < roundLimit; round++) {
+
+		AddRoundKey(gc, &garblingContext, addKeyInputs,
+                    addKeyOutputs);
+
+		for (i = 0; i < 16; i++) {
+			SubBytes(gc, &garblingContext, addKeyOutputs + 8 * i,
+                     subBytesOutputs + 8 * i);
+		}
+
+		ShiftRows(gc, &garblingContext, subBytesOutputs,
+                  shiftRowsOutputs);
+
+		for (i = 0; i < 4; i++) {
+			if (round == roundLimit - 1)
+				MixColumns(gc, &garblingContext,
+                           shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
+		}
+		for (i = 0; i < 128; i++) {
+			addKeyInputs[i] = mixColumnOutputs[i];
+			addKeyInputs[i + 128] = (round + 2) * 128 + i;
+		}
+	}
+	final = mixColumnOutputs;
+	finishBuilding(gc, &garblingContext, outputMap, final);
 }
 
 int 

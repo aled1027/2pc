@@ -21,8 +21,8 @@ OBJECTS := $(wildcard $(SRCDIR)/*.o)
 
 JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
 
-all: $(OBJECTS)
-	$(CC) $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
+all: 
+	$(OBJECTS) $(CC) $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
 
 run_garb_off:
 	./a.out garb_offline

@@ -7,6 +7,8 @@
 typedef enum {
     ADDER22 = 0, 
     ADDER23 = 1, 
+    ADD = 2,
+    MULT = 3,
     CIRCUIT_TYPE_ERR = -1
     } CircuitType;
 
@@ -33,6 +35,7 @@ typedef struct {
 int createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n);
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
 void buildAdderCircuit(GarbledCircuit *gc);
+void buildAESCircuit(GarbledCircuit *gc);
 
 int saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler);
 int loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler);

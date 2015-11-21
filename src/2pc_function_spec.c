@@ -179,49 +179,72 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
      * 
      */
     InputMapping* inputMapping = &(function->input_mapping);
-    json_t *jInputMapping, *jMap, *jGcId, *jWireId, *jInputter;
-    int size;
+    json_t *jInputMapping, *jMap, *jGcId, *jWireIdx, *jInputter, *jInputIdx, *jN;
+
+    jN = json_object_get(root, "n");
+    int n = json_integer_value(jN); // aka tot num inputs
 
     jInputMapping = json_object_get(root, "InputMapping");
     assert(json_is_array(jInputMapping));
-    size = json_array_size(jInputMapping); // should be equal to n
+    int loop_size = json_array_size(jInputMapping); 
 
-    // input_idx[i] maps to (gc_id[i], wire_id[i])
-    inputMapping->input_idx = malloc(sizeof(int) * size);
-    inputMapping->gc_id = malloc(sizeof(int) * size);
-    inputMapping->wire_id = malloc(sizeof(int) * size);
-    inputMapping->inputter = malloc(sizeof(Person) * size);
+    // input_idx[l] maps to (gc_id[l], wire_id[l])
+    inputMapping->input_idx = malloc(sizeof(int) * n);
+    inputMapping->gc_id = malloc(sizeof(int) * n);
+    inputMapping->wire_id = malloc(sizeof(int) * n);
+    inputMapping->inputter = malloc(sizeof(Person) * n);
     assert(inputMapping->input_idx && inputMapping->gc_id && inputMapping->wire_id);
 
-    inputMapping->size = size;
-    for (int i=0; i<size; i++) {
-       jMap = json_array_get(jInputMapping, i);
-       assert(json_is_object(jMap));
+    int l = 0;
+    inputMapping->size = n;
+    for (int i=0; i<loop_size; i++) {
+        // Get info from the json pointers
+        jMap = json_array_get(jInputMapping, i);
+        assert(json_is_object(jMap));
+        
+        jInputIdx = json_object_get(jMap, "start_input_idx");
+        assert(json_is_integer(jInputIdx));
+        int start_input_idx = json_integer_value(jInputIdx);
+        
+        jInputIdx = json_object_get(jMap, "end_input_idx");
+        assert(json_is_integer(jInputIdx));
+        int end_input_idx = json_integer_value(jInputIdx);
 
-       inputMapping->input_idx[i] = i;
+        jGcId = json_object_get(jMap, "gc_id");
+        assert(json_is_integer(jGcId));
+        int gc_id = json_integer_value(jGcId);
+        
+        jWireIdx = json_object_get(jMap, "start_wire_idx");
+        assert(json_is_integer(jWireIdx));
+        int start_wire_idx = json_integer_value(jWireIdx);
+        
+        jWireIdx = json_object_get(jMap, "end_wire_idx");
+        assert(json_is_integer(jWireIdx));
+        int end_wire_idx = json_integer_value(jWireIdx);
+        
+        jInputter = json_object_get(jMap, "inputter");
+        assert(json_is_string(jInputter));
+        const char* the_inputter = json_string_value(jInputter);
+        
+        Person inputter;
+        if (strcmp(the_inputter, "garbler") == 0) {
+            inputter = PERSON_GARBLER;
+        } else if (strcmp(the_inputter, "evaluator") == 0) {
+            inputter = PERSON_EVALUATOR;
+        } else { 
+            inputter = PERSON_ERR;
+        }
 
-       jGcId = json_object_get(jMap, "gc_id");
-       assert(json_is_integer(jGcId));
-       inputMapping->gc_id[i] = json_integer_value(jGcId);
-
-       jWireId = json_object_get(jMap, "wire_id");
-       assert(json_is_integer(jWireId));
-       inputMapping->wire_id[i] = json_integer_value(jWireId);
-
-       jInputter = json_object_get(jMap, "inputter");
-       assert(json_is_string(jInputter));
-       const char* the_inputter = json_string_value(jInputter);
-
-       if (strcmp(the_inputter, "garbler") == 0) {
-           inputMapping->inputter[i] = PERSON_GARBLER;
-       } else if (strcmp(the_inputter, "evaluator") == 0) {
-           inputMapping->inputter[i] = PERSON_EVALUATOR;
-       } else { 
-           inputMapping->inputter[i] = PERSON_ERR;
-       }
-
+        // Double check with line 95-106 of 2pc_evaluator.c
+        // process and save the info to inputMapping
+        assert(end_input_idx - start_input_idx == end_wire_idx - start_wire_idx);
+        for (int j = start_input_idx, k = start_wire_idx; j <= end_input_idx; j++, k++, l++) {
+            inputMapping->input_idx[l] = j;
+            inputMapping->wire_id[l] = k;
+            inputMapping->inputter[l] = inputter;
+            inputMapping->gc_id[l] = gc_id;
+        }
     }
-
     return SUCCESS;
 }
 

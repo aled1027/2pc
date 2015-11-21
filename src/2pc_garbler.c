@@ -49,7 +49,7 @@ void garbler_offline()
     close(serverfd);
 }
 
-int run_garbler() 
+int garbler_run(char* function_path) 
 {
     FunctionSpec function;
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
@@ -64,7 +64,7 @@ int run_garbler()
     inputs[1] = rand() % 2;
     printf("inputs: (%d,%d)\n", inputs[0], inputs[1]);
 
-    garbler_init(&function, chained_gcs, NUM_GCS, &circuitMapping);
+    garbler_init(&function, chained_gcs, NUM_GCS, &circuitMapping, function_path);
     garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs);
 
     freeFunctionSpec(&function);
@@ -73,10 +73,9 @@ int run_garbler()
 }
 
 int 
-garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int **circuitMapping) 
+garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int **circuitMapping, char* function_path) 
 {
     /* primary role: fill function function with information provided by chained_gcs */
-    char* function_path = "functions/22Adder.json";
 
     if (load_function_via_json(function_path, function) == FAILURE) {
         fprintf(stderr, "Could not load function %s\n", function_path);

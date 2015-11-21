@@ -32,12 +32,15 @@ main(int argc, char* argv[])
 	srand(time(NULL));
     srand_sse(time(NULL));
 
+    // specifies which function to run
+    char* function_path = "functions/22Adder.json";
+
     if (strcmp(argv[1], "eval_online") == 0) {
         printf("Running eval online\n");
         evaluator_run();
     } else if (strcmp(argv[1], "garb_online") == 0) {
         printf("Running garb online\n");
-        run_garbler();
+        garbler_run(function_path);
     } else if (strcmp(argv[1], "garb_offline") == 0) {
         printf("Running garb offline\n");
         garbler_offline();
