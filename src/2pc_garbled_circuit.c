@@ -70,6 +70,52 @@ buildAdderCircuit(GarbledCircuit *gc)
     free(outputmap);
 }
 
+void buildAESRoundComponentCirciut(GarbledCircuit *gc, bool isFinalRound) 
+{
+	GarblingContext garblingContext;
+    int n1 = 128; // size of key
+    int n = 256; // tot size of input: prev value is 128 bits + key size 128 bits
+    int m = 128;
+    int q = 500; // an upper bound
+    int r = 500; // an upper bound
+    int *final;
+    int inp[n];
+    countToN(inp, n);
+    int prevAndKey[n];
+	int keyOutputs[n1];
+	int subBytesOutputs[n1];
+	int shiftRowsOutputs[n1];
+	int mixColumnOutputs[n1];
+	block inputLabels[2 * n];
+	block outputbs[m];
+	OutputMap outputMap = outputbs;
+
+	createInputLabels(inputLabels, n);
+	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
+	startBuilding(gc, &garblingContext);
+	countToN(prevAndKey, 256); 
+
+    // first 128 bits of prevAndKey are prev value
+    // second 128 bits of prevAndKey are the new key
+    // addRoundKey xors them together into keyOutputs
+	AddRoundKey(gc, &garblingContext, prevAndKey, keyOutputs);
+
+    for (int i = 0; i < 16; i++) {
+        SubBytes(gc, &garblingContext, keyOutputs + 8 * i, subBytesOutputs + 8 * i);
+    }
+
+    ShiftRows(gc, &garblingContext, subBytesOutputs, shiftRowsOutputs);
+
+    if (!isFinalRound) {
+        for (int i = 0; i < 4; i++) { 
+            // fixed justGarble bug in their construction
+	    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
+	    }
+    }
+
+	finishBuilding(gc, &garblingContext, outputMap, mixColumnOutputs);
+}
+
 void 
 buildAESCircuit(GarbledCircuit *gc)
 {
@@ -118,6 +164,7 @@ buildAESCircuit(GarbledCircuit *gc)
 				MixColumns(gc, &garblingContext,
                            shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
 		}
+
 		for (i = 0; i < 128; i++) {
 			addKeyInputs[i] = mixColumnOutputs[i];
 			addKeyInputs[i + 128] = (round + 2) * 128 + i;
