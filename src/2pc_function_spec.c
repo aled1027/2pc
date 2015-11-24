@@ -276,49 +276,81 @@ get_instruction_type_from_string(const char* type)
 int 
 json_load_instructions(json_t *root, FunctionSpec *function) 
 {
+    // TODO get tot_raw_instructions
     Instructions* instructions = &(function->instructions);
     json_t *jInstructions, *jInstr, *jGcId, *jPtr;
-    int size;
     const char* sType;
+
+    jPtr = json_object_get(root, "tot_raw_instructions");
+    assert(json_is_integer(jPtr));
+    int num_instructions = json_integer_value(jPtr);
+    instructions->size = num_instructions;
+    instructions->instr = malloc(sizeof(Instruction) * num_instructions);
 
     jInstructions = json_object_get(root, "instructions");
     assert(json_is_array(jInstructions));
+    int loop_size = json_array_size(jInstructions); 
 
-    size = json_array_size(jInstructions); 
-    instructions->size = size;
-    instructions->instr = malloc(sizeof(Instruction) * size);
-
-    for (int i=0; i<size; i++) {
+    int idx = 0;
+    for (int i=0; i<loop_size; i++) {
         jInstr = json_array_get(jInstructions, i);
         assert(json_is_object(jInstr));
 
         jPtr = json_object_get(jInstr, "type");
         assert(json_is_string(jPtr));
         sType = json_string_value(jPtr);
-
-        instructions->instr[i].type = get_instruction_type_from_string(sType);
-        switch (instructions->instr[i].type) {
+        InstructionType instr_type = get_instruction_type_from_string(sType);
+        switch (instr_type) {
             case EVAL:
+                instructions->instr[idx].type = instr_type;
                 jPtr = json_object_get(jInstr, "gc_id");
                 assert(json_is_integer(jPtr));
-                instructions->instr[i].evCircId = json_integer_value(jPtr);
+                instructions->instr[idx].evCircId = json_integer_value(jPtr);
+                idx++;
                 break;
             case CHAIN:
+                // We have a map (from_gc_id, [from_wire_id_start : from_wire_id_end])
+                //          ---> (to_gc_id, [to_wire_id_start : to_wire_id_end])
+                
+                // WORK FROM HERE: add for loop for all of these things.
+                // Each chain still needs to be a separate instruction.
                 jPtr = json_object_get(jInstr, "from_gc_id");
                 assert(json_is_integer(jPtr));
-                instructions->instr[i].chFromCircId = json_integer_value(jPtr);
+                int from_gc_id = json_integer_value(jPtr);
 
-                jPtr = json_object_get(jInstr, "from_wire_id");
+                jPtr = json_object_get(jInstr, "from_wire_id_start");
                 assert(json_is_integer(jPtr));
-                instructions->instr[i].chFromWireId = json_integer_value(jPtr);
+                int from_wire_id_start = json_integer_value(jPtr);
+
+                jPtr = json_object_get(jInstr, "from_wire_id_end");
+                assert(json_is_integer(jPtr));
+                int from_wire_id_end = json_integer_value(jPtr);
 
                 jPtr = json_object_get(jInstr, "to_gc_id");
                 assert(json_is_integer(jPtr));
-                instructions->instr[i].chToCircId = json_integer_value(jPtr);
+                int to_gc_id = json_integer_value(jPtr);
 
-                jPtr = json_object_get(jInstr, "to_wire_id");
+                jPtr = json_object_get(jInstr, "to_wire_id_start");
                 assert(json_is_integer(jPtr));
-                instructions->instr[i].chToWireId = json_integer_value(jPtr);
+                int to_wire_id_start = json_integer_value(jPtr);
+
+                jPtr = json_object_get(jInstr, "to_wire_id_end");
+                assert(json_is_integer(jPtr));
+                int to_wire_id_end = json_integer_value(jPtr);
+
+                assert(from_wire_id_end - from_wire_id_start == to_wire_id_end - to_wire_id_start);
+
+                // TODO make sure memory is allocated
+                for (int f = from_wire_id_start, t = to_wire_id_start ; f<=from_wire_id_end; f++, t++) {
+                    // f for from, t for to
+                    // TODO add type
+                    instructions->instr[idx].type = instr_type;
+                    instructions->instr[idx].chFromCircId = from_gc_id;
+                    instructions->instr[idx].chFromWireId = f;
+                    instructions->instr[idx].chToCircId = to_gc_id;
+                    instructions->instr[idx].chToWireId = t;
+                    idx++;
+                }
                 break;
             default:
                 fprintf(stderr, "Instruction %d was invalid: %s\n", i, sType);

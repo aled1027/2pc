@@ -33,3 +33,5 @@
 
 # other
 tags
+*.json~
+*.json\~
