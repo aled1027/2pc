@@ -31,7 +31,7 @@ createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int num)
         chained_gcs[i].id = i;
         chained_gcs[i].type = ADDER22;
         chained_gcs[i].inputLabels = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.n );
-        chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m); // TODO why is this 2*m?
+        chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m); 
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap, &delta);
         */
@@ -86,7 +86,6 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound)
     int m = 128;
     int q = 4500; // an upper bound
     int r = 4500; // an upper bound
-    int *final;
     int inp[n];
     countToN(inp, n);
     int prevAndKey[n];
@@ -94,9 +93,8 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound)
 	int subBytesOutputs[n1];
 	int shiftRowsOutputs[n1];
 	int mixColumnOutputs[n1];
-	block inputLabels[2 * n];
-	block outputbs[m];
-	OutputMap outputMap = outputbs;
+	block inputLabels[2*n];
+	block outputMap[2*m];
 
 	createInputLabels(inputLabels, n);
 	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
@@ -106,28 +104,31 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound)
     // first 128 bits of prevAndKey are prev value
     // second 128 bits of prevAndKey are the new key
     // addRoundKey xors them together into keyOutputs
-    printf("h1\n");
 	AddRoundKey(gc, &garblingContext, prevAndKey, keyOutputs);
+    printf("finishing build\n");
+	finishBuilding(gc, &garblingContext, outputMap, keyOutputs);
 
-    printf("h2\n");
-    for (int i = 0; i < 16; i++) {
-        printf("h2 %d\n", i);
-        SubBytes(gc, &garblingContext, keyOutputs + 8 * i, subBytesOutputs + 8 * i);
-    }
+    //for (int i = 0; i < 16; i++) {
+    //    SubBytes(gc, &garblingContext, keyOutputs + 8 * i, subBytesOutputs + 8 * i);
+    //}
 
-    printf("h3\n");
-    ShiftRows(gc, &garblingContext, subBytesOutputs, shiftRowsOutputs);
+    // TODO -- temporarily not doing mixcolumns ecause not working
+    //ShiftRows(gc, &garblingContext, subBytesOutputs, shiftRowsOutputs);
 
-    printf("h4\n");
-    if (!isFinalRound) {
-        for (int i = 0; i < 4; i++) { 
-            printf("h4 %d\n", i);
-            // fixed justGarble bug in their construction
-	    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
-	    }
-    }
+    //for (int i = 0; i < 4; i++) { 
+	//    MixColumns(gc, &garblingContext, shiftRowsOutputs + (32*i), mixColumnOutputs + (32*i));
+	//}
+    
 
-	finishBuilding(gc, &garblingContext, outputMap, mixColumnOutputs);
+    //if (!isFinalRound) {
+    //    for (int i = 0; i < 4; i++) { 
+    //        // fixed justGarble bug in their construction
+	//    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
+	//    }
+	//    finishBuilding(gc, &garblingContext, outputMap, mixColumnOutputs);
+    //} else {
+	//    finishBuilding(gc, &garblingContext, outputMap, shiftRowsOutputs);
+    //}
 }
 
 void 
@@ -280,6 +281,7 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler)
 int 
 loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler) 
 {
+    // TODO no memory is being allocated???
     char* buffer, fileName[50];
     long fs;
 

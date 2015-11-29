@@ -14,7 +14,7 @@ void
 evaluator_run()
 {
     // 1. get inputs
-    int num_eval_inputs = 128*2;
+    int num_eval_inputs = 256;
     int* inputs[num_eval_inputs];
     int num_chained_gcs = NUM_GCS;
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
@@ -45,6 +45,7 @@ evaluator_run()
     // 4. allocate some memory
     FunctionSpec function;
     block** labels = malloc(sizeof(block*) * num_chained_gcs);
+    // TODO computedOutputMap never used. I think
     block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
 
     for (int i=0; i<num_chained_gcs; i++) {
@@ -118,8 +119,15 @@ evaluator_run()
     net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0); 
 
     // 10. evaluate
+    printf("break here\n");
     int *output = malloc(sizeof(int) * output_size);
-    evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output, circuitMapping);
+    block* cmap = memalign(128, sizeof(block) * 128);
+    evaluate(&chained_gcs[0].gc, labels[0], cmap);
+	mapOutputs(outputmap, cmap, output, 128);
+
+    // TODO uncomment
+    //evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output, circuitMapping);
+
     printf("Output: (");
     for (int i=0; i<output_size; i++) {
         printf("%d, ", output[i]);
@@ -127,6 +135,7 @@ evaluator_run()
     printf(")\n");
     
     // 11. clean up
+    // TODO move state and close up above, before evaluation. Receive everything, then evaluate.
     close(sockfd);
     state_cleanup(&state);
     for (int i=0; i<num_chained_gcs; i++) {
@@ -158,6 +167,7 @@ void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         switch(cur->type) {
             case EVAL:
                 savedCircId = circuitMapping[cur->evCircId];
+                printf("evaling %d\n", savedCircId);
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                         computedOutputMap[cur->evCircId]);
 
@@ -167,6 +177,7 @@ void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                 }
                 break;
             case CHAIN:
+                printf("chaining (%d,%d) -> (%d,%d)\n", cur->chFromCircId, cur->chFromWireId, cur->chToCircId, cur->chToWireId);
                 labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
                         computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
                         cur->chOffset);
