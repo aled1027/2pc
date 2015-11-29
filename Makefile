@@ -24,6 +24,9 @@ JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
 all: 
 	$(OBJECTS) $(CC) $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
 
+gdb_garb_off:
+	gdb --args a.out garb_offline
+
 run_garb_off:
 	./a.out garb_offline
 

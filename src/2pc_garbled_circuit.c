@@ -8,25 +8,33 @@
 #include "2pc_common.h"
 
 int 
-createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n) 
+createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int num) 
 {
     block delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
 
-    for (int i = 0; i < n; i++) {
-        //if (i < n/2) {
+    for (int i = 0; i < num; i++) {
+        // for AES:
+        GarbledCircuit* p_gc = &(chained_gcs[i].gc);
+        buildAESRoundComponentCircuit(p_gc, false);
+        chained_gcs[i].id = i;
+        chained_gcs[i].type = AES_ROUND;
+        chained_gcs[i].inputLabels = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.n );
+        chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m); // 2*m because send both 0 key and 1 key
+        assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
+        garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap, &delta);       
 
-        //} else {
-
-        //}
+        // FOR 22Adder:
+        /*
         GarbledCircuit* p_gc = &(chained_gcs[i].gc);
         buildAdderCircuit(p_gc);
         chained_gcs[i].id = i;
         chained_gcs[i].type = ADDER22;
         chained_gcs[i].inputLabels = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.n );
-        chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m);
+        chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m); // TODO why is this 2*m?
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap, &delta);
+        */
     }
     return 0;
 }
@@ -70,14 +78,14 @@ buildAdderCircuit(GarbledCircuit *gc)
     free(outputmap);
 }
 
-void buildAESRoundComponentCirciut(GarbledCircuit *gc, bool isFinalRound) 
+void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound) 
 {
 	GarblingContext garblingContext;
     int n1 = 128; // size of key
     int n = 256; // tot size of input: prev value is 128 bits + key size 128 bits
     int m = 128;
-    int q = 500; // an upper bound
-    int r = 500; // an upper bound
+    int q = 4500; // an upper bound
+    int r = 4500; // an upper bound
     int *final;
     int inp[n];
     countToN(inp, n);
@@ -98,16 +106,22 @@ void buildAESRoundComponentCirciut(GarbledCircuit *gc, bool isFinalRound)
     // first 128 bits of prevAndKey are prev value
     // second 128 bits of prevAndKey are the new key
     // addRoundKey xors them together into keyOutputs
+    printf("h1\n");
 	AddRoundKey(gc, &garblingContext, prevAndKey, keyOutputs);
 
+    printf("h2\n");
     for (int i = 0; i < 16; i++) {
+        printf("h2 %d\n", i);
         SubBytes(gc, &garblingContext, keyOutputs + 8 * i, subBytesOutputs + 8 * i);
     }
 
+    printf("h3\n");
     ShiftRows(gc, &garblingContext, subBytesOutputs, shiftRowsOutputs);
 
+    printf("h4\n");
     if (!isFinalRound) {
         for (int i = 0; i < 4; i++) { 
+            printf("h4 %d\n", i);
             // fixed justGarble bug in their construction
 	    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
 	    }

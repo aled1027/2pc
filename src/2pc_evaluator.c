@@ -14,7 +14,8 @@ void
 evaluator_run()
 {
     // 1. get inputs
-    int num_eval_inputs = 2;
+    int num_eval_inputs = 128*2;
+    int* inputs[num_eval_inputs];
     int num_chained_gcs = NUM_GCS;
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
 
@@ -47,8 +48,8 @@ evaluator_run()
     block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
 
     for (int i=0; i<num_chained_gcs; i++) {
-        labels[i] = memalign(128, sizeof(block) * 2);
-        computedOutputMap[i] = memalign(128, sizeof(block) * 2);
+        labels[i] = memalign(128, sizeof(block) * chained_gcs[i].gc.n);
+        computedOutputMap[i] = memalign(128, sizeof(block) * chained_gcs[i].gc.m);
         assert(labels[i] && computedOutputMap[i]);
     }
 
@@ -83,12 +84,16 @@ evaluator_run()
     // receieve labels based on garblers inputs
     int num_garb_inputs;
     net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
+
     block* garb_labels = memalign(128, sizeof(block) * num_garb_inputs);
     assert(garb_labels && num_garb_inputs >= 0);
-    net_recv(sockfd, garb_labels, sizeof(block)*num_garb_inputs, 0);
+    if (num_garb_inputs > 0) {
+        net_recv(sockfd, garb_labels, sizeof(block)*num_garb_inputs, 0);
+    }
     
     // receive labels based on evaluator's inputs
     block* eval_labels = memalign(128, sizeof(block) * num_eval_inputs);
+    assert(eval_labels);
     ot_np_recv(&state, sockfd, eval_inputs, num_eval_inputs, sizeof(block), 2, eval_labels,
                new_choice_reader, new_msg_writer);
 
@@ -108,8 +113,8 @@ evaluator_run()
     // 9. receive outputmap
     int output_size;
     net_recv(sockfd, &output_size, sizeof(int), 0);
-
     block* outputmap = memalign(128, sizeof(block) * 2 * output_size);
+    assert(outputmap);
     net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0); 
 
     // 10. evaluate

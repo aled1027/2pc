@@ -59,10 +59,11 @@ int garbler_run(char* function_path)
     }
     
     int* circuitMapping;
+    // TODO no inputs for aes, so this can be ignored
     int inputs[2];
-    inputs[0] = rand() % 2;
-    inputs[1] = rand() % 2;
-    printf("inputs: (%d,%d)\n", inputs[0], inputs[1]);
+    //inputs[0] = rand() % 2;
+    //inputs[1] = rand() % 2;
+    //printf("inputs: (%d,%d)\n", inputs[0], inputs[1]);
 
     garbler_init(&function, chained_gcs, NUM_GCS, &circuitMapping, function_path);
     garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs);
@@ -147,13 +148,17 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     }
     int num_eval_inputs = eval_p / 2, num_garb_inputs = garb_p;
     net_send(fd, &num_garb_inputs, sizeof(int), 0);
-    net_send(fd, garbLabels, sizeof(block)*num_garb_inputs, 0);
+    if (num_garb_inputs > 0) {
+        net_send(fd, garbLabels, sizeof(block)*num_garb_inputs, 0);
+    }
 
     // send evaluator's labels
+    printf("about to send evals labels\n");
     ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs , 2,
                new_msg_reader, new_item_reader);
 
     // 5. send output map
+    printf("about to send outputmap\n");
     int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];
     int output_size = chained_gcs[final_circuit].gc.m;
     net_send(fd, &output_size, sizeof(int), 0); 

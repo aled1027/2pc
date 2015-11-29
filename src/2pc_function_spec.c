@@ -255,8 +255,12 @@ get_circuit_type_from_string(const char* type)
         return ADDER22;
     } else if (strcmp(type, "23Adder") == 0) {
         return ADDER23;
+    } else if (strcmp(type, "AES_ROUND") == 0) {
+        return AES_ROUND;
+    } else if (strcmp(type, "AES_FINAL_ROUND") == 0) {
+        return AES_FINAL_ROUND;
     } else {
-        fprintf(stderr, "circuit type error when loading json");
+        fprintf(stderr, "circuit type error when loading json: can't detect %s\n", type);
         return CIRCUIT_TYPE_ERR;
     }
 }
@@ -276,7 +280,6 @@ get_instruction_type_from_string(const char* type)
 int 
 json_load_instructions(json_t *root, FunctionSpec *function) 
 {
-    // TODO get tot_raw_instructions
     Instructions* instructions = &(function->instructions);
     json_t *jInstructions, *jInstr, *jGcId, *jPtr;
     const char* sType;
@@ -340,10 +343,8 @@ json_load_instructions(json_t *root, FunctionSpec *function)
 
                 assert(from_wire_id_end - from_wire_id_start == to_wire_id_end - to_wire_id_start);
 
-                // TODO make sure memory is allocated
                 for (int f = from_wire_id_start, t = to_wire_id_start ; f<=from_wire_id_end; f++, t++) {
                     // f for from, t for to
-                    // TODO add type
                     instructions->instr[idx].type = instr_type;
                     instructions->instr[idx].chFromCircId = from_gc_id;
                     instructions->instr[idx].chFromWireId = f;

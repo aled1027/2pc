@@ -33,7 +33,8 @@ main(int argc, char* argv[])
     srand_sse(time(NULL));
 
     // specifies which function to run
-    char* function_path = "functions/22Adder.json";
+    // char* function_path = "functions/22Adder.json";
+    char* function_path = "functions/aes.json";
 
     if (strcmp(argv[1], "eval_online") == 0) {
         printf("Running eval online\n");

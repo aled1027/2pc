@@ -38,7 +38,7 @@ int createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n);
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
 void buildAdderCircuit(GarbledCircuit *gc);
 void buildAESCircuit(GarbledCircuit *gc);
-void buildAESRoundComponent(GarbledCircuit *gc, bool isFinalFound);
+void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalFound);
 
 int saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler);
 int loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler);
