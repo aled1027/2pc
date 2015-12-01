@@ -121,7 +121,7 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     // upper bounding memory with n
     block* evalLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
     block* garbLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
-    //assert(evalLabels && garbLabels);
+    assert(evalLabels && garbLabels);
 
     InputMapping imap = function->input_mapping;
     int eval_p = 0, garb_p = 0;
@@ -140,7 +140,7 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
             eval_p+=2;
         } 
     }
-    //int num_eval_inputs = eval_p / 2, num_garb_inputs = garb_p;
+    int num_eval_inputs = eval_p / 2, num_garb_inputs = garb_p;
     //net_send(fd, &num_garb_inputs, sizeof(int), 0);
     //if (num_garb_inputs > 0) {
         //net_send(fd, garbLabels, sizeof(block)*num_garb_inputs, 0);
@@ -151,8 +151,8 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
                //new_msg_reader, new_item_reader);
 
     // 5. send output map
-    //int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];
-    //int output_size = chained_gcs[final_circuit].gc.m;
+    int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];
+    int output_size = chained_gcs[final_circuit].gc.m;
     //net_send(fd, &output_size, sizeof(int), 0); 
     //net_send(fd, chained_gcs[final_circuit].outputMap, sizeof(block)*2*output_size, 0); 
     
@@ -162,41 +162,29 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     //close(serverfd);
 
     // 7. adding this. remove later. TODO
-    printf("break it\n");
-    block* labs = memalign(128, sizeof(block)*256);
-    int outputs[128];
+    block *extractedLabels, *outputMap, *computedOutputMap;
+    int *output;
+    int n = chained_gcs[0].gc.n;
+    int m = chained_gcs[0].gc.m;
+
+    extractedLabels = (block *) memalign(128, sizeof(block) * n);
+    outputMap = (block *) memalign(128, sizeof(block) * 2 * m);
+    computedOutputMap = (block *) memalign(128, sizeof(block) * m);
+    output = (int *) malloc(sizeof(int) * m);
+
     for (int i=0; i<256; i++) {
         int d = rand() % 2;
-        labs[i] = evalLabels[2*i + d];
+        extractedLabels[i] = evalLabels[2*i + d];
     } 
+    outputMap = chained_gcs[0].outputMap;
 
-    block* cmap = memalign(128, sizeof(block) * 128);
-    evaluate(&chained_gcs[0].gc, labs, cmap);
-    //print_blocks("chained_gcs[0].outputmap: ", chained_gcs[0].outputMap, 256);
-    //printf("\n");
-    //print_blocks("cmap", cmap, 128);
-	mapOutputs(chained_gcs[0].outputMap, cmap, outputs, 128);
-
-    printf("(q,r) (%d,%d)\n", chained_gcs[0].gc.q, chained_gcs[0].gc.r);
-
-    printf("output: (");
+    evaluate(&chained_gcs[0].gc, extractedLabels, computedOutputMap);
+	mapOutputs(outputMap, computedOutputMap, output, 128);
+    printf("output: ");
     for (int i=0; i<128; i++) {
-        printf("%d, ", outputs[i]);
+        printf("%d", output[i]);
     }
-    printf(")\n");
-
-    printf("printing all wires:\n");
-    for (int i=0; i<chained_gcs[0].gc.q; i++) {
-        printf("%d: ", i);
-        print_block(chained_gcs[0].gc.wires[i].label0);
-        printf(" ");
-        print_block(chained_gcs[0].gc.wires[i].label1);
-        printf("\n");
-    }
-    printf("\n\n");
-
-
-
+    printf("\n");
 }
 
 int

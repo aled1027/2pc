@@ -21,12 +21,9 @@
 
 
 
-/*********************************
- * START FILES FROM AM's 2PC
-*********************************/
-
 void pcbuildCircuit(GarbledCircuit *gc, block *delta)
 {
+    // source from AM's original 2pc
     srand(time(NULL));
     srand_sse(time(NULL));
     GarblingContext gctxt;
@@ -78,6 +75,7 @@ void pcbuildCircuit(GarbledCircuit *gc, block *delta)
 
 void pcrun_local() 
 {
+    // source from AM's original 2pc
     printf("Running 2pcrun_local()\n");
     srand(time(NULL));
     srand_sse(time(NULL));
@@ -117,14 +115,8 @@ void pcrun_local()
     printf("\n");
 }
 
-/*********************************
- * END FILES FROM AM's 2PC
-*********************************/
-
 void test() 
 {
-    // AES TEST.
-    // USE old_main.c, 2pc_garbled_circuit, and AESFullTest.c for aid.
     GarbledCircuit gc;
     block delta;
     block *inputLabels, *extractedLabels, *outputMap, *computedOutputMap;
@@ -142,7 +134,6 @@ void test()
     computedOutputMap = (block *) memalign(128, sizeof(block) * gc.m);
     input = (int *) malloc(sizeof(int) * gc.n);
     output = (int *) malloc(sizeof(int) * gc.m);
-    extractedLabels = (block *) memalign(128, sizeof(block) * gc.n);
 
     for (int j=0; j<256; j++) {
         input[j] = rand() % 2;
