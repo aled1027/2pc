@@ -10,14 +10,14 @@
 int 
 createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int num) 
 {
+    // TODO add constant delta!
     block delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
 
     for (int i = 0; i < num; i++) {
         // for AES:
-        // TODO add constant delta!
         GarbledCircuit* p_gc = &(chained_gcs[i].gc);
-        buildAESRoundComponentCircuit(p_gc, false);
+        buildAESRoundComponentCircuit(p_gc, false, &delta);
         chained_gcs[i].id = i;
         chained_gcs[i].type = AES_ROUND;
         chained_gcs[i].inputLabels = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.n );
@@ -79,7 +79,7 @@ buildAdderCircuit(GarbledCircuit *gc)
     free(outputmap);
 }
 
-void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound) 
+void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block* delta) 
 {
 	GarblingContext garblingContext;
     int n1 = 128; // size of key
@@ -97,7 +97,7 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound)
 	block inputLabels[2*n];
 	block outputMap[2*m];
 
-	createInputLabels(inputLabels, n);
+	createInputLabelsWithR(inputLabels, n, delta);
 	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
 	startBuilding(gc, &garblingContext);
 	countToN(prevAndKey, 256); 

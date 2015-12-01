@@ -97,25 +97,25 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     // hardcoding 22adder for now
     
     // 1. setup connection
-    //int serverfd, fd, res;
-    //struct state state;
-    //state_init(&state);
+    int serverfd, fd, res;
+    struct state state;
+    state_init(&state);
 
-    //if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
-        //perror("net_init_server");
-        //exit(EXIT_FAILURE);
-    //}
+    if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
+        perror("net_init_server");
+        exit(EXIT_FAILURE);
+    }
 
-    //if ((fd = net_server_accept(serverfd)) == FAILURE) {
-        //perror("net_server_accept");
-        //exit(EXIT_FAILURE);
-    //}
+    if ((fd = net_server_accept(serverfd)) == FAILURE) {
+        perror("net_server_accept");
+        exit(EXIT_FAILURE);
+    }
     // 2. send instructions, input_mapping
-    //send_instructions_and_input_mapping(function, fd);
+    send_instructions_and_input_mapping(function, fd);
 
     // 3. send circuitMapping
-    //net_send(fd, &function->num_components, sizeof(int), 0);
-    //net_send(fd, circuitMapping, sizeof(int) * function->num_components, 0);
+    net_send(fd, &function->num_components, sizeof(int), 0);
+    net_send(fd, circuitMapping, sizeof(int) * function->num_components, 0);
 
     // 4. send labels
     // upper bounding memory with n
@@ -141,50 +141,25 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
         } 
     }
     int num_eval_inputs = eval_p / 2, num_garb_inputs = garb_p;
-    //net_send(fd, &num_garb_inputs, sizeof(int), 0);
-    //if (num_garb_inputs > 0) {
-        //net_send(fd, garbLabels, sizeof(block)*num_garb_inputs, 0);
-    //}
+    net_send(fd, &num_garb_inputs, sizeof(int), 0);
+    if (num_garb_inputs > 0) {
+        net_send(fd, garbLabels, sizeof(block)*num_garb_inputs, 0);
+    }
 
     // send evaluator's labels
-    //ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs , 2,
-               //new_msg_reader, new_item_reader);
+    ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs , 2,
+               new_msg_reader, new_item_reader);
 
     // 5. send output map
     int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];
     int output_size = chained_gcs[final_circuit].gc.m;
-    //net_send(fd, &output_size, sizeof(int), 0); 
-    //net_send(fd, chained_gcs[final_circuit].outputMap, sizeof(block)*2*output_size, 0); 
+    net_send(fd, &output_size, sizeof(int), 0); 
+    net_send(fd, chained_gcs[final_circuit].outputMap, sizeof(block)*2*output_size, 0); 
     
     // 6. clean up
-    //state_cleanup(&state);
-    //close(fd);
-    //close(serverfd);
-
-    // 7. adding this. remove later. TODO
-    block *extractedLabels, *outputMap, *computedOutputMap;
-    int *output;
-    int n = chained_gcs[0].gc.n;
-    int m = chained_gcs[0].gc.m;
-
-    extractedLabels = (block *) memalign(128, sizeof(block) * n);
-    outputMap = (block *) memalign(128, sizeof(block) * 2 * m);
-    computedOutputMap = (block *) memalign(128, sizeof(block) * m);
-    output = (int *) malloc(sizeof(int) * m);
-
-    for (int i=0; i<256; i++) {
-        int d = rand() % 2;
-        extractedLabels[i] = evalLabels[2*i + d];
-    } 
-    outputMap = chained_gcs[0].outputMap;
-
-    evaluate(&chained_gcs[0].gc, extractedLabels, computedOutputMap);
-	mapOutputs(outputMap, computedOutputMap, output, 128);
-    printf("output: ");
-    for (int i=0; i<128; i++) {
-        printf("%d", output[i]);
-    }
-    printf("\n");
+    state_cleanup(&state);
+    close(fd);
+    close(serverfd);
 }
 
 int

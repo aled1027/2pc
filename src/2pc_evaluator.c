@@ -19,12 +19,14 @@ evaluator_run()
     int num_chained_gcs = NUM_GCS;
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
 
-    printf("Inputs: (");
+    printf("Inputs:\n");
     for (int i=0; i<num_eval_inputs; i++) {
         eval_inputs[i] = rand() % 2;
-        printf("%d, ", eval_inputs[i]);
+        if (i % 128 == 0)
+            printf("\n");
+        printf("%d", eval_inputs[i]);
     }
-    printf(")\n");
+    printf("\n");
     
     // 2. load chained garbled circuits from disk
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
@@ -45,13 +47,10 @@ evaluator_run()
     // 4. allocate some memory
     FunctionSpec function;
     block** labels = malloc(sizeof(block*) * num_chained_gcs);
-    // TODO computedOutputMap never used. I think
-    block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
 
     for (int i=0; i<num_chained_gcs; i++) {
         labels[i] = memalign(128, sizeof(block) * chained_gcs[i].gc.n);
-        computedOutputMap[i] = memalign(128, sizeof(block) * chained_gcs[i].gc.m);
-        assert(labels[i] && computedOutputMap[i]);
+        assert(labels[i]);
     }
 
     // 5. receive input_mapping, instructions
@@ -119,30 +118,22 @@ evaluator_run()
     net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0); 
 
     // 10. evaluate
-    printf("break here\n");
     int *output = malloc(sizeof(int) * output_size);
-    block* cmap = memalign(128, sizeof(block) * 128);
-    evaluate(&chained_gcs[0].gc, labels[0], cmap);
-	mapOutputs(outputmap, cmap, output, 128);
+    evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output, circuitMapping);
 
-    // TODO uncomment
-    //evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output, circuitMapping);
-
-    printf("Output: (");
+    printf("Output: ");
     for (int i=0; i<output_size; i++) {
-        printf("%d, ", output[i]);
+        printf("%d", output[i]);
     }
-    printf(")\n");
+    printf("\n");
     
     // 11. clean up
     // TODO move state and close up above, before evaluation. Receive everything, then evaluate.
     close(sockfd);
     state_cleanup(&state);
     for (int i=0; i<num_chained_gcs; i++) {
-        free(computedOutputMap[i]);
         free(labels[i]);
     } 
-    free(computedOutputMap);
     free(labels);
 }
 

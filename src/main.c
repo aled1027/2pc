@@ -125,8 +125,8 @@ void test()
     delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
 
-    buildAESRoundComponentCircuit(&gc, false); // doesn't work
-    //pcbuildCircuit(&gc, &delta); // works
+    buildAESRoundComponentCircuit(&gc, false, &delta); 
+    //pcbuildCircuit(&gc, &delta); 
 
     inputLabels = (block *) memalign(128, sizeof(block) * 2 * gc.n);
     extractedLabels = (block *) memalign(128, sizeof(block) * gc.n);
