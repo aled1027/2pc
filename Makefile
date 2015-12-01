@@ -39,8 +39,11 @@ run_eval:
 run_garb:
 	./a.out garb_online
 
-make run_tests: 
+run_tests: 
 	./a.out tests
+
+gdb_tests:
+	gdb --args a.out tests
 
 valgrind: 
 	make;
@@ -60,6 +63,10 @@ gdb_eval:
 
 .PHONEY: clean
 clean:
-	rm garbler evaluator a.out
+	# rm garbler evaluator a.out; 
+	rm -rf files/evaluator_gcs; 
+	rm -rf files/garbler_gcs;
+	mkdir files/evaluator_gcs;
+	mkdir files/garbler_gcs;
 
 

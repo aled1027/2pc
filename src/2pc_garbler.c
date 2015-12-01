@@ -172,12 +172,31 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
 
     block* cmap = memalign(128, sizeof(block) * 128);
     evaluate(&chained_gcs[0].gc, labs, cmap);
+    //print_blocks("chained_gcs[0].outputmap: ", chained_gcs[0].outputMap, 256);
+    //printf("\n");
+    //print_blocks("cmap", cmap, 128);
 	mapOutputs(chained_gcs[0].outputMap, cmap, outputs, 128);
+
+    printf("(q,r) (%d,%d)\n", chained_gcs[0].gc.q, chained_gcs[0].gc.r);
+
     printf("output: (");
     for (int i=0; i<128; i++) {
         printf("%d, ", outputs[i]);
     }
     printf(")\n");
+
+    printf("printing all wires:\n");
+    for (int i=0; i<chained_gcs[0].gc.q; i++) {
+        printf("%d: ", i);
+        print_block(chained_gcs[0].gc.wires[i].label0);
+        printf(" ");
+        print_block(chained_gcs[0].gc.wires[i].label1);
+        printf("\n");
+    }
+    printf("\n\n");
+
+
+
 }
 
 int

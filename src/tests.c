@@ -142,7 +142,8 @@ simple_test()
     int inputs[] = {1,1};
     int outputs[] = {-1,-1};
 
-    garbleCircuit(&gc, inputLabels, outputMap, &delta);
+    // TODO add constant delta!
+    garbleCircuit(&gc, inputLabels, outputMap);
 	extractLabels(extractedLabels, inputLabels, inputs, gc.n);
     evaluate(&gc, extractedLabels, computedOutputMap);
 	mapOutputs(outputMap, computedOutputMap, outputs, gc.m);
@@ -202,15 +203,16 @@ test2()
     // 2. garble the circuits
     block* inputLabels1 = (block *) memalign(128, sizeof(block) * 2 * gc1.n);
     block* outputMap1 = (block *) memalign(128, sizeof(block) * 2 * gc1.m);
-    garbleCircuit(&gc1, inputLabels1, outputMap1, &delta);
+    // TODO add constant delta!
+    garbleCircuit(&gc1, inputLabels1, outputMap1);
 
     block* inputLabels2 = (block *) memalign(128, sizeof(block) * 2 * gc2.n);
     block* outputMap2 = (block *) memalign(128, sizeof(block) * 2 * gc2.m);
-    garbleCircuit(&gc2, inputLabels2, outputMap2, &delta);
+    garbleCircuit(&gc2, inputLabels2, outputMap2);
 
     block* inputLabels3 = (block *) memalign(128, sizeof(block) * 2 * gc3.n);
     block* outputMap3 = (block *) memalign(128, sizeof(block) * 2 * gc3.m);
-    garbleCircuit(&gc3, inputLabels3, outputMap3, &delta);
+    garbleCircuit(&gc3, inputLabels3, outputMap3);
 
     // 3. evaluate circuits
     // 3.1 initialize vars

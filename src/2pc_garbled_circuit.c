@@ -15,6 +15,7 @@ createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int num)
 
     for (int i = 0; i < num; i++) {
         // for AES:
+        // TODO add constant delta!
         GarbledCircuit* p_gc = &(chained_gcs[i].gc);
         buildAESRoundComponentCircuit(p_gc, false);
         chained_gcs[i].id = i;
@@ -22,7 +23,7 @@ createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int num)
         chained_gcs[i].inputLabels = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.n );
         chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m); // 2*m because send both 0 key and 1 key
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
-        garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap, &delta);       
+        garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap);
 
         // FOR 22Adder:
         /*
@@ -105,30 +106,22 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound)
     // second 128 bits of prevAndKey are the new key
     // addRoundKey xors them together into keyOutputs
 	AddRoundKey(gc, &garblingContext, prevAndKey, keyOutputs);
-    printf("finishing build\n");
-	finishBuilding(gc, &garblingContext, outputMap, keyOutputs);
 
-    //for (int i = 0; i < 16; i++) {
-    //    SubBytes(gc, &garblingContext, keyOutputs + 8 * i, subBytesOutputs + 8 * i);
-    //}
+    for (int i = 0; i < 16; i++) {
+        SubBytes(gc, &garblingContext, keyOutputs + (8*i), subBytesOutputs + (8*i));
+    }
+        
+    ShiftRows(gc, &garblingContext, subBytesOutputs, shiftRowsOutputs);
 
-    // TODO -- temporarily not doing mixcolumns ecause not working
-    //ShiftRows(gc, &garblingContext, subBytesOutputs, shiftRowsOutputs);
-
-    //for (int i = 0; i < 4; i++) { 
-	//    MixColumns(gc, &garblingContext, shiftRowsOutputs + (32*i), mixColumnOutputs + (32*i));
-	//}
-    
-
-    //if (!isFinalRound) {
-    //    for (int i = 0; i < 4; i++) { 
-    //        // fixed justGarble bug in their construction
-	//    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
-	//    }
-	//    finishBuilding(gc, &garblingContext, outputMap, mixColumnOutputs);
-    //} else {
-	//    finishBuilding(gc, &garblingContext, outputMap, shiftRowsOutputs);
-    //}
+    if (!isFinalRound) {
+        for (int i = 0; i < 4; i++) { 
+            // fixed justGarble bug in their construction
+	    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
+	    }
+	    finishBuilding(gc, &garblingContext, outputMap, mixColumnOutputs);
+    } else {
+	    finishBuilding(gc, &garblingContext, outputMap, shiftRowsOutputs);
+    }
 }
 
 void 
@@ -341,7 +334,6 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler)
     // type
     memcpy(&(chained_gc->type), buffer+p, sizeof(CircuitType));
     p += sizeof(CircuitType);
-    
 
     if (isGarbler) {
         // inputLabels
@@ -350,9 +342,9 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler)
         p += sizeof(block) * 2 * gc->n;
 
         // outputMap
-        chained_gc->outputMap = memalign(128, sizeof(block)*2*gc->m);
+        chained_gc->outputMap = memalign(128, sizeof(block) * 2 * gc->m);
         memcpy(chained_gc->outputMap, buffer+p, sizeof(block)*2*gc->m);
-        p += sizeof(block) * 2*gc->m;
+        p += sizeof(block) * 2 * gc->m;
     }
 
     if (p > fs) {
