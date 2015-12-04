@@ -14,7 +14,7 @@ void
 evaluator_run()
 {
     // 1. get inputs
-    int num_eval_inputs = 384;
+    int num_eval_inputs = 512;
     int* inputs[num_eval_inputs];
     int num_chained_gcs = NUM_GCS;
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
@@ -160,11 +160,12 @@ void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         switch(cur->type) {
             case EVAL:
                 savedCircId = circuitMapping[cur->evCircId];
-                printf("evaling %d\n", savedCircId);
+                printf("evaling %d on instruction %d\n", savedCircId, i);
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                         computedOutputMap[cur->evCircId]);
 
                 if (i == instructions->size - 1) {
+                    printf("Mapping outputput for savedCircId: %d\n", savedCircId);
 	                mapOutputs(outputmap, computedOutputMap[cur->evCircId], 
                             output, chained_gcs[savedCircId].gc.m);
                 }

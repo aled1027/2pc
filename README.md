@@ -45,3 +45,20 @@ make run_eval
     - `2pc_function_spec`
         - has functions related to `FunctionSpec` and json specification
 
+
+
+{
+      "type": "CHAIN",
+      "from_gc_id": 0,
+      "from_wire_id_start": 0,
+      "from_wire_id_end": 127,
+      "to_gc_id": 1,
+      "to_wire_id_start": 0,
+      "to_wire_id_end": 127
+    },
+,
+    
+    {
+      "type": "EVAL",
+      "gc_id": 1
+    }

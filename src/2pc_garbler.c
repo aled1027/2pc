@@ -83,6 +83,7 @@ garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num
     }
 
     // make instructions based on these circuits. Instructions are saved inside of function.
+    printf("allocating %d for circuitmapping\n", function->num_components);
     *circuitMapping = (int*) malloc(sizeof(int) * function->num_components);
     garbler_make_real_instructions(function, chained_gcs, num_chained_gcs, *circuitMapping);
 

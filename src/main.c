@@ -18,9 +18,6 @@
 #include "ot_np.h"
 #include "2pc_common.h"
 
-
-
-
 void pcbuildCircuit(GarbledCircuit *gc, block *delta)
 {
     // source from AM's original 2pc
@@ -185,8 +182,7 @@ void local_two_round_aes()
     printf("\n");
 }
 
-int 
-main(int argc, char* argv[]) 
+int main(int argc, char* argv[]) 
 {
 
     if (argc != 2) {
