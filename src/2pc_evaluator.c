@@ -14,7 +14,7 @@ void
 evaluator_run()
 {
     // 1. get inputs
-    int num_eval_inputs = 512;
+    int num_eval_inputs = 1408;
     int* inputs[num_eval_inputs];
     int num_chained_gcs = NUM_GCS;
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
