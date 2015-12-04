@@ -14,13 +14,14 @@ void
 evaluator_run()
 {
     // 1. get inputs
-    int num_eval_inputs = 256;
+    int num_eval_inputs = 384;
     int* inputs[num_eval_inputs];
     int num_chained_gcs = NUM_GCS;
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
 
     printf("Inputs:\n");
     for (int i=0; i<num_eval_inputs; i++) {
+        eval_inputs[i] = 0;
         eval_inputs[i] = rand() % 2;
         if (i % 128 == 0)
             printf("\n");
@@ -105,6 +106,7 @@ evaluator_run()
             labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = garb_labels[garb_p]; 
             garb_p++;
         } else if (input_mapping->inputter[i] == PERSON_EVALUATOR) {
+            // printf("(gc_id: %d, wire: %d) grabbing eval input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], eval_p);
             labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = eval_labels[eval_p]; 
             eval_p++;
         }
@@ -168,7 +170,7 @@ void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                 }
                 break;
             case CHAIN:
-                printf("chaining (%d,%d) -> (%d,%d)\n", cur->chFromCircId, cur->chFromWireId, cur->chToCircId, cur->chToWireId);
+                // printf("chaining (%d,%d) -> (%d,%d)\n", cur->chFromCircId, cur->chFromWireId, cur->chToCircId, cur->chToWireId);
                 labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
                         computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
                         cur->chOffset);

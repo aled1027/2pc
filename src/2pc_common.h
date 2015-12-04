@@ -2,7 +2,7 @@
 #define MPC_COMMON_H
 
 #define MAX_BUF_SIZE 10000
-#define NUM_GCS 1
+#define NUM_GCS 2
 
 #define HOST "127.0.0.1"
 #define PORT "8000"

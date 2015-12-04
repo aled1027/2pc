@@ -152,6 +152,7 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
 
     // 5. send output map
     int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];
+    printf("sending outputmap for circuit %d\n", final_circuit);
     int output_size = chained_gcs[final_circuit].gc.m;
     net_send(fd, &output_size, sizeof(int), 0); 
     net_send(fd, chained_gcs[final_circuit].outputMap, sizeof(block)*2*output_size, 0); 
@@ -160,6 +161,12 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     state_cleanup(&state);
     close(fd);
     close(serverfd);
+
+    block b = xorBlocks(chained_gcs[0].gc.wires[0].label0, chained_gcs[0].gc.wires[0].label1);
+    print_block(b);
+    printf("\n");
+    b = xorBlocks(chained_gcs[1].gc.wires[0].label0, chained_gcs[1].gc.wires[0].label1);
+    print_block(b);
 }
 
 int
@@ -210,7 +217,7 @@ garbler_make_real_instructions(FunctionSpec *function, ChainedGarbledCircuit* ch
         cur = &(function->instructions.instr[i]);
         if (cur->type == CHAIN) {
             cur->chOffset = xorBlocks(
-                chained_gcs[circuitMapping[cur->chFromCircId]].outputMap[cur->chFromWireId],
+                chained_gcs[circuitMapping[cur->chFromCircId]].outputMap[2*cur->chFromWireId],
                 chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
         }
     }

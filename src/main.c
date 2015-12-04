@@ -73,12 +73,10 @@ void pcbuildCircuit(GarbledCircuit *gc, block *delta)
     finishBuilding(gc, &gctxt, outputbs, mixColumnOutputs);
 }
 
-void pcrun_local() 
+void local_one_round_aes() 
 {
     // source from AM's original 2pc
     printf("Running 2pcrun_local()\n");
-    srand(time(NULL));
-    srand_sse(time(NULL));
 
     block delta;
     delta = randomBlock();
@@ -89,7 +87,9 @@ void pcrun_local()
     block *outputMap, *computedOutputMap;
     int *inputs;
     int *outputVals;
-    pcbuildCircuit(&gc, &delta);
+
+    //pcbuildCircuit(&gc, &delta);
+    buildAESRoundComponentCircuit(&gc, false,  &delta);
 
     inputLabels = (block *) memalign(128, sizeof(block) * 2 * gc.n);
     extractedLabels = (block *) memalign(128, sizeof(block) * gc.n);
@@ -115,41 +115,74 @@ void pcrun_local()
     printf("\n");
 }
 
-void test() 
+void local_two_round_aes() 
 {
-    GarbledCircuit gc;
+    // If this works, load gcs from disk, and try it. 
+    // see where different from computation else where
+    // We could call this the no-instructions/no-network test.
+
+    printf("Running test\n");
+    GarbledCircuit gc0;
+    GarbledCircuit gc1;
     block delta;
-    block *inputLabels, *extractedLabels, *outputMap, *computedOutputMap;
+    block *inputLabels0, *extractedLabels0, *outputMap0;
+    block *inputLabels1, *outputMap1, *computedOutputMap0, *extractedLabels1, *computedOutputMap1;
     int *input, *output;
 
     delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
 
-    buildAESRoundComponentCircuit(&gc, false, &delta); 
-    //pcbuildCircuit(&gc, &delta); 
+    buildAESRoundComponentCircuit(&gc0, false, &delta); 
+    buildAESRoundComponentCircuit(&gc1, false, &delta); 
+    int n = 128*2;
+    int m = 128;
 
-    inputLabels = (block *) memalign(128, sizeof(block) * 2 * gc.n);
-    extractedLabels = (block *) memalign(128, sizeof(block) * gc.n);
-    outputMap = (block *) memalign(128, sizeof(block) * 2 * gc.m);
-    computedOutputMap = (block *) memalign(128, sizeof(block) * gc.m);
-    input = (int *) malloc(sizeof(int) * gc.n);
-    output = (int *) malloc(sizeof(int) * gc.m);
+    inputLabels0 = (block *) memalign(128, sizeof(block) * 2 * n);
+    inputLabels1 = (block *) memalign(128, sizeof(block) * 2 * n);
+    extractedLabels0 = (block *) memalign(128, sizeof(block) * n);
+    extractedLabels1 = (block *) memalign(128, sizeof(block) * n);
+    outputMap0 = (block *) memalign(128, sizeof(block) *  2*m);
+    outputMap1 = (block *) memalign(128, sizeof(block) * 2*m);
+    computedOutputMap0 = (block *) memalign(128, sizeof(block) * m);
+    computedOutputMap1 = (block *) memalign(128, sizeof(block) * m);
+    input = (int *) malloc(sizeof(int) * n);
+    output = (int *) malloc(sizeof(int) * m);
 
-    for (int j=0; j<256; j++) {
+    garbleCircuit(&gc0, inputLabels0, outputMap0);
+    garbleCircuit(&gc1, inputLabels1, outputMap1);
+
+    for (int j=0; j< 128*3; j++) {
         input[j] = rand() % 2;
     }
 
-    // TODO add constant delta!
-    garbleCircuit(&gc, inputLabels, outputMap);
-    extractLabels(extractedLabels, inputLabels, input, gc.n);
-    evaluate(&gc, extractedLabels, computedOutputMap);
-    mapOutputs(outputMap, computedOutputMap, output, gc.m);
-
-    printf("(");
-    for (int j=0; j<128; j++) {
-        printf("%d, ", output[j]);
+    // plug in inputs and evaluate circuit 0
+    for (int j=0; j< 256; j++) {
+        extractedLabels0[j] = inputLabels0[2*j + input[j]];
     }
-    printf(")\n");
+    evaluate(&gc0, extractedLabels0, computedOutputMap0); 
+    mapOutputs(outputMap0, computedOutputMap0, output, m);
+
+    // plug in inputs and evaluate circuit 1
+    for (int j=0; j<128; j++) {
+        block A, B, offset; // C is offset
+        A = outputMap0[2*j];
+        B = inputLabels1[2*j];
+        offset = xorBlocks(A,B);
+        extractedLabels1[j] = xorBlocks(computedOutputMap0[j], offset);
+    }
+
+    for (int j=128; j< 256; j++) {
+        extractedLabels1[j] = inputLabels1[2*j + input[j+128]];
+    }
+
+    evaluate(&gc1, extractedLabels1, computedOutputMap1);
+    mapOutputs(outputMap1, computedOutputMap1, output, m);
+
+    printf("output: ");
+    for (int j=0; j<128; j++) {
+        printf("%d", output[j]);
+    }
+    printf("\n");
 }
 
 int 
@@ -185,7 +218,8 @@ main(int argc, char* argv[])
     } else if (strcmp(argv[1], "tests") == 0) {
         //pcrun_local();
         //jgmain();
-        test();
+        //local_one_round_aes();
+        local_two_round_aes();
         //run_all_tests();
     } else {
         printf("usage: %s eval\n", argv[0]);

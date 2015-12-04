@@ -118,6 +118,12 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block*
             // fixed justGarble bug in their construction
 	    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
 	    }
+        // output wires are stored in mixColumnOutputs
+        printf("printing mix column outputs: \n");
+        for (int k=0; k<128; k++) {
+            printf("%d ", mixColumnOutputs[k]);
+        }
+        printf("\n");
 	    finishBuilding(gc, &garblingContext, outputMap, mixColumnOutputs);
     } else {
 	    finishBuilding(gc, &garblingContext, outputMap, shiftRowsOutputs);
