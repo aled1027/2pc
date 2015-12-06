@@ -11,6 +11,7 @@
 #include "gc_comm.h"
 #include "net.h"
 #include "ot_np.h"
+#include <time.h>
 #include "2pc_common.h"
 
 #include "gc_comm.h"
@@ -59,10 +60,11 @@ int garbler_run(char* function_path)
     }
     int* circuitMapping;
 
-    int inputs[2]; // TODO no inputs for aes, so this can be ignored
-    //inputs[0] = rand() % 2;
-    //inputs[1] = rand() % 2;
-    //printf("inputs: (%d,%d)\n", inputs[0], inputs[1]);
+    int num_garb_inputs = 128*10;
+    int* inputs = malloc(sizeof(int) * num_garb_inputs);
+    for (int i=0; i<num_garb_inputs; i++) {
+        inputs[i] = rand() % 2; 
+    }
 
     garbler_init(&function, chained_gcs, NUM_GCS, &circuitMapping, function_path);
     garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs);
@@ -83,7 +85,6 @@ garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num
     }
 
     // make instructions based on these circuits. Instructions are saved inside of function.
-    printf("allocating %d for circuitmapping\n", function->num_components);
     *circuitMapping = (int*) malloc(sizeof(int) * function->num_components);
     garbler_make_real_instructions(function, chained_gcs, num_chained_gcs, *circuitMapping);
 
@@ -124,14 +125,16 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     block* garbLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
     assert(evalLabels && garbLabels);
 
+    // TODO is all of this copying necessary? Are we timing the garbler?
+    // Could probably get around this.
     InputMapping imap = function->input_mapping;
-    int eval_p = 0, garb_p = 0;
+    int eval_p = 0, garb_p = 0; // counters for looping over garbler and evaluator's structures
     for (int i=0; i<imap.size; i++) {
         if (imap.inputter[i] == PERSON_GARBLER) {
-            // check input here.
-            assert(inputs[i] == 0 || inputs[i] == 1);
+            assert(inputs[garb_p] == 0 || inputs[garb_p] == 1);
+            // copy into garbLabels from the circuit's inputLabels
             memcpy(&garbLabels[garb_p], 
-                    &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i] + inputs[i]], 
+                    &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i] + inputs[garb_p]], 
                     sizeof(block));
             garb_p++;
         } else if (imap.inputter[i] == PERSON_EVALUATOR) {
@@ -148,12 +151,17 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     }
 
     // send evaluator's labels
+    clock_t startTime, diff; 
+    startTime = clock();
     ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs , 2,
                new_msg_reader, new_item_reader);
+    diff = clock() - startTime;
+    int msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("OT took time %d seconds %d milliseconds\n", msec/1000, msec%1000);
 
     // 5. send output map
     int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];
-    printf("sending outputmap for circuit %d\n", final_circuit);
+    //printf("sending outputmap for circuit %d\n", final_circuit);
     int output_size = chained_gcs[final_circuit].gc.m;
     net_send(fd, &output_size, sizeof(int), 0); 
     net_send(fd, chained_gcs[final_circuit].outputMap, sizeof(block)*2*output_size, 0); 
@@ -162,12 +170,6 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     state_cleanup(&state);
     close(fd);
     close(serverfd);
-
-    block b = xorBlocks(chained_gcs[0].gc.wires[0].label0, chained_gcs[0].gc.wires[0].label1);
-    print_block(b);
-    printf("\n");
-    b = xorBlocks(chained_gcs[1].gc.wires[0].label0, chained_gcs[1].gc.wires[0].label1);
-    print_block(b);
 }
 
 int

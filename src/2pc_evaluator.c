@@ -4,6 +4,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include <unistd.h> // sleep
+#include <time.h>
 
 #include "gc_comm.h"
 #include "net.h"
@@ -14,20 +15,14 @@ void
 evaluator_run()
 {
     // 1. get inputs
-    int num_eval_inputs = 1408;
+    int num_eval_inputs = 128;
     int* inputs[num_eval_inputs];
     int num_chained_gcs = NUM_GCS;
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
 
-    printf("Inputs:\n");
     for (int i=0; i<num_eval_inputs; i++) {
-        eval_inputs[i] = 0;
         eval_inputs[i] = rand() % 2;
-        if (i % 128 == 0)
-            printf("\n");
-        printf("%d", eval_inputs[i]);
     }
-    printf("\n");
     
     // 2. load chained garbled circuits from disk
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
@@ -46,6 +41,12 @@ evaluator_run()
     }
 
     // 4. allocate some memory
+	unsigned long startCycles = RDTSC;
+    clock_t origStartTime, startTime, diff; 
+    int msec;
+    origStartTime = startTime = clock();
+
+
     FunctionSpec function;
     block** labels = malloc(sizeof(block*) * num_chained_gcs);
 
@@ -53,6 +54,10 @@ evaluator_run()
         labels[i] = memalign(128, sizeof(block) * chained_gcs[i].gc.n);
         assert(labels[i]);
     }
+    diff = clock() - startTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("post step 4 Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+    startTime = clock();
 
     // 5. receive input_mapping, instructions
     // popualtes instructions and input_mapping field of function
@@ -74,6 +79,10 @@ evaluator_run()
     free(buffer1);
     free(buffer2);
 
+    diff = clock() - startTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("post step 5 Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+    startTime = clock();
     // 6. receive circuitMapping
     // circuitMapping maps instruction-gc-ids --> saved-gc-ids 
     int circuitMappingSize, *circuitMapping;
@@ -81,13 +90,27 @@ evaluator_run()
     circuitMapping = malloc(sizeof(int) * circuitMappingSize);
     net_recv(sockfd, circuitMapping, sizeof(int)*circuitMappingSize, 0);
 
+    diff = clock() - startTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("post step 6 Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+    startTime = clock();
+
+    //-----------------------------------------
+    //--------START OF SLOWNESS---------------------
+    //-----------------------------------------
     // 7. receive labels
     // receieve labels based on garblers inputs
     int num_garb_inputs;
     net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
 
+    diff = clock() - startTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("post recv num_garb_inputs step 7 Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+    startTime = clock();
+
     block* garb_labels = memalign(128, sizeof(block) * num_garb_inputs);
     assert(garb_labels && num_garb_inputs >= 0);
+    // maybe receiving them sequentially is bad. Maybe we can concat them and send them all at once
     if (num_garb_inputs > 0) {
         net_recv(sockfd, garb_labels, sizeof(block)*num_garb_inputs, 0);
     }
@@ -95,9 +118,22 @@ evaluator_run()
     // receive labels based on evaluator's inputs
     block* eval_labels = memalign(128, sizeof(block) * num_eval_inputs);
     assert(eval_labels);
+
+    diff = clock() - startTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("post receive garb garbLabels step 7 Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+    startTime = clock();
+
     ot_np_recv(&state, sockfd, eval_inputs, num_eval_inputs, sizeof(block), 2, eval_labels,
                new_choice_reader, new_msg_writer);
 
+    diff = clock() - startTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("OT step 7 Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+    startTime = clock();
+    //-----------------------------------------
+    //--------END OF SLOWNESS---------------------
+    //-----------------------------------------
     // 8. process eval_labels and garb_labels into labels
     InputMapping* input_mapping = &function.input_mapping;
     int garb_p = 0, eval_p = 0;
@@ -112,6 +148,11 @@ evaluator_run()
         }
     }
 
+    diff = clock() - startTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("post step 8 Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+    startTime = clock();
+    
     // 9. receive outputmap
     int output_size;
     net_recv(sockfd, &output_size, sizeof(int), 0);
@@ -119,16 +160,25 @@ evaluator_run()
     assert(outputmap);
     net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0); 
 
+    diff = clock() - startTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("post step 9 Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+    startTime = clock();
+
     // 10. evaluate
     int *output = malloc(sizeof(int) * output_size);
     evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output, circuitMapping);
 
-    printf("Output: ");
-    for (int i=0; i<output_size; i++) {
-        printf("%d", output[i]);
-    }
-    printf("\n");
+    //printf("Output: ");
+    //for (int i=0; i<output_size; i++) {
+    //    printf("%d", output[i]);
+    //}
+    //printf("\n");
     
+    diff = clock() - startTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("post step 10 Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+    startTime = clock();
     // 11. clean up
     // TODO move state and close up above, before evaluation. Receive everything, then evaluate.
     close(sockfd);
@@ -137,6 +187,18 @@ evaluator_run()
         free(labels[i]);
     } 
     free(labels);
+
+    diff = clock() - startTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("Post step 11 time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+
+    diff = clock() - origStartTime;
+    msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("Total time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+
+	unsigned long endCycles = RDTSC;
+	unsigned long totCyles = endCycles - startCycles;
+    printf("Cycles to run %lu\n", totCyles);
 }
 
 void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
@@ -160,7 +222,9 @@ void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         switch(cur->type) {
             case EVAL:
                 savedCircId = circuitMapping[cur->evCircId];
-                printf("evaling %d on instruction %d\n", savedCircId, i);
+                // be nice if in debug mode, this printed to a log file. 
+                // probably don't need that functionality
+                // printf("evaling %d on instruction %d\n", savedCircId, i);
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                         computedOutputMap[cur->evCircId]);
 
