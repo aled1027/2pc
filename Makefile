@@ -13,7 +13,7 @@ JUSTGARBLE = JustGarble
 CC=clang
 CFLAGS= -Iinc -I$(JUSTGARBLE)/include -Wno-typedef-redefinition -Wno-unused-function
 CFLAGS+= -Wno-unused-variable
-CFLAGS+= -pg
+CFLAGS+= -g
 
 LIBS=-lmsgpack -march=native -maes -msse4 -lm -lrt -lcrypto -lssl -lgmp -ljansson
 
@@ -52,7 +52,7 @@ gdb_tests:
 valgrind: 
 	make;
 	rm valg.out;
-	valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --leak-check=yes --log-file=valg.out ./a.out;
+	valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --leak-check=yes --log-file=valg.out ./a.out garb_online;
 
 gdb_garb:
 	gdb --args a.out garb_online

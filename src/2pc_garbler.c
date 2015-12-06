@@ -44,7 +44,7 @@ void garbler_offline()
         saveChainedGC(&chained_gcs[i], true);
     }
 
-    // clean up
+    free(chained_gcs);
     state_cleanup(&state);
     close(fd);
     close(serverfd);
@@ -52,41 +52,46 @@ void garbler_offline()
 
 int garbler_run(char* function_path) 
 {
-    FunctionSpec function;
-    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
+    // runs the garbler code
+    // First, initializes and loads function, and then calls garbler_go which
+    // runs the core of the garbler's code
 
+    int *circuitMapping, *inputs, num_garb_inputs;
+    FunctionSpec function;
+    ChainedGarbledCircuit* chained_gcs; 
+
+    chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
+    assert(chained_gcs);
     for (int i=0; i<NUM_GCS; i++) {
         loadChainedGC(&chained_gcs[i], i, true);
     }
-    int* circuitMapping;
 
-    int num_garb_inputs = 128*10;
-    int* inputs = malloc(sizeof(int) * num_garb_inputs);
+    num_garb_inputs = 128*10;
+    inputs = malloc(sizeof(int) * num_garb_inputs);
+    assert(inputs);
     for (int i=0; i<num_garb_inputs; i++) {
         inputs[i] = rand() % 2; 
     }
 
-    garbler_init(&function, chained_gcs, NUM_GCS, &circuitMapping, function_path);
-    garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs);
-
-    freeFunctionSpec(&function);
-
-    return SUCCESS;
-}
-
-int 
-garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int **circuitMapping, char* function_path) 
-{
-    /* primary role: fill function function with information provided by chained_gcs */
-
-    if (load_function_via_json(function_path, function) == FAILURE) {
+    // load function allocates a bunch of memory for the function
+    // this is later freed by freeFunctionSpec
+    if (load_function_via_json(function_path, &function) == FAILURE) {
         fprintf(stderr, "Could not load function %s\n", function_path);
         return FAILURE;
     }
 
-    // make instructions based on these circuits. Instructions are saved inside of function.
-    *circuitMapping = (int*) malloc(sizeof(int) * function->num_components);
-    garbler_make_real_instructions(function, chained_gcs, num_chained_gcs, *circuitMapping);
+    circuitMapping = (int*) malloc(sizeof(int) * function.num_components);
+    assert(circuitMapping);
+    garbler_make_real_instructions(&function, chained_gcs, NUM_GCS, circuitMapping);
+
+    // main function
+    garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs);
+
+    free(inputs);
+    free(circuitMapping);
+    freeChainedGcs(chained_gcs, NUM_GCS);
+    free(chained_gcs);
+    freeFunctionSpec(&function);
 
     return SUCCESS;
 }
@@ -121,6 +126,7 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
 
     // 4. send labels
     // upper bounding memory with n
+    // TODO change these to memalign
     block* evalLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
     block* garbLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
     assert(evalLabels && garbLabels);
@@ -167,6 +173,8 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     net_send(fd, chained_gcs[final_circuit].outputMap, sizeof(block)*2*output_size, 0); 
     
     // 6. clean up
+    free(evalLabels);
+    free(garbLabels);
     state_cleanup(&state);
     close(fd);
     close(serverfd);
@@ -224,6 +232,7 @@ garbler_make_real_instructions(FunctionSpec *function, ChainedGarbledCircuit* ch
                 chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
         }
     }
+    free(is_circuit_used);
     return SUCCESS;
 }
 
@@ -258,36 +267,7 @@ send_instructions_and_input_mapping(FunctionSpec *function, int fd)
     net_send(fd, buffer1, buf_size1, 0);
     net_send(fd, buffer2, buf_size2, 0);
 
-    Instructions is;
-    readBufferIntoInstructions(&is, buffer1);
+    free(buffer1);
+    free(buffer2);
 }
-
-int 
-hardcodeInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs) 
-{
-    instr[0].type = EVAL;
-    instr[0].evCircId = 0;
-    
-    instr[1].type = EVAL;
-    instr[1].evCircId = 1;
-
-    instr[2].type = CHAIN;
-    instr[2].chFromCircId = 0;
-    instr[2].chFromWireId = 0;
-    instr[2].chToCircId = 2;
-    instr[2].chToWireId = 0;
-    instr[2].chOffset = xorBlocks(chained_gcs[0].outputMap[0], chained_gcs[2].inputLabels[0]);
-
-    instr[3].type = CHAIN;
-    instr[3].chFromCircId = 1;
-    instr[3].chFromWireId = 0;
-    instr[3].chToCircId = 2;
-    instr[3].chToWireId = 1;
-    instr[3].chOffset = xorBlocks(chained_gcs[1].outputMap[0], chained_gcs[2].inputLabels[2]);
-
-    instr[4].type = EVAL;
-    instr[4].evCircId = 2;
-    return SUCCESS;
-}
-
 

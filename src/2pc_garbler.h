@@ -13,8 +13,6 @@
 
 void garbler_offline();
 int garbler_run(char* function_path);
-int garbler_init(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, 
-        int** circuitMapping, char* function_path);
 void garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, 
         int* circuitMapping, int *inputs);
 int garbler_make_real_instructions(FunctionSpec *function, 
@@ -25,8 +23,5 @@ void send_instructions_and_input_mapping(FunctionSpec *function, int fd);
 // for OT
 void *new_msg_reader(void *msgs, int idx);
 void *new_item_reader(void *item, int idx, ssize_t *mlen);
-
-// other
-int hardcodeInstructions(Instruction* instr, ChainedGarbledCircuit* chained_gcs);
 
 #endif

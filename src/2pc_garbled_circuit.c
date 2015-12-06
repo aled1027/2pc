@@ -278,6 +278,21 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler)
     return SUCCESS;
 }
     
+void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num) 
+{
+    for (int i=0; i<num; i++) {
+        ChainedGarbledCircuit *chained_gc = &chained_gcs[i];
+        GarbledCircuit *gc = &chained_gc->gc;
+
+        free(chained_gc->inputLabels);
+        free(chained_gc->outputMap);
+        free(gc->garbledGates);
+        free(gc->garbledTable);
+        free(gc->wires);
+        free(gc->outputs);
+    }
+}
+
 int 
 loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler) 
 {
@@ -358,6 +373,7 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler)
         printf("Buffer overflow error\n"); 
         return FAILURE;
     }
+    free(buffer);
 
     return SUCCESS;
 }

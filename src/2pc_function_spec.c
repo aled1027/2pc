@@ -15,7 +15,7 @@ freeFunctionSpec(FunctionSpec* function)
     free(function->input_mapping.input_idx);
     free(function->input_mapping.gc_id);
     free(function->input_mapping.wire_id);
-
+    free(function->input_mapping.inputter);
     free(function->instructions.instr);
     return 0;
 }
@@ -50,11 +50,15 @@ load_function_via_json(char* path, FunctionSpec* function)
 
     json_t *jRoot, *jN, *jM;
     json_error_t error; 
-    if (!(jRoot = json_loads(buffer, 0, &error))) {
+    jRoot = json_loads(buffer, 0, &error);
+    if (!jRoot) {
+    // if (!(jRoot = json_loads(buffer, 0, &error))) {
         fprintf(stderr, "error load json on line %d: %s\n", error.line, error.text);
         return FAILURE;
     }
+    fclose(f);
     free(buffer);
+
 
 
     jN = json_object_get(jRoot, "n");
@@ -80,7 +84,7 @@ load_function_via_json(char* path, FunctionSpec* function)
         fprintf(stderr, "error loading json instructions");
         return FAILURE;
     }
-    free(jRoot);
+    json_decref(jRoot); // frees all of the other json_t* objects, everywhere.
     return SUCCESS;
 }
 
@@ -281,7 +285,7 @@ int
 json_load_instructions(json_t *root, FunctionSpec *function) 
 {
     Instructions* instructions = &(function->instructions);
-    json_t *jInstructions, *jInstr, *jGcId, *jPtr;
+    json_t *jInstructions, *jInstr, *jPtr;
     const char* sType;
 
     jPtr = json_object_get(root, "tot_raw_instructions");

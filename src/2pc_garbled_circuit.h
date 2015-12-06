@@ -42,6 +42,7 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalFound, block*
 
 int saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler);
 int loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler);
+void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num);
 
 void print_block(block blk);
 void print_garbled_gate(GarbledGate *gg);
