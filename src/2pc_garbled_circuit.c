@@ -17,13 +17,19 @@ createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int num)
     for (int i = 0; i < num; i++) {
         // for AES:
         GarbledCircuit* p_gc = &(chained_gcs[i].gc);
-        buildAESRoundComponentCircuit(p_gc, false, &delta);
+        if (i == num-1) {
+            buildAESRoundComponentCircuit(p_gc, true, &delta);
+            chained_gcs[i].type = AES_FINAL_ROUND;
+        } else {
+            buildAESRoundComponentCircuit(p_gc, false, &delta);
+            chained_gcs[i].type = AES_ROUND;
+        }
         chained_gcs[i].id = i;
-        chained_gcs[i].type = AES_ROUND;
         chained_gcs[i].inputLabels = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.n );
         chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m); // 2*m because send both 0 key and 1 key
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap);
+
 
         // FOR 22Adder:
         /*
@@ -119,11 +125,6 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block*
 	    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
 	    }
         // output wires are stored in mixColumnOutputs
-        printf("printing mix column outputs: \n");
-        for (int k=0; k<128; k++) {
-            printf("%d ", mixColumnOutputs[k]);
-        }
-        printf("\n");
 	    finishBuilding(gc, &garblingContext, outputMap, mixColumnOutputs);
     } else {
 	    finishBuilding(gc, &garblingContext, outputMap, shiftRowsOutputs);

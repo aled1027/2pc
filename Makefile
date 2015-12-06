@@ -11,8 +11,9 @@ OBJFULL = obj/*.o
 JUSTGARBLE = JustGarble
 
 CC=clang
-CFLAGS= -g -Iinc -I$(JUSTGARBLE)/include -Wno-typedef-redefinition -Wno-unused-function
+CFLAGS= -Iinc -I$(JUSTGARBLE)/include -Wno-typedef-redefinition -Wno-unused-function
 CFLAGS+= -Wno-unused-variable
+CFLAGS+= -pg
 
 LIBS=-lmsgpack -march=native -maes -msse4 -lm -lrt -lcrypto -lssl -lgmp -ljansson
 
@@ -23,6 +24,9 @@ JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
 
 all: 
 	$(OBJECTS) $(CC) $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
+
+profiler:
+	gprof a.out gmon.out > prof_output
 
 gdb_garb_off:
 	gdb --args a.out garb_offline
@@ -63,7 +67,7 @@ gdb_eval:
 
 .PHONEY: clean
 clean:
-	# rm garbler evaluator a.out; 
+	#rm garbler evaluator a.out; 
 	rm -rf files/evaluator_gcs; 
 	rm -rf files/garbler_gcs;
 	mkdir files/evaluator_gcs;
