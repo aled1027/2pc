@@ -198,13 +198,20 @@ int main(int argc, char* argv[])
     // specifies which function to run
     // char* function_path = "functions/22Adder.json";
     char* function_path = "functions/aes.json";
+    int num = 100;
 
     if (strcmp(argv[1], "eval_online") == 0) {
-        printf("Running eval online\n");
-        evaluator_run();
+        //printf("Running eval online\n");
+        for (int j=0; j<num; j++) {
+            evaluator_run();
+            sleep(1);
+        }
     } else if (strcmp(argv[1], "garb_online") == 0) {
         printf("Running garb online\n");
-        garbler_run(function_path);
+        for (int j=0; j<num; j++) {
+            garbler_run(function_path);
+        }
+
     } else if (strcmp(argv[1], "garb_offline") == 0) {
         printf("Running garb offline\n");
         garbler_offline();

@@ -46,10 +46,10 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
     double start, end;
 
 #ifdef AES_HW
-    fprintf(stderr, "OT-NP: Using AESNI\n");
+    //fprintf(stderr, "OT-NP: Using AESNI\n");
 #endif
 #ifdef SHA
-    fprintf(stderr, "OT-NP: Using SHA-1\n");
+    //fprintf(stderr, "OT-NP: Using SHA-1\n");
 #endif
 
     start = current_time();
@@ -90,7 +90,7 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
     }
 
     end = current_time();
-    fprintf(stderr, "Initialization: %f\n", end - start);
+    //fprintf(stderr, "Initialization: %f\n", end - start);
 
     // send g^r to receiver
     start = current_time();
@@ -98,7 +98,7 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
     if (net_send(fd, buf, sizeof buf, 0) == -1)
         ERROR;
     end = current_time();
-    fprintf(stderr, "Send g^r to receiver: %f\n", end - start);
+    //fprintf(stderr, "Send g^r to receiver: %f\n", end - start);
 
     // send Cs to receiver
     start = current_time();
@@ -108,7 +108,7 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
             ERROR;
     }
     end = current_time();
-    fprintf(stderr, "Send Cs to receiver: %f\n", end - start);
+    //fprintf(stderr, "Send Cs to receiver: %f\n", end - start);
 
     start = current_time();
     for (int i = 0; i < N - 1; ++i) {
@@ -116,7 +116,7 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
         mpz_powm(Crs[i], Cs[i], r, st->p.p);
     }
     end = current_time();
-    fprintf(stderr, "Compute C_i^r: %f\n", end - start);
+    //fprintf(stderr, "Compute C_i^r: %f\n", end - start);
 
     start = current_time();
     for (int j = 0; j < num_ots; ++j) {
@@ -126,7 +126,7 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
         array_to_mpz(pk0s[j], buf, sizeof buf);
     }
     end = current_time();
-    fprintf(stderr, "Get pk0 from receiver: %f\n", end - start);
+    //fprintf(stderr, "Get pk0 from receiver: %f\n", end - start);
 
     start = current_time();
     for (int j = 0; j < num_ots; ++j) {
@@ -166,7 +166,7 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
         }
     }
     end = current_time();
-    fprintf(stderr, "Send hashes to receiver: %f\n", end - start);
+    //fprintf(stderr, "Send hashes to receiver: %f\n", end - start);
 
  cleanup:
     mpz_clears(r, gr, pk, pk0, NULL);
@@ -205,10 +205,10 @@ ot_np_recv(struct state *st, int fd, void *choices, int nchoices, int msglength,
     double start, end;
 
 #ifdef AES_HW
-    fprintf(stderr, "OT-NP: Using AESNI\n");
+    //fprintf(stderr, "OT-NP: Using AESNI\n");
 #endif
 #ifdef SHA
-    fprintf(stderr, "OT-NP: Using SHA-1\n");
+    //fprintf(stderr, "OT-NP: Using SHA-1\n");
 #endif
 
     mpz_inits(gr, pk0, pks, NULL);
@@ -243,7 +243,7 @@ ot_np_recv(struct state *st, int fd, void *choices, int nchoices, int msglength,
         ERROR;
     array_to_mpz(gr, buf, sizeof buf);
     end = current_time();
-    fprintf(stderr, "Get g^r from sender: %f\n", end - start);
+    //fprintf(stderr, "Get g^r from sender: %f\n", end - start);
 
     // get Cs from sender
     start = current_time();
@@ -253,7 +253,7 @@ ot_np_recv(struct state *st, int fd, void *choices, int nchoices, int msglength,
         array_to_mpz(Cs[i], buf, sizeof buf);
     }
     end = current_time();
-    fprintf(stderr, "Get Cs from sender: %f\n", end - start);
+    //fprintf(stderr, "Get Cs from sender: %f\n", end - start);
 
     start = current_time();
     for (int j = 0; j < nchoices; ++j) {
@@ -278,7 +278,7 @@ ot_np_recv(struct state *st, int fd, void *choices, int nchoices, int msglength,
             ERROR;
     }
     end = current_time();
-    fprintf(stderr, "Send pk0s to sender: %f\n", end - start);
+    //fprintf(stderr, "Send pk0s to sender: %f\n", end - start);
 
     start = current_time();
     for (int j = 0; j < nchoices; ++j) {
@@ -315,7 +315,7 @@ ot_np_recv(struct state *st, int fd, void *choices, int nchoices, int msglength,
         }
     }
     end = current_time();
-    fprintf(stderr, "Receive hashes from sender: %f\n", end - start);
+    //fprintf(stderr, "Receive hashes from sender: %f\n", end - start);
 
  cleanup:
     mpz_clears(gr, pk0, pks, NULL);

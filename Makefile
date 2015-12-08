@@ -12,7 +12,6 @@ JUSTGARBLE = JustGarble
 
 CC=clang
 CFLAGS= -Iinc -I$(JUSTGARBLE)/include -Wno-typedef-redefinition -Wno-unused-function
-CFLAGS+= -Wno-unused-variable
 CFLAGS+= -g
 
 LIBS=-lmsgpack -march=native -maes -msse4 -lm -lrt -lcrypto -lssl -lgmp -ljansson
