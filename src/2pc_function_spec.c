@@ -361,7 +361,12 @@ json_load_instructions(json_t *root, FunctionSpec *function)
                 fprintf(stderr, "Instruction %d was invalid: %s\n", i, sType);
                 return FAILURE;
         }
+
     }
+    if (num_instructions != idx) {
+        fprintf(stderr, "tot_raw_instructions %d does not match number of instructions %d", num_instructions, idx);
+    }
+
     return SUCCESS;
 }
 
