@@ -26,10 +26,11 @@ createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int num)
         }
         chained_gcs[i].id = i;
         chained_gcs[i].inputLabels = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.n );
-        chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m); // 2*m because send both 0 key and 1 key
+
+        // 2*m because send both 0 key and 1 key
+        chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m); 
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap);
-
 
         // FOR 22Adder:
         /*
@@ -103,6 +104,10 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block*
 	block inputLabels[2*n];
 	block outputMap[2*m];
 
+    // So i'm pretty sure that these labels are ignored
+    // in justGarble/src/garble.c line 190ish. 
+    // the for loop overwires these values with values that it created.
+    // but justGarble's tests are setup like this, where the values are overwritten.
 	createInputLabelsWithR(inputLabels, n, delta);
 	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
 	startBuilding(gc, &garblingContext);

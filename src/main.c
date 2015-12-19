@@ -201,16 +201,18 @@ int main(int argc, char* argv[])
     int num = 100;
 
     if (strcmp(argv[1], "eval_online") == 0) {
-        //printf("Running eval online\n");
-        for (int j=0; j<num; j++) {
+        printf("Running eval online\n");
+        //printf("EvalOTtime, EvalTOTtime\n");
+        //for (int j=0; j<num; j++) {
             evaluator_run();
-            sleep(1);
-        }
+            //sleep(1);
+        //}
     } else if (strcmp(argv[1], "garb_online") == 0) {
         printf("Running garb online\n");
-        for (int j=0; j<num; j++) {
+        //printf("GarbOTTime, GarbTOTtime\n");
+        //for (int j=0; j<num; j++) {
             garbler_run(function_path);
-        }
+        //}
 
     } else if (strcmp(argv[1], "garb_offline") == 0) {
         printf("Running garb offline\n");

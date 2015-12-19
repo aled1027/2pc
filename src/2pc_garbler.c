@@ -11,7 +11,6 @@
 #include "gc_comm.h"
 #include "net.h"
 #include "ot_np.h"
-#include <time.h>
 #include "2pc_common.h"
 
 #include "gc_comm.h"
@@ -56,15 +55,14 @@ int garbler_run(char* function_path)
     // First, initializes and loads function, and then calls garbler_go which
     // runs the core of the garbler's code
 
+    unsigned long *ot_time = malloc(sizeof(unsigned long));
+    unsigned long tot_time_start, tot_time;
+    tot_time_start = RDTSC;
+
     int *circuitMapping, *inputs, num_garb_inputs;
+
     FunctionSpec function;
     ChainedGarbledCircuit* chained_gcs; 
-
-    chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
-    assert(chained_gcs);
-    for (int i=0; i<NUM_GCS; i++) {
-        loadChainedGC(&chained_gcs[i], i, true);
-    }
 
     num_garb_inputs = 128*10;
     inputs = malloc(sizeof(int) * num_garb_inputs);
@@ -72,6 +70,14 @@ int garbler_run(char* function_path)
     for (int i=0; i<num_garb_inputs; i++) {
         inputs[i] = rand() % 2; 
     }
+
+    chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
+    assert(chained_gcs);
+    for (int i=0; i<NUM_GCS; i++) {
+        loadChainedGC(&chained_gcs[i], i, true);
+    }
+
+    
 
     // load function allocates a bunch of memory for the function
     // this is later freed by freeFunctionSpec
@@ -84,8 +90,11 @@ int garbler_run(char* function_path)
     assert(circuitMapping);
     garbler_make_real_instructions(&function, chained_gcs, NUM_GCS, circuitMapping);
 
-    // main function
-    garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs);
+    // main function; does core of work
+    garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs, ot_time);
+
+    tot_time = RDTSC - tot_time_start;
+    printf("%lu, %lu\n", *ot_time, tot_time);
 
     free(inputs);
     free(circuitMapping);
@@ -98,7 +107,7 @@ int garbler_run(char* function_path)
 
 void 
 garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
-        int* circuitMapping, int *inputs) 
+        int* circuitMapping, int *inputs, unsigned long *ot_time) 
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
     // hardcoding 22adder for now
@@ -117,6 +126,9 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
         perror("net_server_accept");
         exit(EXIT_FAILURE);
     }
+
+
+
     // 2. send instructions, input_mapping
     send_instructions_and_input_mapping(function, fd);
 
@@ -152,18 +164,18 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     }
     int num_eval_inputs = eval_p / 2, num_garb_inputs = garb_p;
     net_send(fd, &num_garb_inputs, sizeof(int), 0);
+
+    // TODO this could be spedup
     if (num_garb_inputs > 0) {
         net_send(fd, garbLabels, sizeof(block)*num_garb_inputs, 0);
     }
 
     // send evaluator's labels
-    clock_t startTime, diff; 
-    startTime = clock();
+    unsigned long otStartTime;
+    otStartTime = RDTSC;
     ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs , 2,
                new_msg_reader, new_item_reader);
-    diff = clock() - startTime;
-    int msec = diff * 1000 / CLOCKS_PER_SEC;
-    printf("OT took time %d seconds %d milliseconds\n", msec/1000, msec%1000);
+    *ot_time = RDTSC - otStartTime;
 
     // 5. send output map
     int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];

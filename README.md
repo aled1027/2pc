@@ -1,37 +1,30 @@
 # 2pc
 - offline/online 2PC
 
-## To run:
-```
-make
-make run_garb_off
-make run_eval_off
-make run_garb
-make run_eval
-```
+# Setup
+1. install [msgpack](http://msgpack.org/index.html)
+    - a JustGarble requirement
+1. Once msgpack is installed, compile justGarble
+    - be sure that you are using my version of justGarble
+    - In particular, you need the function `createInputLabelsWithR`, and `garbleCircuit` needs to use this function
+1. install [jannson](http://www.digip.org/jansson/)
+    - interface for JSON
+1. Be sure that there are directories `files/evaluator_gcs` and `files/garbler_gcs`
+    - these are where the garbled circuits are saved during the offline phase
 
-## Alex's notes
-- `__m128i`
-    - used for inputLabels, outputLabels, and wires
-    - keys for DKC
-- to look at json files
-    - http://www.jsoneditoronline.org/
+# To run:
+## Offline
+1. Be sure everything is compiled by running `make`
+1. In one terminal run `make run_garb_off`
+1. In another terminal run `make run_eval_off`
+1. Now the directores `files/evaluator_gcs` and `files/garbler_gcs` should be populated with files.
 
-### The Gist
-1. Init Phase
-    1. Garbler generates a bunch of GCs
-    2. labels them
-    3. saves them to disk
-    4. sends them to evaluator
-2. Online Phase - Garbler Side
-    1. garbler chooses fn from json files
-    2. creates instructions from json function spec
-    3. sends instructions to evaluator
+## Online
+1. In one terminal run `make run_garb`
+1. In another terminal run `make run_eval`
 
-3. Online Phase - Evaluator Side
-    1. Receive instructions from garbler.
-    2. Follow instructions. This step involves OT.
-    3. Send output of function back to garbler.
+# Miscellaneous Notes
+- to view json files: [json online editor](http://www.jsoneditoronline.org/)
 
 ### File Organization
 - Core 2pc files:
@@ -45,20 +38,3 @@ make run_eval
     - `2pc_function_spec`
         - has functions related to `FunctionSpec` and json specification
 
-
-
-{
-      "type": "CHAIN",
-      "from_gc_id": 0,
-      "from_wire_id_start": 0,
-      "from_wire_id_end": 127,
-      "to_gc_id": 1,
-      "to_wire_id_start": 0,
-      "to_wire_id_end": 127
-    },
-,
-    
-    {
-      "type": "EVAL",
-      "gc_id": 1
-    }

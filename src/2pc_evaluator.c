@@ -42,7 +42,7 @@ evaluator_run()
 
     // 4. allocate some memory
 	unsigned long startCycles = RDTSC;
-	unsigned long origStartTime, startTime, diff, end;
+	unsigned long origStartTime, startTime, TOTtime, OTtime;
     startTime = origStartTime = RDTSC;
 
     FunctionSpec function;
@@ -52,11 +52,6 @@ evaluator_run()
         labels[i] = memalign(128, sizeof(block) * chained_gcs[i].gc.n);
         assert(labels[i]);
     }
-
-    //end = RDTSC;
-    //diff = end - startTime;
-    //printf("post step 4 Time taken %lu\n", diff);
-    //startTime = RDTSC;
 
     // 5. receive input_mapping, instructions
     // popualtes instructions and input_mapping field of function
@@ -78,22 +73,12 @@ evaluator_run()
     free(buffer1);
     free(buffer2);
 
-    //end = RDTSC;
-    //diff = end - startTime;
-    //printf("post step 5 Time taken %lu\n", diff);
-    //startTime = RDTSC;
-
     // 6. receive circuitMapping
     // circuitMapping maps instruction-gc-ids --> saved-gc-ids 
     int circuitMappingSize, *circuitMapping;
     net_recv(sockfd, &circuitMappingSize, sizeof(int), 0);
     circuitMapping = malloc(sizeof(int) * circuitMappingSize);
     net_recv(sockfd, circuitMapping, sizeof(int)*circuitMappingSize, 0);
-
-    //diff = RDTSC;
-    //diff = diff - startTime;
-    //printf("post step 6 Time taken %lu\n", diff);
-    //startTime = RDTSC;
 
     //-----------------------------------------
     //--------START OF SLOWNESS---------------------
@@ -114,19 +99,10 @@ evaluator_run()
     block* eval_labels = memalign(128, sizeof(block) * num_eval_inputs);
     assert(eval_labels);
 
-    //diff = RDTSC;
-    //diff = diff - startTime;
-    //printf("post step 7 Time taken %lu\n", diff);
-    startTime = RDTSC;
-
     ot_np_recv(&state, sockfd, eval_inputs, num_eval_inputs, sizeof(block), 2, eval_labels,
                new_choice_reader, new_msg_writer);
 
-    diff = RDTSC;
-    diff = diff - startTime;
-    fprintf(stderr, "OT:\n");
-    fprintf(stderr, "%lu\n", diff);
-    startTime = RDTSC;
+    OTtime = RDTSC - startTime;
     //-----------------------------------------
     //--------END OF SLOWNESS---------------------
     //-----------------------------------------
@@ -144,11 +120,6 @@ evaluator_run()
         }
     }
 
-    diff = RDTSC;
-    diff = diff - startTime;
-    //printf("post step 8 Time taken %lu\n", diff);
-    startTime = RDTSC;
-
     // 9. receive outputmap
     int output_size;
     net_recv(sockfd, &output_size, sizeof(int), 0);
@@ -156,29 +127,18 @@ evaluator_run()
     assert(outputmap);
     net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0); 
 
-    diff = RDTSC;
-    diff = diff - startTime;
-    //printf("post step 9 Time taken %lu\n", diff);
-    startTime = RDTSC;
-
     // 10. evaluate
     int *output = malloc(sizeof(int) * output_size);
     evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output, circuitMapping);
 
-    //printf("Output: ");
-    //for (int i=0; i<output_size; i++) {
-    //    printf("%d", output[i]);
-    //}
-    //printf("\n");
+    printf("Output: ");
+    for (int i=0; i<output_size; i++) {
+        printf("%d", output[i]);
+    }
+    printf("\n");
     
-    diff = RDTSC;
-    diff = diff - startTime;
-    //printf("post step 10 Time taken %lu\n", diff);
-    startTime = RDTSC;
-
-    diff = RDTSC;
-    diff = diff - origStartTime;
-    fprintf(stderr, "%lu\n", diff);
+    TOTtime = RDTSC - origStartTime;
+    printf("%lu, %lu \n", OTtime, TOTtime);
 
     // 11. clean up
     // TODO move state and close up above, before evaluation. Receive everything, then evaluate.

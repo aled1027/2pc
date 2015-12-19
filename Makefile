@@ -24,9 +24,6 @@ JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
 all: 
 	$(OBJECTS) $(CC) $(JUSTGARBLESRC) $(SOURCES) $(CFLAGS) $(LIBS) 
 
-profiler:
-	gprof a.out gmon.out > prof_output
-
 gdb_garb_off:
 	gdb --args a.out garb_offline
 
@@ -59,8 +56,6 @@ gdb_garb:
 gdb_eval:
 	gdb --args a.out eval_online
 
-
-
 # -q
 # -v
 
@@ -72,4 +67,6 @@ clean:
 	mkdir files/evaluator_gcs;
 	mkdir files/garbler_gcs;
 
+# ./a.out garb_online > garb_stdout 2> garb_stderr
+# ./a.out eval_online > eval_stdout 2> eval_stderr
 

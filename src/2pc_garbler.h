@@ -14,7 +14,7 @@
 void garbler_offline();
 int garbler_run(char* function_path);
 void garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, 
-        int* circuitMapping, int *inputs);
+        int* circuitMapping, int *inputs, unsigned long *ot_time);
 int garbler_make_real_instructions(FunctionSpec *function, 
         ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* circuitMapping);
 
