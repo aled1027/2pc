@@ -27,12 +27,10 @@ gc_comm_recv(int sock, GarbledCircuit *gc)
     net_recv(sock, &gc->m, sizeof gc->m, 0);
     net_recv(sock, &gc->q, sizeof gc->q, 0);
     net_recv(sock, &gc->r, sizeof gc->r, 0);
-    gc->garbledGates =
-        (GarbledGate *) memalign(128, sizeof(GarbledGate) * gc->q);
-    gc->garbledTable =
-        (GarbledTable *) memalign(128, sizeof(GarbledTable) * gc->q);
-    gc->wires = (Wire *) memalign(128, sizeof(Wire) * gc->r);
-    gc->outputs = (int *) memalign(128, sizeof(int) * gc->m);
+    (void) posix_memalign((void **) &gc->garbledGates, 128, sizeof(GarbledGate) * gc->q);
+    (void) posix_memalign((void **) &gc->garbledTable, 128, sizeof(GarbledTable) * gc->q);
+    (void) posix_memalign((void **) &gc->wires, 128, sizeof(Wire) * gc->r);
+    (void) posix_memalign((void **) &gc->outputs, 128, sizeof(int) * gc->m);
     net_recv(sock, gc->garbledGates, sizeof(GarbledGate) * gc->q, 0);
     net_recv(sock, gc->garbledTable, sizeof(GarbledTable) * gc->q, 0);
     net_recv(sock, gc->wires, sizeof(Wire) * gc->r, 0);

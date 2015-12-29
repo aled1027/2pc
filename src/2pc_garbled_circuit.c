@@ -25,10 +25,10 @@ createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int num)
             chained_gcs[i].type = AES_ROUND;
         }
         chained_gcs[i].id = i;
-        chained_gcs[i].inputLabels = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.n );
+        (void) posix_memalign((void **) &chained_gcs[i].inputLabels, 128, sizeof(block) * 2 * chained_gcs[i].gc.n);
 
         // 2*m because send both 0 key and 1 key
-        chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m); 
+        (void) posix_memalign((void **) &chained_gcs[i].outputMap, 128, sizeof(block) * 2 * chained_gcs[i].gc.m);
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap);
 
@@ -38,8 +38,8 @@ createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int num)
         buildAdderCircuit(p_gc);
         chained_gcs[i].id = i;
         chained_gcs[i].type = ADDER22;
-        chained_gcs[i].inputLabels = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.n );
-        chained_gcs[i].outputMap = memalign(128, sizeof(block) * 2 * chained_gcs[i].gc.m); 
+        (void) posix_memalign((void **) &chained_gcs[i].inputLabels, 128, sizeof(block) * 2 * chained_gcs[i].gc.n);
+        (void) posix_memalign((void **) &chained_gcs[i].outputMap, 128, sizeof(block) * 2 * chained_gcs[i].gc.m);
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap, &delta);
         */
@@ -364,12 +364,14 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler)
 
     if (isGarbler) {
         // inputLabels
-        chained_gc->inputLabels = memalign(128, sizeof(block)*2*gc->n);
+        (void) posix_memalign((void **) &chained_gc->inputLabels, 128, sizeof(block) * 2 * gc->n);
+        assert(chained_gc->inputLabels);
         memcpy(chained_gc->inputLabels, buffer+p, sizeof(block)*2*gc->n);
         p += sizeof(block) * 2 * gc->n;
 
         // outputMap
-        chained_gc->outputMap = memalign(128, sizeof(block) * 2 * gc->m);
+        (void) posix_memalign((void **) &chained_gc->outputMap, 128, sizeof(block) * 2 * gc->m);
+        assert(chained_gc->outputMap);
         memcpy(chained_gc->outputMap, buffer+p, sizeof(block)*2*gc->m);
         p += sizeof(block) * 2 * gc->m;
     }

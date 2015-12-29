@@ -49,7 +49,7 @@ evaluator_run()
     block** labels = malloc(sizeof(block*) * num_chained_gcs);
 
     for (int i=0; i<num_chained_gcs; i++) {
-        labels[i] = memalign(128, sizeof(block) * chained_gcs[i].gc.n);
+        (void) posix_memalign((void **) &labels[i], 128, sizeof(block) * chained_gcs[i].gc.n); 
         assert(labels[i]);
     }
 
@@ -88,15 +88,15 @@ evaluator_run()
     int num_garb_inputs;
     net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
 
-    block* garb_labels = memalign(128, sizeof(block) * num_garb_inputs);
+    block *garb_labels, *eval_labels;
+    (void) posix_memalign((void **) &garb_labels, 128, sizeof(block) * num_garb_inputs);
     assert(garb_labels && num_garb_inputs >= 0);
-    // maybe receiving them sequentially is bad. Maybe we can concat them and send them all at once
     if (num_garb_inputs > 0) {
         net_recv(sockfd, garb_labels, sizeof(block)*num_garb_inputs, 0);
     }
     
     // receive labels based on evaluator's inputs
-    block* eval_labels = memalign(128, sizeof(block) * num_eval_inputs);
+    (void) posix_memalign((void **) &eval_labels, 128, sizeof(block) * num_eval_inputs);
     assert(eval_labels);
 
     ot_np_recv(&state, sockfd, eval_inputs, num_eval_inputs, sizeof(block), 2, eval_labels,
@@ -123,7 +123,8 @@ evaluator_run()
     // 9. receive outputmap
     int output_size;
     net_recv(sockfd, &output_size, sizeof(int), 0);
-    block* outputmap = memalign(128, sizeof(block) * 2 * output_size);
+    block* outputmap;
+    (void) posix_memalign((void **) &outputmap, 128, sizeof(block) * 2 * output_size);
     assert(outputmap);
     net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0); 
 
@@ -161,7 +162,7 @@ void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 
     block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
     for (int i=0; i<num_chained_gcs; i++) {
-        computedOutputMap[i] = memalign(128, sizeof(block) * chained_gcs[i].gc.m);
+        (void) posix_memalign((void **) &computedOutputMap[i], 128, sizeof(block) * chained_gcs[i].gc.m);
         assert(computedOutputMap[i]);
     }
 

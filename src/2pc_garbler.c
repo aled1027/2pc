@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <malloc.h>
 #include <assert.h>
-#include <stdlib.h> // memalign
+#include <stdlib.h>
 
 #include "arg.h"
 #include "gc_comm.h"

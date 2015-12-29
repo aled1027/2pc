@@ -151,8 +151,9 @@ run_generator(arg_t *args)
     buildCircuit(&gc);
      /* (void) readCircuitFromFile(&gc, "aesCircuit"); */
 
-    inputLabels = (block *) memalign(128, sizeof(block) * 2 * gc.n);
-    outputMap = (block *) memalign(128, sizeof(block) * 2 * gc.m);
+    (void) posix_memalign((void **) &inputLabels, 128, sizeof(block) * 2 * gc.n);
+    (void) posix_memalign((void **) &outputMap, 128, sizeof(block) * 2 * gc.m);
+    printf("broken since not changing R\n");
     // TODO this is broken since changing R
     // (void) garbleCircuit(&gc, inputLabels, outputMap);
 
@@ -192,7 +193,7 @@ run_evaluator(arg_t *args)
     }
 
     (void) gc_comm_recv(sockfd, &gc);
-    inputLabels = (block *) memalign(128, sizeof(block) * gc.n);
+    (void) posix_memalign((void **) &inputLabels, 128, sizeof(block) * gc.n);
     input = (int *) malloc(sizeof(int) * gc.n);
     for (int i = 0; i < gc.n; ++i) {
         input[i] = rand() % 2;
@@ -200,8 +201,8 @@ run_evaluator(arg_t *args)
     ot_np_recv(&state, sockfd, input, gc.n, sizeof(block), 2, inputLabels,
                my_choice_reader, my_msg_writer);
 
-    outputMap = (block *) memalign(128, sizeof(block) * 2 * gc.m);
-    computedOutputMap = (block *) memalign(128, sizeof(block) * gc.m);
+    (void) posix_memalign((void **) &outputMap, 128, sizeof(block) * 2 * gc.m);
+    (void) posix_memalign((void **) &computedOutputMap, 128, sizeof(block) * gc.m);
     outputVals = (int *) malloc(sizeof(int) * gc.m);
 
     net_recv(sockfd, outputMap, sizeof(block) * 2 * gc.m, 0);

@@ -87,11 +87,10 @@ void local_one_round_aes()
 
     //pcbuildCircuit(&gc, &delta);
     buildAESRoundComponentCircuit(&gc, false,  &delta);
-
-    inputLabels = (block *) memalign(128, sizeof(block) * 2 * gc.n);
-    extractedLabels = (block *) memalign(128, sizeof(block) * gc.n);
-    outputMap = (block *) memalign(128, sizeof(block) * 2 * gc.m);
-    computedOutputMap = (block *) memalign(128, sizeof(block) * gc.m);
+    (void) posix_memalign((void **) &inputLabels, 128, sizeof(block) * 2 * gc.n);
+    (void) posix_memalign((void **) &extractedLabels, 128, sizeof(block) * gc.n);
+    (void) posix_memalign((void **) &outputMap, 128, sizeof(block) * 2 * gc.m);
+    (void) posix_memalign((void **) &computedOutputMap, 128, sizeof(block) * gc.m);
     inputs = (int *) malloc(sizeof(int) * gc.n);
     outputVals = (int *) malloc(sizeof(int) * gc.m);
     garbleCircuit(&gc, inputLabels, outputMap);
@@ -133,15 +132,15 @@ void local_two_round_aes()
     buildAESRoundComponentCircuit(&gc1, false, &delta); 
     int n = 128*2;
     int m = 128;
+    (void) posix_memalign((void **) &inputLabels0, 128, sizeof(block) * 2 * n);
+    (void) posix_memalign((void **) &inputLabels1, 128, sizeof(block) * 2 * n);
+    (void) posix_memalign((void **) &extractedLabels0, 128, sizeof(block) * n);
+    (void) posix_memalign((void **) &extractedLabels1, 128, sizeof(block) * n);
+    (void) posix_memalign((void **) &outputMap0, 128, sizeof(block) * 2 * m);
+    (void) posix_memalign((void **) &outputMap1, 128, sizeof(block) * 2 * m);
+    (void) posix_memalign((void **) &computedOutputMap0, 128, sizeof(block) * m);
+    (void) posix_memalign((void **) &computedOutputMap1, 128, sizeof(block) * m);
 
-    inputLabels0 = (block *) memalign(128, sizeof(block) * 2 * n);
-    inputLabels1 = (block *) memalign(128, sizeof(block) * 2 * n);
-    extractedLabels0 = (block *) memalign(128, sizeof(block) * n);
-    extractedLabels1 = (block *) memalign(128, sizeof(block) * n);
-    outputMap0 = (block *) memalign(128, sizeof(block) *  2*m);
-    outputMap1 = (block *) memalign(128, sizeof(block) * 2*m);
-    computedOutputMap0 = (block *) memalign(128, sizeof(block) * m);
-    computedOutputMap1 = (block *) memalign(128, sizeof(block) * m);
     input = (int *) malloc(sizeof(int) * n);
     output = (int *) malloc(sizeof(int) * m);
 
