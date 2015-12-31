@@ -4,15 +4,9 @@
 #include "2pc_function_spec.h"
 #include "2pc_garbled_circuit.h"
 
-// could make: garbler_setup_labels, garbler_verb_instructions, etc.
+void garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs);
 
-// garbler_offline
-// garbler_run
-    // garbler_init
-    // garbler_go
-
-void garbler_offline();
-int garbler_run(char* function_path);
+int garbler_run(char* function_path, int *inputs, int num_garb_inputs, int num_chained_gcs);
 void garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, 
         int* circuitMapping, int *inputs, unsigned long *ot_time);
 int garbler_make_real_instructions(FunctionSpec *function, 

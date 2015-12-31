@@ -12,18 +12,9 @@
 #include "2pc_common.h" // USE_TO
 
 void
-evaluator_run()
+evaluator_run(int *eval_inputs, int num_eval_inputs, int num_chained_gcs)
 {
-    // 1. get inputs
-    int num_eval_inputs = 128;
-    int* inputs[num_eval_inputs];
-    int num_chained_gcs = NUM_GCS;
-    int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
 
-    for (int i=0; i<num_eval_inputs; i++) {
-        eval_inputs[i] = rand() % 2;
-    }
-    
     // 2. load chained garbled circuits from disk
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
     for (int i=0; i<num_chained_gcs; i++) {
@@ -213,11 +204,8 @@ new_msg_writer(void *array, int idx, void *msg, size_t msglength)
 }
 
 void 
-evaluator_offline() 
+evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_chained_gcs) 
 {
-    int num_chained_gcs = NUM_GCS; // defined in common
-    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
-
     int sockfd, len;
     struct state state;
     state_init(&state);

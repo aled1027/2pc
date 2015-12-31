@@ -10,7 +10,6 @@
 int 
 createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int num) 
 {
-    // TODO add constant delta!
     block delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
 

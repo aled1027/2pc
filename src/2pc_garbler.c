@@ -15,13 +15,9 @@
 
 #include "gc_comm.h"
 
-void garbler_offline()
+void garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs)
 {
     /* sends ChainedGcs to evaluator and saves ChainedGcs to disk */
-    int num_chained_gcs = NUM_GCS;
-    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
-    createGarbledCircuits(chained_gcs, num_chained_gcs);
-
     // setup connection
     int serverfd, fd, res;
     struct state state;
@@ -49,7 +45,7 @@ void garbler_offline()
     close(serverfd);
 }
 
-int garbler_run(char* function_path) 
+int garbler_run(char* function_path, int *inputs, int num_garb_inputs, int num_chained_gcs) 
 {
     // runs the garbler code
     // First, initializes and loads function, and then calls garbler_go which
@@ -59,25 +55,16 @@ int garbler_run(char* function_path)
     unsigned long tot_time_start, tot_time;
     tot_time_start = RDTSC;
 
-    int *circuitMapping, *inputs, num_garb_inputs;
+    int *circuitMapping; 
 
     FunctionSpec function;
     ChainedGarbledCircuit* chained_gcs; 
 
-    num_garb_inputs = 128*10;
-    inputs = malloc(sizeof(int) * num_garb_inputs);
-    assert(inputs);
-    for (int i=0; i<num_garb_inputs; i++) {
-        inputs[i] = rand() % 2; 
-    }
-
-    chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * NUM_GCS);
+    chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
     assert(chained_gcs);
-    for (int i=0; i<NUM_GCS; i++) {
+    for (int i=0; i<num_chained_gcs; i++) {
         loadChainedGC(&chained_gcs[i], i, true);
     }
-
-    
 
     // load function allocates a bunch of memory for the function
     // this is later freed by freeFunctionSpec
@@ -88,7 +75,7 @@ int garbler_run(char* function_path)
 
     circuitMapping = (int*) malloc(sizeof(int) * function.num_components);
     assert(circuitMapping);
-    garbler_make_real_instructions(&function, chained_gcs, NUM_GCS, circuitMapping);
+    garbler_make_real_instructions(&function, chained_gcs, num_chained_gcs, circuitMapping);
 
     // main function; does core of work
     garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs, ot_time);
@@ -126,8 +113,6 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
         perror("net_server_accept");
         exit(EXIT_FAILURE);
     }
-
-
 
     // 2. send instructions, input_mapping
     send_instructions_and_input_mapping(function, fd);
