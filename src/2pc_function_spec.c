@@ -263,6 +263,8 @@ get_circuit_type_from_string(const char* type)
         return AES_ROUND;
     } else if (strcmp(type, "AES_FINAL_ROUND") == 0) {
         return AES_FINAL_ROUND;
+    } else if (strcmp(type, "XOR") == 0) {
+        return XOR;
     } else {
         fprintf(stderr, "circuit type error when loading json: can't detect %s\n", type);
         return CIRCUIT_TYPE_ERR;
@@ -453,7 +455,7 @@ readBufferIntoInstructions(Instructions* instructions, char* buffer)
                 p += sizeof(int);
                 break;
             default:
-                // do nothing
+                printf("instruction type not detected while readBufferIntoInstructons. \n");
                 break;
         }
     }

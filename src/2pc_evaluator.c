@@ -14,7 +14,8 @@
 void
 evaluator_run(int *eval_inputs, int num_eval_inputs, int num_chained_gcs)
 {
-
+    // 1. I guess there is no 1 now.
+    
     // 2. load chained garbled circuits from disk
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
     for (int i=0; i<num_chained_gcs; i++) {

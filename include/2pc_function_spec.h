@@ -4,6 +4,8 @@
 #include <jansson.h>
 #include "2pc_garbled_circuit.h"
 
+// XOR is 128 bit xor
+// GENIV generates a 128 bit random string and plugs into some wires?
 typedef enum {EVAL, CHAIN, INSTR_ERR} InstructionType;
 typedef enum {PERSON_GARBLER, PERSON_EVALUATOR, PERSON_ERR} Person;
 

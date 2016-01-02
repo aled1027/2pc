@@ -85,7 +85,7 @@ int garbler_run(char* function_path, int *inputs, int num_garb_inputs, int num_c
 
     free(inputs);
     free(circuitMapping);
-    freeChainedGcs(chained_gcs, NUM_GCS);
+    freeChainedGcs(chained_gcs, num_chained_gcs);
     free(chained_gcs);
     freeFunctionSpec(&function);
 

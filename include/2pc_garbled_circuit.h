@@ -11,6 +11,7 @@ typedef enum {
     MULT = 3,
     AES_ROUND = 4,
     AES_FINAL_ROUND = 5,
+    XOR = 6,
     CIRCUIT_TYPE_ERR = -1
     } CircuitType;
 
@@ -38,6 +39,7 @@ int createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n);
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
 void buildAdderCircuit(GarbledCircuit *gc);
 void buildAESCircuit(GarbledCircuit *gc);
+void buildXORCircuit(GarbledCircuit *gc, block* delta);
 void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalFound, block* delta);
 
 int saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler);

@@ -85,6 +85,26 @@ buildAdderCircuit(GarbledCircuit *gc)
     free(outputmap);
 }
 
+void 
+buildXORCircuit(GarbledCircuit *gc, block *delta) {
+	GarblingContext garblingContext;
+    int n = 256;
+    int m = 128;
+    int q = 400;
+    int r = 400;
+    int inp[n];
+    int outs[m];
+    countToN(inp, n);
+    block inputLabels[2*n];
+    block outputMap[2*m];
+
+	createInputLabelsWithR(inputLabels, n, delta);
+	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
+	startBuilding(gc, &garblingContext);
+    XORCircuit(gc, &garblingContext, 256, inp, outs);
+	finishBuilding(gc, &garblingContext, outputMap, outs);
+}
+
 void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block* delta) 
 {
 	GarblingContext garblingContext;
