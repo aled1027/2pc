@@ -23,8 +23,8 @@ freeFunctionSpec(FunctionSpec* function)
 void
 print_function(FunctionSpec* function) 
 {
-    print_components(function->components, function->num_component_types);
-    print_input_mapping(&(function->input_mapping));
+    //print_components(function->components, function->num_component_types);
+    //print_input_mapping(&(function->input_mapping));
     print_instructions(&(function->instructions));
 }
 
@@ -52,7 +52,6 @@ load_function_via_json(char* path, FunctionSpec* function)
     json_error_t error; 
     jRoot = json_loads(buffer, 0, &error);
     if (!jRoot) {
-    // if (!(jRoot = json_loads(buffer, 0, &error))) {
         fprintf(stderr, "error load json on line %d: %s\n", error.line, error.text);
         return FAILURE;
     }
@@ -85,6 +84,7 @@ load_function_via_json(char* path, FunctionSpec* function)
         return FAILURE;
     }
     json_decref(jRoot); // frees all of the other json_t* objects, everywhere.
+    //print_function(function);
     return SUCCESS;
 }
 

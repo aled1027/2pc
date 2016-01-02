@@ -64,6 +64,7 @@ int garbler_run(char* function_path, int *inputs, int num_garb_inputs, int num_c
     assert(chained_gcs);
     for (int i=0; i<num_chained_gcs; i++) {
         loadChainedGC(&chained_gcs[i], i, true);
+        //printf("loaded circuit of type: %d\n", chained_gcs[i].type);
     }
 
     // load function allocates a bunch of memory for the function
@@ -123,13 +124,12 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
 
     // 4. send labels
     // upper bounding memory with n
-    // TODO change these to memalign
-    block* evalLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
-    block* garbLabels = malloc(sizeof(block) * 2 * function->n * num_chained_gcs); 
+    block *evalLabels, *garbLabels;
+    (void) posix_memalign((void **) &evalLabels, 128, sizeof(block) * 2 * function->n * num_chained_gcs);
+    (void) posix_memalign((void **) &garbLabels, 128, sizeof(block) * 2 * function->n * num_chained_gcs);
     assert(evalLabels && garbLabels);
 
-    // TODO is all of this copying necessary? Are we timing the garbler?
-    // Could probably get around this.
+    // TODO could probably figure out a way to avoid copying, but easiest and fast enough for now.
     InputMapping imap = function->input_mapping;
     int eval_p = 0, garb_p = 0; // counters for looping over garbler and evaluator's structures
     for (int i=0; i<imap.size; i++) {
@@ -150,7 +150,6 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     int num_eval_inputs = eval_p / 2, num_garb_inputs = garb_p;
     net_send(fd, &num_garb_inputs, sizeof(int), 0);
 
-    // TODO this could be spedup
     if (num_garb_inputs > 0) {
         net_send(fd, garbLabels, sizeof(block)*num_garb_inputs, 0);
     }
@@ -164,7 +163,6 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
 
     // 5. send output map
     int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];
-    //printf("sending outputmap for circuit %d\n", final_circuit);
     int output_size = chained_gcs[final_circuit].gc.m;
     net_send(fd, &output_size, sizeof(int), 0); 
     net_send(fd, chained_gcs[final_circuit].outputMap, sizeof(block)*2*output_size, 0); 

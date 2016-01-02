@@ -52,7 +52,6 @@ freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc)
     removeGarbledCircuit(&chained_gc->gc); // frees memory in gc
     free(chained_gc->inputLabels);
     free(chained_gc->outputMap);
-    // TODO free other things
     return 0;
 }
 
@@ -320,7 +319,6 @@ void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num)
 int 
 loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler) 
 {
-    // TODO no memory is being allocated???
     char* buffer, fileName[50];
     long fs;
 

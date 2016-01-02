@@ -24,8 +24,27 @@ CFLAGS= -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -Wno-typedef-redefinition -Wno-u
 LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson
 
 AES = 2pc_aes
+CBC = 2pc_cbc
 
-aes: $(OBJECTS) $(TESTDIR)/$(AES).c
+all: AES CBC
+
+CBC: $(OBJECTS) $(TESTDIR)/$(CBC).c
+	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(CBC).c -o $(BINDIR)/$(CBC) $(LIBS) $(CFLAGS) 
+
+
+cbc_garb_off:
+	./$(BINDIR)/$(CBC) garb_offline
+
+cbc_eval_off:
+	./$(BINDIR)/$(CBC) eval_offline
+
+cbc_gdb_garb:
+	gdb --args $(BINDIR)/$(CBC) garb_online
+
+cbc_gdb_eval:
+	gdb --args $(BINDIR)/$(CBC) eval_online
+
+AES: $(OBJECTS) $(TESTDIR)/$(AES).c
 	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(AES).c -o $(BINDIR)/$(AES) $(LIBS) $(CFLAGS) 
 
 aes_garb_off:

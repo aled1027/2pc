@@ -120,7 +120,11 @@ evaluator_run(int *eval_inputs, int num_eval_inputs, int num_chained_gcs)
     assert(outputmap);
     net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0); 
 
-    // 10. evaluate
+    // 10. Close state and network
+    close(sockfd);
+    state_cleanup(&state);
+
+    // 11. evaluate
     int *output = malloc(sizeof(int) * output_size);
     evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output, circuitMapping);
 
@@ -133,10 +137,7 @@ evaluator_run(int *eval_inputs, int num_eval_inputs, int num_chained_gcs)
     TOTtime = RDTSC - origStartTime;
     printf("%lu, %lu \n", OTtime, TOTtime);
 
-    // 11. clean up
-    // TODO move state and close up above, before evaluation. Receive everything, then evaluate.
-    close(sockfd);
-    state_cleanup(&state);
+    // 12. clean up
     for (int i=0; i<num_chained_gcs; i++) {
         free(labels[i]);
     } 

@@ -17,7 +17,7 @@ void aes_garb_off() {
     printf("Running garb offline\n");
     int num_chained_gcs = NUM_GCS; // defined in 2pc_common.h
     ChainedGarbledCircuit *chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
-    createGarbledCircuits(chained_gcs, num_chained_gcs);
+    // createGarbledCircuits(chained_gcs, num_chained_gcs);
 
     block delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
