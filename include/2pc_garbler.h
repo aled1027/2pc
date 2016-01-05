@@ -6,7 +6,9 @@
 
 void garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs);
 
-int garbler_run(char* function_path, int *inputs, int num_garb_inputs, int num_chained_gcs);
+int garbler_online(char* function_path, int *inputs, int num_garb_inputs, int num_chained_gcs, 
+        unsigned long *ot_time, unsigned long *tot_time);
+
 void garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, 
         int* circuitMapping, int *inputs, unsigned long *ot_time);
 int garbler_make_real_instructions(FunctionSpec *function, 

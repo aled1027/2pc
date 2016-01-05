@@ -58,7 +58,9 @@ void cbc_garb_on(char* function_path) {
         garb_inputs[i] = rand() % 2; 
         garb_inputs[i] = 0;
     }
-    garbler_run(function_path, garb_inputs, num_garb_inputs, num_chained_gcs);
+    unsigned long *ot_time = malloc(sizeof(unsigned long));
+    unsigned long *tot_time = malloc(sizeof(unsigned long));
+    garbler_online(function_path, garb_inputs, num_garb_inputs, num_chained_gcs, ot_time, tot_time);
 }
 
 void cbc_eval_on() {
@@ -72,7 +74,9 @@ void cbc_eval_on() {
     }
 
     int num_chained_gcs = NUM_GCS;
-    evaluator_run(eval_inputs, num_eval_inputs, num_chained_gcs);
+    unsigned long *ot_time = malloc(sizeof(unsigned long));
+    unsigned long *tot_time = malloc(sizeof(unsigned long));
+    evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, ot_time, tot_time);
 }
 
 int main(int argc, char *argv[]) {

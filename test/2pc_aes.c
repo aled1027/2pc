@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include <time.h>
+#include <unistd.h>
 //#include "justGarble.h"
 
 #include "2pc_garbler.h" 
@@ -12,6 +13,10 @@
 #include "arg.h"
 
 int NUM_GCS = 10;
+int NUM_TRIALS = 20;
+int MEDIAN_IDX = 11; // NUM_TRIALS / 2 - 1
+bool is_testing = true;
+unsigned long NUM_GATES = 36480;
 
 void aes_garb_off() {
     printf("Running garb offline\n");
@@ -40,20 +45,52 @@ void aes_garb_off() {
     }
     garbler_offline(chained_gcs, num_chained_gcs);
 }
+int
+myCompare(const void * a, const void * b)
+{
+	return (int) (*(unsigned long*) a - *(unsigned long*) b);
+}
 
-void aes_garb_on(char* function_path) {
-    // CHECK NUM GCS
-    int num_chained_gcs = NUM_GCS;
-    int num_garb_inputs, *inputs;
+void aes_garb_on(char* function_path, bool timing) {
+    // crude addition for timings
+    if (timing) {
+        unsigned long *ot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
+        unsigned long *tot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
+        for (int j=0; j<NUM_TRIALS; j++) {
+            int num_chained_gcs = NUM_GCS;
+            int num_garb_inputs, *inputs;
 
-    num_garb_inputs = 128*10;
-    inputs = malloc(sizeof(int) * num_garb_inputs);
-    assert(inputs);
-    for (int i=0; i<num_garb_inputs; i++) {
-        inputs[i] = rand() % 2; 
+            num_garb_inputs = 128*10;
+            inputs = malloc(sizeof(int) * num_garb_inputs);
+            assert(inputs);
+            for (int i=0; i<num_garb_inputs; i++) {
+                inputs[i] = rand() % 2; 
+            }
+            garbler_online(function_path, inputs, num_garb_inputs, num_chained_gcs, 
+                    &ot_time[j], &tot_time[j]);
+            printf("%lu, %lu\n", ot_time[j], tot_time[j]);
+        }
+
+	    qsort(ot_time, NUM_TRIALS, sizeof(unsigned long), myCompare);
+	    qsort(tot_time, NUM_TRIALS, sizeof(unsigned long), myCompare);
+        printf("median ot_time: %lu\n", ot_time[MEDIAN_IDX] / NUM_GATES);
+        printf("median tot_time: %lu\n", tot_time[MEDIAN_IDX] / NUM_GATES);
+        printf("median time without ot: %lu\n", (tot_time[MEDIAN_IDX] - ot_time[MEDIAN_IDX]) / NUM_GATES);
+    } else {
+        // CHECK NUM GCS
+        int num_chained_gcs = NUM_GCS;
+        int num_garb_inputs, *inputs;
+
+        num_garb_inputs = 128*10;
+        inputs = malloc(sizeof(int) * num_garb_inputs);
+        assert(inputs);
+        for (int i=0; i<num_garb_inputs; i++) {
+            inputs[i] = rand() % 2; 
+        }
+        unsigned long *ot_time = malloc(sizeof(unsigned long));
+        unsigned long *tot_time = malloc(sizeof(unsigned long));
+        garbler_online(function_path, inputs, num_garb_inputs, num_chained_gcs, ot_time, tot_time);
     }
-
-    garbler_run(function_path, inputs, num_garb_inputs, num_chained_gcs);
 }
 
 void aes_eval_off() {
@@ -62,17 +99,42 @@ void aes_eval_off() {
     evaluator_offline(chained_gcs, num_chained_gcs);
 }
 
-void aes_eval_on() {
-    int num_eval_inputs = 128;
-    int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
-    assert(eval_inputs);
+void aes_eval_on(bool testing) {
+    if (testing) {
+        unsigned long *ot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
+        unsigned long *tot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
+        for (int j=0; j<NUM_TRIALS; j++) {
+            // sleep(1) // uncomment this if getting hung up
+            int num_eval_inputs = 128;
+            int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
+            assert(eval_inputs);
 
-    for (int i=0; i<num_eval_inputs; i++) {
-        eval_inputs[i] = rand() % 2;
+            for (int i=0; i<num_eval_inputs; i++) {
+                eval_inputs[i] = rand() % 2;
+            }
+
+            int num_chained_gcs = NUM_GCS;
+            evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, &ot_time[j], &tot_time[j]);
+        }
+	    qsort(ot_time, NUM_TRIALS, sizeof(unsigned long), myCompare);
+	    qsort(tot_time, NUM_TRIALS, sizeof(unsigned long), myCompare);
+        printf("median ot_time: %lu\n", ot_time[MEDIAN_IDX] / NUM_GATES);
+        printf("median tot_time: %lu\n", tot_time[MEDIAN_IDX] / NUM_GATES);
+        printf("median time without ot: %lu\n", (tot_time[MEDIAN_IDX] - ot_time[MEDIAN_IDX]) / NUM_GATES);
+    } else {
+        int num_eval_inputs = 128;
+        int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
+        assert(eval_inputs);
+
+        for (int i=0; i<num_eval_inputs; i++) {
+            eval_inputs[i] = rand() % 2;
+        }
+
+        int num_chained_gcs = NUM_GCS;
+        unsigned long *ot_time = malloc(sizeof(unsigned long));
+        unsigned long *tot_time = malloc(sizeof(unsigned long));
+        evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, ot_time, tot_time);
     }
-
-    int num_chained_gcs = NUM_GCS;
-    evaluator_run(eval_inputs, num_eval_inputs, num_chained_gcs);
 }
 
 int main(int argc, char *argv[]) {
@@ -82,19 +144,10 @@ int main(int argc, char *argv[]) {
     srand_sse(time(NULL));
     char* function_path = "functions/aes.json";
     if (strcmp(argv[1], "eval_online") == 0) {
-        printf("Running eval online\n");
-        //printf("EvalOTtime, EvalTOTtime\n");
-        //for (int j=0; j<num; j++) {
-            aes_eval_on();
-            //sleep(1);
-        //}
+        aes_eval_on(is_testing);
     } else if (strcmp(argv[1], "garb_online") == 0) {
         printf("Running garb online\n");
-        //printf("GarbOTTime, GarbTOTtime\n");
-        //for (int j=0; j<num; j++) {
-            aes_garb_on(function_path);
-        //}
-
+        aes_garb_on(function_path, is_testing);
     } else if (strcmp(argv[1], "garb_offline") == 0) {
         aes_garb_off();
     } else if (strcmp(argv[1], "eval_offline") == 0) {

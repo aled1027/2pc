@@ -45,15 +45,13 @@ void garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs)
     close(serverfd);
 }
 
-int garbler_run(char* function_path, int *inputs, int num_garb_inputs, int num_chained_gcs) 
+int garbler_online(char* function_path, int *inputs, int num_garb_inputs, int num_chained_gcs,
+        unsigned long *ot_time, unsigned long *tot_time) 
 {
     // runs the garbler code
     // First, initializes and loads function, and then calls garbler_go which
     // runs the core of the garbler's code
-
-    unsigned long *ot_time = malloc(sizeof(unsigned long));
-    unsigned long tot_time_start, tot_time;
-    tot_time_start = RDTSC;
+    unsigned long tot_time_start = RDTSC;
 
     int *circuitMapping; 
 
@@ -81,8 +79,8 @@ int garbler_run(char* function_path, int *inputs, int num_garb_inputs, int num_c
     // main function; does core of work
     garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs, ot_time);
 
-    tot_time = RDTSC - tot_time_start;
-    printf("%lu, %lu\n", *ot_time, tot_time);
+    *tot_time = RDTSC - tot_time_start;
+    // ot_time set by garbler_go
 
     free(inputs);
     free(circuitMapping);

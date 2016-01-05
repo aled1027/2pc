@@ -12,7 +12,8 @@
 #include "2pc_common.h" // USE_TO
 
 void
-evaluator_run(int *eval_inputs, int num_eval_inputs, int num_chained_gcs)
+evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs, 
+        unsigned long *ot_time, unsigned long *tot_time)
 {
     // 1. I guess there is no 1 now.
     
@@ -33,9 +34,8 @@ evaluator_run(int *eval_inputs, int num_eval_inputs, int num_chained_gcs)
     }
 
     // 4. allocate some memory
-	unsigned long startCycles = RDTSC;
-	unsigned long origStartTime, startTime, TOTtime, OTtime;
-    startTime = origStartTime = RDTSC;
+	unsigned long start_time, ot_start_time;
+    start_time = RDTSC;
 
     FunctionSpec function;
     block** labels = malloc(sizeof(block*) * num_chained_gcs);
@@ -91,10 +91,12 @@ evaluator_run(int *eval_inputs, int num_eval_inputs, int num_chained_gcs)
     (void) posix_memalign((void **) &eval_labels, 128, sizeof(block) * num_eval_inputs);
     assert(eval_labels);
 
+    ot_start_time = RDTSC;
     ot_np_recv(&state, sockfd, eval_inputs, num_eval_inputs, sizeof(block), 2, eval_labels,
                new_choice_reader, new_msg_writer);
-
-    OTtime = RDTSC - startTime;
+    *ot_time = RDTSC - ot_start_time;
+    printf("ot_time: %lu\n", *ot_time);
+    
     //-----------------------------------------
     //--------END OF SLOWNESS---------------------
     //-----------------------------------------
@@ -134,8 +136,7 @@ evaluator_run(int *eval_inputs, int num_eval_inputs, int num_chained_gcs)
     }
     printf("\n");
     
-    TOTtime = RDTSC - origStartTime;
-    printf("%lu, %lu \n", OTtime, TOTtime);
+    *tot_time = RDTSC - start_time;
 
     // 12. clean up
     for (int i=0; i<num_chained_gcs; i++) {
