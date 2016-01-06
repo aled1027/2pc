@@ -114,7 +114,20 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
         }
     }
 
-    // 9. receive outputmap
+    // 9a receive "output"
+    //  output is from the json, and tells which components/wires are used for outputs
+    // note that size is not size of the output, but length of the arrays in output
+    int output_arr_size;
+    net_recv(sockfd, &output_arr_size, sizeof(int), 0);
+
+    int *output_gc_id = malloc(sizeof(int) * output_arr_size);
+    int *start_wire_idx = malloc(sizeof(int) * output_arr_size);
+    int *end_wire_idx = malloc(sizeof(int) * output_arr_size);
+    net_recv(sockfd, output_gc_id, sizeof(int)*output_arr_size, 0);
+    net_recv(sockfd, start_wire_idx, sizeof(int)*output_arr_size, 0);
+    net_recv(sockfd, end_wire_idx, sizeof(int)*output_arr_size, 0);
+    
+    // 9b receive outputmap
     int output_size;
     net_recv(sockfd, &output_size, sizeof(int), 0);
     block* outputmap;
@@ -126,9 +139,23 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     close(sockfd);
     state_cleanup(&state);
 
-    // 11. evaluate
+    // 11a. evaluate: follow instructions and evaluate components
+    block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
+    for (int i=0; i<num_chained_gcs; i++) {
+        (void) posix_memalign((void **) &computedOutputMap[i], 128, sizeof(block) * chained_gcs[i].gc.m);
+        assert(computedOutputMap[i]);
+    }
+    evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, circuitMapping, computedOutputMap);
+
+    // 11b. use computedOutputMap and outputMap to get actual outputs
     int *output = malloc(sizeof(int) * output_size);
-    evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, outputmap, output, circuitMapping);
+    int p_output = 0;
+    for (int i=0; i<output_arr_size; i++) {
+        int dist = end_wire_idx[i] - start_wire_idx[i] + 1;
+        mapOutputs(&outputmap[p_output*2], &computedOutputMap[output_gc_id[i]][start_wire_idx[i]],
+                &output[p_output], dist);
+        p_output += dist;
+    }
 
     printf("Output: ");
     for (int i=0; i<output_size; i++) {
@@ -146,37 +173,26 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
 }
 
 void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
-        Instructions* instructions, block** labels, block* outputmap, int* output, int* circuitMapping)
+        Instructions* instructions, block** labels, int* circuitMapping,
+        block **computedOutputMap)
 {
-    /* only used circuitMapping when evaluating. 
+    /*  Essence of function: populate computedOutputMap
+     *
+     * only used circuitMapping when evaluating. 
      * all other labels, outputmap are basedon the indicies of instructions.
      * This is because instruction's circuits are id'ed 0,..,n-1
      * whereas saved gc id'ed arbitrarily.
      */
-
-    block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
-    for (int i=0; i<num_chained_gcs; i++) {
-        (void) posix_memalign((void **) &computedOutputMap[i], 128, sizeof(block) * chained_gcs[i].gc.m);
-        assert(computedOutputMap[i]);
-    }
-
+    assert(computedOutputMap); // memory should already be allocated
     int savedCircId;
     for (int i=0; i<instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
         switch(cur->type) {
             case EVAL:
                 savedCircId = circuitMapping[cur->evCircId];
-                // be nice if in debug mode, this printed to a log file. 
-                // probably don't need that functionality
                 // printf("evaling %d on instruction %d\n", savedCircId, i);
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                         computedOutputMap[cur->evCircId]);
-
-                if (i == instructions->size - 1) {
-                    //printf("Mapping outputput for savedCircId: %d\n", savedCircId);
-	                mapOutputs(outputmap, computedOutputMap[cur->evCircId], 
-                            output, chained_gcs[savedCircId].gc.m);
-                }
                 break;
             case CHAIN:
                 // printf("chaining (%d,%d) -> (%d,%d)\n", cur->chFromCircId, cur->chFromWireId, cur->chToCircId, cur->chToWireId);

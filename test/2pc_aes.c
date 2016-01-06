@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <time.h>
 #include <unistd.h>
-//#include "justGarble.h"
 
 #include "2pc_garbler.h" 
 #include "2pc_evaluator.h" 
@@ -15,7 +14,7 @@
 int NUM_GCS = 10;
 int NUM_TRIALS = 20;
 int MEDIAN_IDX = 11; // NUM_TRIALS / 2 - 1
-bool is_testing = true;
+bool is_testing = true;;
 unsigned long NUM_GATES = 36480;
 
 void aes_garb_off() {

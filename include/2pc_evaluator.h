@@ -8,7 +8,8 @@ void evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs
         unsigned long *ot_time, unsigned long *tot_time);
 
 void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
-        Instructions* instructions, block** labels, block* outputmap, int* output, int* circuitMapping);
+        Instructions* instructions, block** labels, int* circuitMapping,
+        block **computedOutputMap);
 
 void evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_chained_gcs);
 int new_choice_reader(void *choices, int idx);

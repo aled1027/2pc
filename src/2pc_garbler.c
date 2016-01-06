@@ -48,6 +48,9 @@ void garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs)
 int garbler_online(char* function_path, int *inputs, int num_garb_inputs, int num_chained_gcs,
         unsigned long *ot_time, unsigned long *tot_time) 
 {
+    // tot_time and ot_time should be malloced before call
+    assert(ot_time && tot_time);
+
     // runs the garbler code
     // First, initializes and loads function, and then calls garbler_go which
     // runs the core of the garbler's code
@@ -80,7 +83,6 @@ int garbler_online(char* function_path, int *inputs, int num_garb_inputs, int nu
     garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs, ot_time);
 
     *tot_time = RDTSC - tot_time_start;
-    // ot_time set by garbler_go
 
     free(inputs);
     free(circuitMapping);
@@ -159,11 +161,33 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
                new_msg_reader, new_item_reader);
     *ot_time = RDTSC - otStartTime;
 
-    // 5. send output map
-    int final_circuit = circuitMapping[function->instructions.instr[ function->instructions.size - 1].evCircId];
-    int output_size = chained_gcs[final_circuit].gc.m;
-    net_send(fd, &output_size, sizeof(int), 0); 
-    net_send(fd, chained_gcs[final_circuit].outputMap, sizeof(block)*2*output_size, 0); 
+    // 5a. send "output" 
+    //  output is from the json, and tells which components/wires are used for outputs
+    // note that size is not size of the output, but length of the arrays in output
+    net_send(fd, &function->output.size, sizeof(int), 0); 
+    net_send(fd, function->output.gc_id, sizeof(int)*function->output.size, 0);
+    net_send(fd, function->output.start_wire_idx, sizeof(int)*function->output.size, 0);
+    net_send(fd, function->output.end_wire_idx, sizeof(int)*function->output.size, 0);
+
+    // 5b. send outputMap
+    block *output_map;
+    (void) posix_memalign((void **) &output_map, 128, sizeof(block) * 2 * function->m);
+    assert(output_map);
+    int p_output_map = 0;
+
+    for (int j=0; j<function->output.size; j++) {
+        int gc_id = function->output.gc_id[j];
+        int start_wire_idx = function->output.start_wire_idx[j];
+        int end_wire_idx = function->output.end_wire_idx[j];
+        // add 1 because values are inclusive
+        int dist = end_wire_idx - start_wire_idx + 1; 
+        memcpy(&output_map[p_output_map], &chained_gcs[gc_id].outputMap[start_wire_idx], 
+                sizeof(block)*2*dist);
+        p_output_map += dist;
+    }
+    net_send(fd, &function->m, sizeof(int), 0); 
+    net_send(fd, output_map, sizeof(block)*2*function->m, 0); 
+    
     
     // 6. clean up
     free(evalLabels);

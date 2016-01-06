@@ -51,6 +51,15 @@ typedef struct {
 Instructions;
 
 typedef struct {
+    // the output is for all i from 0 to size
+    // of gc_id[i] from wire start_wire_idx[i] to wire end_wire_idx[i]
+    int *gc_id;
+    int *start_wire_idx;
+    int *end_wire_idx;
+    int size; // size of the arrays
+} Output;
+
+typedef struct {
     /* The specifiction for a function. 
      * That is, the components, instructions for evaluating and chaining components,
      * and everything else necessary for evaluating a function 
@@ -61,6 +70,7 @@ typedef struct {
     FunctionComponent* components;
     InputMapping input_mapping;
     Instructions instructions;
+    Output output;
 } 
 FunctionSpec;
 
@@ -75,6 +85,7 @@ int freeFunctionSpec(FunctionSpec* function);
 int json_load_components(json_t *root, FunctionSpec* function);
 int json_load_input_mapping(json_t *root, FunctionSpec* function);
 int json_load_instructions(json_t* root, FunctionSpec* function);
+int json_load_output(json_t *root, FunctionSpec *function);
 InstructionType get_instruction_type_from_string(const char* type);
 CircuitType get_circuit_type_from_string(const char* type);
 void print_components(FunctionComponent* components, int num_component_types);

@@ -17,15 +17,19 @@ freeFunctionSpec(FunctionSpec* function)
     free(function->input_mapping.wire_id);
     free(function->input_mapping.inputter);
     free(function->instructions.instr);
-    return 0;
+    free(function->output.gc_id);
+    free(function->output.start_wire_idx);
+    free(function->output.end_wire_idx);
+    return SUCCESS;
 }
 
 void
 print_function(FunctionSpec* function) 
 {
-    //print_components(function->components, function->num_component_types);
-    //print_input_mapping(&(function->input_mapping));
+    print_components(function->components, function->num_component_types);
+    print_input_mapping(&(function->input_mapping));
     print_instructions(&(function->instructions));
+    printf("not printing output\n");
 }
 
 int 
@@ -37,6 +41,7 @@ load_function_via_json(char* path, FunctionSpec* function)
      * but I was getting runtime memory errors when using it.
      */
 
+    printf("loading %s\n", path);
     long fs = filesize(path); 
     FILE *f = fopen(path, "r"); 
     if (f == NULL) {
@@ -57,8 +62,6 @@ load_function_via_json(char* path, FunctionSpec* function)
     }
     fclose(f);
     free(buffer);
-
-
 
     jN = json_object_get(jRoot, "n");
     assert(json_is_integer(jN));
@@ -83,6 +86,12 @@ load_function_via_json(char* path, FunctionSpec* function)
         fprintf(stderr, "error loading json instructions");
         return FAILURE;
     }
+
+    if (json_load_output(jRoot, function) == FAILURE) {
+        fprintf(stderr, "error loading json output");
+        return FAILURE;
+    }
+
     json_decref(jRoot); // frees all of the other json_t* objects, everywhere.
     //print_function(function);
     return SUCCESS;
@@ -127,6 +136,49 @@ json_load_components(json_t *root, FunctionSpec *function)
             jId = json_array_get(jCircuit_ids, k);
             function->components[i].circuit_ids[k] = json_integer_value(jId);
         }
+    }
+    return SUCCESS;
+}
+
+int
+json_load_output(json_t *root, FunctionSpec *function) 
+{
+    json_t *jOutputs, *jOutput, *jPtr;
+    Output *p_output = &function->output;
+
+    jOutputs = json_object_get(root, "Output");
+    assert(json_is_array(jOutputs));
+    p_output->size = json_array_size(jOutputs);
+
+    // allocate memory
+    p_output->gc_id = malloc(sizeof(int) * p_output->size);
+    p_output->start_wire_idx = malloc(sizeof(int) * p_output->size);
+    p_output->end_wire_idx = malloc(sizeof(int) * p_output->size);
+    int sum = 0;
+
+    // loop over output and extract info
+    for (int i=0; i<p_output->size; i++) {
+        jOutput = json_array_get(jOutputs, i);
+        assert(json_is_object(jOutput));
+
+        jPtr = json_object_get(jOutput, "gc_id");
+        assert(json_is_integer(jPtr));
+        p_output->gc_id[i] = json_integer_value(jPtr);
+
+        jPtr = json_object_get(jOutput, "start_wire_idx");
+        assert(json_is_integer(jPtr));
+        p_output->start_wire_idx[i] = json_integer_value(jPtr);
+
+        jPtr = json_object_get(jOutput, "end_wire_idx");
+        assert(json_is_integer(jPtr));
+        p_output->end_wire_idx[i] = json_integer_value(jPtr);
+
+        sum += p_output->end_wire_idx[i] - p_output->start_wire_idx[i] + 1;
+    }
+    if (function->m != sum) {
+        printf("Output not matching number of outputs indicated by function->m\n");
+        printf("m = %d, sum = %d\n", function->m, sum);
+        return FAILURE;
     }
     return SUCCESS;
 }
