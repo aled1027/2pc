@@ -66,7 +66,7 @@ typedef struct {
      */
     char* name; // make 128
     char* description; // make 128
-    int n, m, num_component_types, num_components;
+    int n, m, num_component_types, num_components, num_garbler_inputs;
     FunctionComponent* components;
     InputMapping input_mapping;
     Instructions instructions;

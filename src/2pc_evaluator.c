@@ -95,7 +95,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     ot_np_recv(&state, sockfd, eval_inputs, num_eval_inputs, sizeof(block), 2, eval_labels,
                new_choice_reader, new_msg_writer);
     *ot_time = RDTSC - ot_start_time;
-    printf("ot_time: %lu\n", *ot_time);
+    //printf("ot_time: %lu\n", *ot_time);
     
     //-----------------------------------------
     //--------END OF SLOWNESS---------------------
@@ -105,16 +105,17 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     int garb_p = 0, eval_p = 0;
     for (int i=0; i<input_mapping->size; i++) {
         if (input_mapping->inputter[i] == PERSON_GARBLER) {
+            //printf("(gc_id: %d, wire: %d) grabbing garb input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], garb_p);
             labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = garb_labels[garb_p]; 
             garb_p++;
         } else if (input_mapping->inputter[i] == PERSON_EVALUATOR) {
-            // printf("(gc_id: %d, wire: %d) grabbing eval input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], eval_p);
+            //printf("(gc_id: %d, wire: %d) grabbing eval input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], eval_p);
             labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = eval_labels[eval_p]; 
             eval_p++;
         }
     }
 
-    // 9a receive "output"
+    // 9a receive "output" 
     //  output is from the json, and tells which components/wires are used for outputs
     // note that size is not size of the output, but length of the arrays in output
     int output_arr_size;
@@ -134,6 +135,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     (void) posix_memalign((void **) &outputmap, 128, sizeof(block) * 2 * output_size);
     assert(outputmap);
     net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0); 
+    //print_blocks("outputmap ", outputmap, 4);
 
     // 10. Close state and network
     close(sockfd);
@@ -152,10 +154,14 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     int p_output = 0;
     for (int i=0; i<output_arr_size; i++) {
         int dist = end_wire_idx[i] - start_wire_idx[i] + 1;
-        mapOutputs(&outputmap[p_output*2], &computedOutputMap[output_gc_id[i]][start_wire_idx[i]],
+        // gc_idx is not based on circuitMapping because computedOutputMap 
+        // populated based on indices in functionSpec
+        int gc_idx = output_gc_id[i]; 
+        mapOutputs(&outputmap[p_output*2], &computedOutputMap[gc_idx][start_wire_idx[i]],
                 &output[p_output], dist);
         p_output += dist;
     }
+    assert(output_size == p_output);
 
     printf("Output: ");
     for (int i=0; i<output_size; i++) {

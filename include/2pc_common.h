@@ -1,7 +1,7 @@
 #ifndef MPC_COMMON_H
 #define MPC_COMMON_H
 
-#define MAX_BUF_SIZE 100000
+#define MAX_BUF_SIZE 1000000
 #define NUM_GCS 10
 
 #define HOST "127.0.0.1"

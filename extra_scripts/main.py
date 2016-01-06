@@ -37,17 +37,19 @@ def addIVXOR(ret_dict):
     r["start_wire_idx"] = 0
     r["end_wire_idx"] = 127
     ret_dict['InputMapping'].append(r)
+    ret_dict['input_idx'] += 128
     ret_dict['garbler_input_idx'] += 128
 
     r = OrderedDict()
     r["inputter"] = "evaluator"
-    r["start_input_idx"] = 0
-    r["end_input_idx"] = 127
+    r["start_input_idx"] = ret_dict['input_idx']
+    r["end_input_idx"] = ret_dict['input_idx'] + 127
     r["gc_id"] = 0
     r["start_wire_idx"] = 128
     r["end_wire_idx"] = 255
     ret_dict['InputMapping'].append(r)
     ret_dict['evaluator_input_idx'] += 128
+    ret_dict['input_idx'] += 128
 
     r = OrderedDict()
     r["type"] = "EVAL"
@@ -74,13 +76,14 @@ def addAES(ret_dict, num_rounds=10):
 
         r = OrderedDict()
         r["inputter"] = "garbler"
-        r["start_input_idx"] = ret_dict['garbler_input_idx']
-        r["end_input_idx"] = ret_dict['garbler_input_idx'] + 127
+        r["start_input_idx"] = ret_dict['input_idx']
+        r["end_input_idx"] = ret_dict['input_idx'] + 127
         r["gc_id"] = ret_dict['gcs_used']
         r["start_wire_idx"] = 128
         r["end_wire_idx"] = 255
         ret_dict['InputMapping'].append(r)
         ret_dict['garbler_input_idx'] += 128
+        ret_dict['input_idx'] += 128
 
         # Update components
         tgt_component = 'AES_ROUND' if i != num_rounds-1 else 'AES_FINAL_ROUND'
@@ -124,13 +127,14 @@ def addMessageBlockXOR(ret_dict):
     # InputMapping
     r = OrderedDict()
     r["inputter"] = "evaluator"
-    r["start_input_idx"] = ret_dict['evaluator_input_idx']
-    r["end_input_idx"] = ret_dict['garbler_input_idx'] + 127
+    r["start_input_idx"] = ret_dict['input_idx']
+    r["end_input_idx"] = ret_dict['input_idx'] + 127
     r["gc_id"] = ret_dict['gcs_used']
     r["start_wire_idx"] = 128
     r["end_wire_idx"] = 255
     ret_dict['InputMapping'].append(r)
     ret_dict['evaluator_input_idx'] += 128
+    ret_dict['input_idx'] += 128
 
     # components
     for component in ret_dict['components']:
@@ -170,9 +174,8 @@ num_message_blocks = 10
 num_rounds = 10
 assert(num_message_blocks > 0)
 ret_dict = OrderedDict()
-ret_dict['meta_data'] = {"num_message_blocks": num_message_blocks,
-        "num_rounds": num_rounds}
-ret_dict['n'] = (num_message_blocks*num_rounds*128) + 128 # key, m_i + IV
+# mesage bits input + key bits input + iv
+ret_dict['n'] = (num_message_blocks*128) + (num_message_blocks*num_rounds*128) + 128
 ret_dict['m'] = num_message_blocks*128
 ret_dict['InputMapping'] = []
 ret_dict['Output'] = []
@@ -181,6 +184,7 @@ ret_dict['components'] = []
 ret_dict['gcs_used'] = 0
 ret_dict['garbler_input_idx'] = 0
 ret_dict['evaluator_input_idx'] = 0
+ret_dict['input_idx'] = 0
 ret_dict['tot_raw_instructions'] = 0
 
 initializeComponents(ret_dict)
@@ -191,6 +195,18 @@ for i in range(num_message_blocks-1):
     addMessageBlockXOR(ret_dict)
     addAES(ret_dict, num_rounds=num_rounds)
 processTotRawInstructions(ret_dict)
+
+assert(ret_dict['garbler_input_idx'] + ret_dict['evaluator_input_idx'] == ret_dict['n'])
+assert(ret_dict['input_idx'] == ret_dict['n'])
+
+ret_dict['meta_data'] = OrderedDict({
+        "num_message_blocks": num_message_blocks,
+        "num_rounds": num_rounds,
+        "garbler_inputs": ret_dict['garbler_input_idx'],
+        "evaluator_inputs": ret_dict['evaluator_input_idx']})
+
+pprint(ret_dict['InputMapping'])
+print('')
 
 s = json.dumps(ret_dict)
 print(s)

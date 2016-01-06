@@ -14,7 +14,7 @@
 int NUM_GCS = 10;
 int NUM_TRIALS = 20;
 int MEDIAN_IDX = 11; // NUM_TRIALS / 2 - 1
-bool is_testing = true;;
+bool is_testing = true;
 unsigned long NUM_GATES = 36480;
 
 void aes_garb_off() {
@@ -103,7 +103,7 @@ void aes_eval_on(bool testing) {
         unsigned long *ot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
         unsigned long *tot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
         for (int j=0; j<NUM_TRIALS; j++) {
-            // sleep(1) // uncomment this if getting hung up
+            sleep(1); // uncomment this if getting hung up
             int num_eval_inputs = 128;
             int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
             assert(eval_inputs);

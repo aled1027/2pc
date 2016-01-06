@@ -10,7 +10,13 @@
 
 #include "arg.h"
 
-int NUM_GCS = 3;
+int NUM_XOR_GCS = 20;
+int NUM_AES_GCS = 100;
+int NUM_FINAL_AES_GCS = 20;
+int NUM_GCS = 240;
+
+int NUM_GARB_INPUTS = 12928;
+int NUM_EVAL_INPUTS = 1280;
 
 void cbc_garb_off() {
     printf("Running cbc garb offline\n");
@@ -22,12 +28,19 @@ void cbc_garb_off() {
 
     for (int i = 0; i < num_chained_gcs; i++) {
         GarbledCircuit* p_gc = &(chained_gcs[i].gc);
-        if (i == 0) {
+        if (i < NUM_XOR_GCS) {
+            printf("building XOR\n");
             buildXORCircuit(p_gc, &delta);
             chained_gcs[i].type = XOR;
-        } else {
+        } else if (i < NUM_XOR_GCS + NUM_AES_GCS) {
+            printf("building AES ROUND\n");
             buildAESRoundComponentCircuit(p_gc, false, &delta);
             chained_gcs[i].type = AES_ROUND;
+        } else {
+            printf("building AES FINAL ROUND\n");
+            buildAESRoundComponentCircuit(p_gc, true, &delta);
+            chained_gcs[i].type = AES_FINAL_ROUND;
+
         }
         chained_gcs[i].id = i;
 
@@ -51,13 +64,17 @@ void cbc_garb_on(char* function_path) {
     int num_chained_gcs = NUM_GCS;
     int num_garb_inputs, *garb_inputs;
 
-    num_garb_inputs = 384;
+    num_garb_inputs = NUM_GARB_INPUTS;
     garb_inputs = malloc(sizeof(int) * num_garb_inputs);
     assert(garb_inputs);
+    printf("input: ");
     for (int i=0; i<num_garb_inputs; i++) {
+        if ((i % 128) == 0) 
+            printf("\n");
         garb_inputs[i] = rand() % 2; 
-        garb_inputs[i] = 0;
+        printf("%d",garb_inputs[i]);
     }
+    printf("\n");
     unsigned long *ot_time = malloc(sizeof(unsigned long));
     unsigned long *tot_time = malloc(sizeof(unsigned long));
     garbler_online(function_path, garb_inputs, num_garb_inputs, num_chained_gcs, ot_time, tot_time);
@@ -65,13 +82,17 @@ void cbc_garb_on(char* function_path) {
 
 void cbc_eval_on() {
     printf("Running cbc eval online\n");
-    int num_eval_inputs = 256;
+    int num_eval_inputs = NUM_EVAL_INPUTS;
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
     assert(eval_inputs);
+    printf("input: ");
     for (int i=0; i<num_eval_inputs; i++) {
+        if ((i % 128) == 0) 
+            printf("\n");
         eval_inputs[i] = rand() % 2;
-        eval_inputs[i] = 0;
+        printf("%d",eval_inputs[i]);
     }
+    printf("\n");
 
     int num_chained_gcs = NUM_GCS;
     unsigned long *ot_time = malloc(sizeof(unsigned long));

@@ -41,7 +41,7 @@ load_function_via_json(char* path, FunctionSpec* function)
      * but I was getting runtime memory errors when using it.
      */
 
-    printf("loading %s\n", path);
+    //printf("loading %s\n", path);
     long fs = filesize(path); 
     FILE *f = fopen(path, "r"); 
     if (f == NULL) {
@@ -53,7 +53,7 @@ load_function_via_json(char* path, FunctionSpec* function)
     fread(buffer, sizeof(char), fs, f);
     buffer[fs-1] = '\0';
 
-    json_t *jRoot, *jN, *jM;
+    json_t *jRoot, *jN, *jM, *jPtr;
     json_error_t error; 
     jRoot = json_loads(buffer, 0, &error);
     if (!jRoot) {
@@ -70,6 +70,10 @@ load_function_via_json(char* path, FunctionSpec* function)
     jM = json_object_get(jRoot, "m");
     assert(json_is_integer(jM));
     function->m = json_integer_value(jM);
+
+    jPtr = json_object_get(jRoot, "garbler_input_idx");
+    assert(json_is_integer(jPtr));
+    function->num_garbler_inputs = json_integer_value(jPtr);
 
     // Grab things from the json_t object
     if (json_load_components(jRoot, function) == FAILURE) {
@@ -301,6 +305,7 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
             inputMapping->gc_id[l] = gc_id;
         }
     }
+    assert(n == l);
     return SUCCESS;
 }
 
@@ -346,7 +351,10 @@ json_load_instructions(json_t *root, FunctionSpec *function)
     assert(json_is_integer(jPtr));
     int num_instructions = json_integer_value(jPtr);
     instructions->size = num_instructions;
-    instructions->instr = malloc(sizeof(Instruction) * num_instructions);
+    assert(instructions->size > 0);
+
+    instructions->instr = malloc(sizeof(Instruction)*num_instructions);
+    assert(instructions->instr);
 
     jInstructions = json_object_get(root, "instructions");
     assert(json_is_array(jInstructions));
@@ -415,12 +423,11 @@ json_load_instructions(json_t *root, FunctionSpec *function)
                 fprintf(stderr, "Instruction %d was invalid: %s\n", i, sType);
                 return FAILURE;
         }
-
     }
+    assert(idx == num_instructions);
     if (num_instructions != idx) {
         fprintf(stderr, "tot_raw_instructions %d does not match number of instructions %d", num_instructions, idx);
     }
-
     return SUCCESS;
 }
 

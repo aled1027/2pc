@@ -74,6 +74,7 @@ int garbler_online(char* function_path, int *inputs, int num_garb_inputs, int nu
         fprintf(stderr, "Could not load function %s\n", function_path);
         return FAILURE;
     }
+    assert(num_garb_inputs == function.num_garbler_inputs);
 
     circuitMapping = (int*) malloc(sizeof(int) * function.num_components);
     assert(circuitMapping);
@@ -170,24 +171,24 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     net_send(fd, function->output.end_wire_idx, sizeof(int)*function->output.size, 0);
 
     // 5b. send outputMap
-    block *output_map;
-    (void) posix_memalign((void **) &output_map, 128, sizeof(block) * 2 * function->m);
-    assert(output_map);
-    int p_output_map = 0;
+    block *outputmap;
+    (void) posix_memalign((void **) &outputmap, 128, sizeof(block) * 2 * function->m);
+    assert(outputmap);
+    int p_outputmap = 0;
 
     for (int j=0; j<function->output.size; j++) {
-        int gc_id = function->output.gc_id[j];
+        int gc_id = circuitMapping[function->output.gc_id[j]];
         int start_wire_idx = function->output.start_wire_idx[j];
         int end_wire_idx = function->output.end_wire_idx[j];
         // add 1 because values are inclusive
         int dist = end_wire_idx - start_wire_idx + 1; 
-        memcpy(&output_map[p_output_map], &chained_gcs[gc_id].outputMap[start_wire_idx], 
+        memcpy(&outputmap[p_outputmap], &chained_gcs[gc_id].outputMap[start_wire_idx], 
                 sizeof(block)*2*dist);
-        p_output_map += dist;
+        p_outputmap += (dist*2);
     }
+    assert(p_outputmap == function->m*2);
     net_send(fd, &function->m, sizeof(int), 0); 
-    net_send(fd, output_map, sizeof(block)*2*function->m, 0); 
-    
+    net_send(fd, outputmap, sizeof(block)*2*function->m, 0); 
     
     // 6. clean up
     free(evalLabels);
@@ -275,6 +276,7 @@ send_instructions_and_input_mapping(FunctionSpec *function, int fd)
     size_t buf_size1, buf_size2;
     buffer1 = malloc(MAX_BUF_SIZE);
     buffer2 = malloc(MAX_BUF_SIZE);
+    assert(buffer1 && buffer2);
 
     buf_size1 = writeInstructionsToBuffer(&function->instructions, buffer1);
     buf_size2 = writeInputMappingToBuffer(&function->input_mapping, buffer2);
