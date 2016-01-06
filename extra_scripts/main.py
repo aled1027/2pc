@@ -8,54 +8,6 @@ from collections import OrderedDict
 # aes takes 128*10 inputs from garbler and 128 bits from evaluator, outputing 128 bits
 # requires 10 gcs
 
-def add_aes():
-    rounds = 2
-    start_gc = 1
-
-    # INPUT MAPPING
-    gc_id = start_gc
-    input_mapping = []
-    for i in range(rounds):
-        r = {}
-        r["inputter"] = "garbler"
-        r["start_input_idx"] = i*128
-        r["end_input_idx"] = (i+1)*128 - 1
-        r["gc_id"] = gc_id
-        r["start_wire_idx"] = 128
-        r["end_wire_idx"] = 255
-        gc_id += 1
-        input_mapping.append(r)
-
-    instructions = []
-    gc_id = start_gc
-    for j in range(rounds-1):
-        r = {}
-        r["type"] = "EVAL"
-        r["gc_id"] = gc_id
-        instructions.append(r)
-
-        r = {}
-        r["type"] = "CHAIN"
-        r["from_gc_id"] = gc_id
-        r["from_wire_id_start"] = 0
-        r["from_wire_id_end"] = 127
-
-        r["to_gc_id"] = gc_id+1
-        r["to_wire_id_start"] = 0
-        r["to_wire_id_end"] = 127
-
-        gc_id += 1
-        instructions.append(r)
-
-    r = {}
-    r["type"] = "EVAL"
-    r["gc_id"] = gc_id
-    instructions.append(r)
-
-    s = json.dumps(instructions)
-    t = json.dumps(input_mapping)
-
-
 def initializeComponents(ret_dict):
     r = OrderedDict()
     r['type'] = 'AES_ROUND'
@@ -84,7 +36,7 @@ def addIVXOR(ret_dict):
     r["gc_id"] = 0
     r["start_wire_idx"] = 0
     r["end_wire_idx"] = 127
-    ret_dict['input_mapping'].append(r)
+    ret_dict['InputMapping'].append(r)
     ret_dict['garbler_input_idx'] += 128
 
     r = OrderedDict()
@@ -94,7 +46,7 @@ def addIVXOR(ret_dict):
     r["gc_id"] = 0
     r["start_wire_idx"] = 128
     r["end_wire_idx"] = 255
-    ret_dict['input_mapping'].append(r)
+    ret_dict['InputMapping'].append(r)
     ret_dict['evaluator_input_idx'] += 128
 
     r = OrderedDict()
@@ -109,11 +61,15 @@ def addIVXOR(ret_dict):
             ret_dict['gcs_used'] += 1
 
 def addAES(ret_dict, num_rounds=10):
+    """AES cannot be the first component -- could that, but not as is"""
+
+    assert(ret_dict['gcs_used'] > 0) # aes cannot be first component
+
     for i in range(num_rounds):
         # DO NOT REORDER THINGS IN THIS FUNCTION. ORDER MATTERS
         # THE +1 AND -1s WILL BE MESSED UP
 
-        # Update input_mapping
+        # Update InputMapping
         # plug in garbler's input to AES_ROUND component
 
         r = OrderedDict()
@@ -123,11 +79,11 @@ def addAES(ret_dict, num_rounds=10):
         r["gc_id"] = ret_dict['gcs_used']
         r["start_wire_idx"] = 128
         r["end_wire_idx"] = 255
-        ret_dict['input_mapping'].append(r)
+        ret_dict['InputMapping'].append(r)
         ret_dict['garbler_input_idx'] += 128
 
         # Update components
-        tgt_component = 'AES_ROUND' if i != num_rounds-1 else 'AES_FINAL_FOUND'
+        tgt_component = 'AES_ROUND' if i != num_rounds-1 else 'AES_FINAL_ROUND'
         for component in ret_dict['components']:
             if component['type'] == tgt_component:
                 component['circuit_ids'].append(ret_dict['gcs_used'])
@@ -152,6 +108,12 @@ def addAES(ret_dict, num_rounds=10):
         r["gc_id"] = ret_dict['gcs_used']-1
         ret_dict['instructions'].append(r)
 
+    r = OrderedDict()
+    r['gc_id'] = ret_dict['gcs_used']-1
+    r['start_wire_idx'] = 0
+    r['end_wire_idx'] = 127
+    ret_dict['Output'].append(r)
+
 def addMessageBlockXOR(ret_dict):
     """
         ORDER MATTERS: DO NOT CHANGE ORDER OF LINES
@@ -159,7 +121,7 @@ def addMessageBlockXOR(ret_dict):
         At a higher level, xors in the next message block from evaluator
     """
     # always chain to the first 127 wires
-    # input_mapping
+    # InputMapping
     r = OrderedDict()
     r["inputter"] = "evaluator"
     r["start_input_idx"] = ret_dict['evaluator_input_idx']
@@ -167,7 +129,7 @@ def addMessageBlockXOR(ret_dict):
     r["gc_id"] = ret_dict['gcs_used']
     r["start_wire_idx"] = 128
     r["end_wire_idx"] = 255
-    ret_dict['input_mapping'].append(r)
+    ret_dict['InputMapping'].append(r)
     ret_dict['evaluator_input_idx'] += 128
 
     # components
@@ -193,25 +155,42 @@ def addMessageBlockXOR(ret_dict):
     r["gc_id"] = ret_dict['gcs_used']-1
     ret_dict['instructions'].append(r)
 
-num_message_blocks = 2
-num_rounds = 2
+def processTotRawInstructions(ret_dict):
+    num_raw_instrs = 0
+    for i,instruction in enumerate(ret_dict['instructions']):
+        if instruction['type'] == 'EVAL':
+            num_raw_instrs += 1
+        elif instruction['type'] == 'CHAIN':
+            num_raw_instrs += (instruction['to_wire_id_end'] - instruction['to_wire_id_start'] + 1)
+        else:
+            RuntimeError("instruction type not detected")
+    ret_dict['tot_raw_instructions'] = num_raw_instrs
+
+num_message_blocks = 10
+num_rounds = 10
 assert(num_message_blocks > 0)
 ret_dict = OrderedDict()
-ret_dict['n'] = (num_message_blocks*128*2) + 128 # key, m_i + IV
-ret_dict['m'] = 128 # TODO make so output is more robust
-ret_dict['input_mapping'] = []
+ret_dict['meta_data'] = {"num_message_blocks": num_message_blocks,
+        "num_rounds": num_rounds}
+ret_dict['n'] = (num_message_blocks*num_rounds*128) + 128 # key, m_i + IV
+ret_dict['m'] = num_message_blocks*128
+ret_dict['InputMapping'] = []
+ret_dict['Output'] = []
 ret_dict['instructions'] = []
 ret_dict['components'] = []
 ret_dict['gcs_used'] = 0
 ret_dict['garbler_input_idx'] = 0
 ret_dict['evaluator_input_idx'] = 0
+ret_dict['tot_raw_instructions'] = 0
 
 initializeComponents(ret_dict)
 addIVXOR(ret_dict)
 addAES(ret_dict, num_rounds=num_rounds)
 for i in range(num_message_blocks-1):
+    print("in for loop, i=",i)
     addMessageBlockXOR(ret_dict)
-    #addAES(ret_dict, num_rounds=num_rounds)
+    addAES(ret_dict, num_rounds=num_rounds)
+processTotRawInstructions(ret_dict)
 
 s = json.dumps(ret_dict)
 print(s)
