@@ -10,13 +10,66 @@
 #include "net.h"
 #include "ot_np.h"
 #include "2pc_common.h" // USE_TO
+#include "utils.h"
+
+void 
+evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_eval_inputs,
+                  int num_chained_gcs)
+{
+    int sockfd, len;
+    struct state state;
+    state_init(&state);
+
+    if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
+        perror("net_init_client");
+        exit(EXIT_FAILURE);
+    }
+
+    /* receive GCs */
+    for (int i = 0; i < num_chained_gcs; i++) {
+        chained_gc_comm_recv(sockfd, &chained_gcs[i]);
+        saveChainedGC(&chained_gcs[i], false);
+    }
+
+    /* pre-processing OT using random selection bits */
+    {
+        int *selections;
+        block *evalLabels;
+
+        char selName[50];
+        char lblName[50];
+
+        (void) sprintf(selName, "%s/%s", EVALUATOR_DIR, "sel");
+        (void) sprintf(lblName, "%s/%s", EVALUATOR_DIR, "lbl");
+
+        selections = malloc(sizeof(int) * num_eval_inputs);
+        if (selections == NULL) {
+            perror("malloc");
+            exit(EXIT_FAILURE);
+        }
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            selections[i] = rand() % 2;
+        }
+        evalLabels = allocate_blocks(num_eval_inputs);
+        ot_np_recv(&state, sockfd, selections, num_eval_inputs, sizeof(block),
+                   2, evalLabels, new_choice_reader, new_msg_writer);
+        saveOTSelections(selName, selections, num_eval_inputs);
+        saveOTLabels(lblName, evalLabels, num_eval_inputs, false);
+
+        free(selections);
+        free(evalLabels);
+    }
+
+    close(sockfd);
+    state_cleanup(&state);
+}
 
 void
 evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs, 
         unsigned long *ot_time, unsigned long *tot_time)
 {
     // 1. I guess there is no 1 now.
-    
+
     // 2. load chained garbled circuits from disk
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
     for (int i=0; i<num_chained_gcs; i++) {
@@ -72,34 +125,48 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     circuitMapping = malloc(sizeof(int) * circuitMappingSize);
     net_recv(sockfd, circuitMapping, sizeof(int)*circuitMappingSize, 0);
 
-    //-----------------------------------------
-    //--------START OF SLOWNESS---------------------
-    //-----------------------------------------
     // 7. receive labels
     // receieve labels based on garblers inputs
     int num_garb_inputs;
-    net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
-
     block *garb_labels, *eval_labels;
-    (void) posix_memalign((void **) &garb_labels, 128, sizeof(block) * num_garb_inputs);
-    assert(garb_labels && num_garb_inputs >= 0);
-    if (num_garb_inputs > 0) {
-        net_recv(sockfd, garb_labels, sizeof(block)*num_garb_inputs, 0);
-    }
-    
-    // receive labels based on evaluator's inputs
-    (void) posix_memalign((void **) &eval_labels, 128, sizeof(block) * num_eval_inputs);
-    assert(eval_labels);
 
-    ot_start_time = RDTSC;
-    ot_np_recv(&state, sockfd, eval_inputs, num_eval_inputs, sizeof(block), 2, eval_labels,
-               new_choice_reader, new_msg_writer);
-    *ot_time = RDTSC - ot_start_time;
-    //printf("ot_time: %lu\n", *ot_time);
-    
-    //-----------------------------------------
-    //--------END OF SLOWNESS---------------------
-    //-----------------------------------------
+    net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
+    if (num_garb_inputs > 0) {
+        garb_labels = allocate_blocks(num_garb_inputs);
+        net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
+    }
+
+    /* OT correction */
+    {
+        int *corrections;
+        block *recvLabels;
+        char selName[50], lblName[50];
+
+        (void) sprintf(selName, "%s/%s", EVALUATOR_DIR, "sel");
+        (void) sprintf(lblName, "%s/%s", EVALUATOR_DIR, "lbl");
+
+        recvLabels = malloc(sizeof(block) * 2 * num_eval_inputs);
+
+        corrections = loadOTSelections(selName);
+        eval_labels = loadOTLabels(lblName);
+
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            corrections[i] ^= eval_inputs[i];
+        }
+
+        net_send(sockfd, corrections, sizeof(int) * num_eval_inputs, 0);
+        net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
+
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            eval_labels[i] = xorBlocks(eval_labels[i],
+                                       recvLabels[2 * i + eval_inputs[i]]);
+        }
+
+        free(recvLabels);
+        free(corrections);
+    }
+
+
     // 8. process eval_labels and garb_labels into labels
     InputMapping* input_mapping = &function.input_mapping;
     int garb_p = 0, eval_p = 0;
@@ -227,26 +294,4 @@ new_msg_writer(void *array, int idx, void *msg, size_t msglength)
     a[idx] = *((block *) msg);
     return 0;
 }
-
-void 
-evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_chained_gcs) 
-{
-    int sockfd, len;
-    struct state state;
-    state_init(&state);
-
-    if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
-        perror("net_init_client");
-        exit(EXIT_FAILURE);
-    }
-
-    for (int i=0; i<num_chained_gcs; i++) {
-        chained_gc_comm_recv(sockfd, &chained_gcs[i]);
-        saveChainedGC(&chained_gcs[i], false);
-    }
-
-    close(sockfd);
-    state_cleanup(&state);
-}
-
 

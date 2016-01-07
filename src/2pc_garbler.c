@@ -12,10 +12,13 @@
 #include "net.h"
 #include "ot_np.h"
 #include "2pc_common.h"
+#include "utils.h"
 
 #include "gc_comm.h"
 
-void garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs)
+void
+garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_eval_inputs,
+                int num_chained_gcs)
 {
     /* sends ChainedGcs to evaluator and saves ChainedGcs to disk */
     // setup connection
@@ -33,20 +36,43 @@ void garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs)
         exit(EXIT_FAILURE);
     }
 
-    // send chained_gcs over
-    for (int i=0; i<num_chained_gcs; i++) {
+    /* send GCs */
+    for (int i = 0; i < num_chained_gcs; i++) {
         chained_gc_comm_send(fd, &chained_gcs[i]);
         saveChainedGC(&chained_gcs[i], true);
     }
 
-    free(chained_gcs);
-    state_cleanup(&state);
+    /* pre-processing OT using random labels */
+    {
+        block *evalLabels;
+
+        char lblName[50];
+
+        (void) sprintf(lblName, "%s/%s", GARBLER_DIR, "lbl");
+
+        (void) posix_memalign((void **) &evalLabels, 128,
+                              sizeof(block) * 2 * num_eval_inputs);
+        if (evalLabels == NULL) {
+            perror("posix_memalign");
+            exit(EXIT_FAILURE);
+        }
+            
+        ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs, 2,
+                   new_msg_reader, new_item_reader);
+        saveOTLabels(lblName, evalLabels, num_eval_inputs, true);
+
+        free(evalLabels);
+    }
+
     close(fd);
     close(serverfd);
+    state_cleanup(&state);
 }
 
-int garbler_online(char* function_path, int *inputs, int num_garb_inputs, int num_chained_gcs,
-        unsigned long *ot_time, unsigned long *tot_time) 
+int
+garbler_online(char* function_path, int *inputs, int num_garb_inputs,
+               int num_chained_gcs, unsigned long *ot_time,
+               unsigned long *tot_time) 
 {
     // tot_time and ot_time should be malloced before call
     assert(ot_time && tot_time);
@@ -72,6 +98,7 @@ int garbler_online(char* function_path, int *inputs, int num_garb_inputs, int nu
     // this is later freed by freeFunctionSpec
     if (load_function_via_json(function_path, &function) == FAILURE) {
         fprintf(stderr, "Could not load function %s\n", function_path);
+        free(chained_gcs);
         return FAILURE;
     }
     assert(num_garb_inputs == function.num_garbler_inputs);
@@ -99,7 +126,6 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
         int* circuitMapping, int *inputs, unsigned long *ot_time) 
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
-    // hardcoding 22adder for now
     
     // 1. setup connection
     int serverfd, fd, res;
@@ -126,9 +152,8 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     // 4. send labels
     // upper bounding memory with n
     block *evalLabels, *garbLabels;
-    (void) posix_memalign((void **) &evalLabels, 128, sizeof(block) * 2 * function->n * num_chained_gcs);
-    (void) posix_memalign((void **) &garbLabels, 128, sizeof(block) * 2 * function->n * num_chained_gcs);
-    assert(evalLabels && garbLabels);
+    evalLabels = allocate_blocks(2 * function->n * num_chained_gcs);
+    garbLabels = allocate_blocks(2 * function->n * num_chained_gcs);
 
     // TODO could probably figure out a way to avoid copying, but easiest and fast enough for now.
     InputMapping imap = function->input_mapping;
@@ -148,19 +173,61 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
             eval_p+=2;
         } 
     }
-    int num_eval_inputs = eval_p / 2, num_garb_inputs = garb_p;
-    net_send(fd, &num_garb_inputs, sizeof(int), 0);
+    int num_eval_inputs = eval_p / 2;
+    int num_garb_inputs = garb_p;
 
+    net_send(fd, &num_garb_inputs, sizeof(int), 0);
     if (num_garb_inputs > 0) {
-        net_send(fd, garbLabels, sizeof(block)*num_garb_inputs, 0);
+        net_send(fd, garbLabels, sizeof(block) * num_garb_inputs, 0);
     }
 
-    // send evaluator's labels
-    unsigned long otStartTime;
-    otStartTime = RDTSC;
-    ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs , 2,
-               new_msg_reader, new_item_reader);
-    *ot_time = RDTSC - otStartTime;
+    /* OT correction */
+    {
+        int *corrections;
+        block *randLabels;
+        char lblName[50];
+
+        (void) sprintf(lblName, "%s/%s", GARBLER_DIR, "lbl");
+
+        randLabels = loadOTLabels(lblName);
+        if (randLabels == NULL) {
+            perror("loadOTLabels");
+            exit(EXIT_FAILURE);
+        }
+
+        corrections = malloc(sizeof(int) * num_eval_inputs);
+        if (corrections == NULL) {
+            perror("malloc");
+            exit(EXIT_FAILURE);
+        }
+
+        net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
+
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            switch (corrections[i]) {
+            case 0:
+                evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
+                                              randLabels[2 * i]);
+                evalLabels[2 * i + 1] = xorBlocks(evalLabels[2 * i + 1],
+                                                  randLabels[2 * i + 1]);
+                break;
+            case 1:
+                evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
+                                              randLabels[2 * i + 1]);
+                evalLabels[2 * i + 1] = xorBlocks(evalLabels[2 * i + 1],
+                                                  randLabels[2 * i]);
+                break;
+            default:
+                assert(false);
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        net_send(fd, evalLabels, sizeof(block) * 2 * num_eval_inputs, 0);
+
+        free(corrections);
+        free(randLabels);
+    }
 
     // 5a. send "output" 
     //  output is from the json, and tells which components/wires are used for outputs
@@ -171,25 +238,30 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
     net_send(fd, function->output.end_wire_idx, sizeof(int)*function->output.size, 0);
 
     // 5b. send outputMap
-    block *outputmap;
-    (void) posix_memalign((void **) &outputmap, 128, sizeof(block) * 2 * function->m);
-    assert(outputmap);
-    int p_outputmap = 0;
+    {
+        block *outputmap;
 
-    for (int j=0; j<function->output.size; j++) {
-        int gc_id = circuitMapping[function->output.gc_id[j]];
-        int start_wire_idx = function->output.start_wire_idx[j];
-        int end_wire_idx = function->output.end_wire_idx[j];
-        // add 1 because values are inclusive
-        int dist = end_wire_idx - start_wire_idx + 1; 
-        memcpy(&outputmap[p_outputmap], &chained_gcs[gc_id].outputMap[start_wire_idx], 
-                sizeof(block)*2*dist);
-        p_outputmap += (dist*2);
+        outputmap = allocate_blocks(2 * function->m);
+        int p_outputmap = 0;
+
+        for (int j=0; j<function->output.size; j++) {
+            int gc_id = circuitMapping[function->output.gc_id[j]];
+            int start_wire_idx = function->output.start_wire_idx[j];
+            int end_wire_idx = function->output.end_wire_idx[j];
+            // add 1 because values are inclusive
+            int dist = end_wire_idx - start_wire_idx + 1; 
+            memcpy(&outputmap[p_outputmap],
+                   &chained_gcs[gc_id].outputMap[start_wire_idx],
+                   sizeof(block)*2*dist);
+            p_outputmap += (dist*2);
+        }
+        assert(p_outputmap == 2 * function->m);
+        net_send(fd, &function->m, sizeof(int), 0); 
+        net_send(fd, outputmap, sizeof(block)*2*function->m, 0);
+
+        free(outputmap);
     }
-    assert(p_outputmap == function->m*2);
-    net_send(fd, &function->m, sizeof(int), 0); 
-    net_send(fd, outputmap, sizeof(block)*2*function->m, 0); 
-    
+
     // 6. clean up
     free(evalLabels);
     free(garbLabels);
