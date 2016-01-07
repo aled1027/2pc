@@ -28,6 +28,18 @@ ot_free(void *p)
     return _mm_free(p);
 }
 
+block *
+allocate_blocks(size_t nblocks)
+{
+    block *blks;
+    (void) posix_memalign((void **) &blks, 128, sizeof(block) * nblocks);
+    if (blks == NULL) {
+        perror("allocate_blocks");
+        exit(EXIT_FAILURE);
+    }
+    return blks;
+}
+
 long 
 filesize(const char *filename) {
     /* returns size of file in bytes */
@@ -67,10 +79,11 @@ readFileIntoBuffer(char* buffer, char* fileName) {
     fread(buffer, sizeof(char), fs, f);
     fclose(f);
     return SUCCESS;
-
-
-
-
 }
 
-
+void
+debug(char *s)
+{
+    fprintf(stderr, "DEBUG: %s\n", s);
+    fflush(stderr);
+}

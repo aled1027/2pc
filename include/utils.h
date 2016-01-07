@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "justGarble.h"
 
 #define SUCCESS 0
 #define FAILURE -1
@@ -21,6 +22,9 @@ ot_malloc(size_t size);
 void
 ot_free(void *p);
 
+block *
+allocate_blocks(size_t nblocks);
+
 long 
 filesize(const char *filename);
 
@@ -30,5 +34,7 @@ writeBufferToFile(char* buffer, size_t buf_size, char* fileName);
 int
 readFileIntoBuffer(char* buffer, char* fileName);
 
-//void print_block(block blk);
+void
+debug(char *s);
+
 #endif

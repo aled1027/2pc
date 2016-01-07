@@ -301,7 +301,7 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler)
 
     return SUCCESS;
 }
-    
+
 void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num) 
 {
     for (int i=0; i<num; i++) {
@@ -470,4 +470,51 @@ print_blocks(const char *str, block *blks, int length)
         print_block(blks[i]);
         printf("\n");
     }
+}
+
+int
+saveOTLabels(char *fname, block *labels, int n, bool isSender)
+{
+    size_t size = sizeof(block) * (isSender ?  2 : 1) * n;
+
+    if (writeBufferToFile((char *) labels, size, fname) == FAILURE)
+        return FAILURE;
+
+    return SUCCESS;
+}
+
+block *
+loadOTLabels(char *fname)
+{
+    block *buf;
+
+    (void) posix_memalign((void **) &buf, 128, filesize(fname));
+    if (readFileIntoBuffer((char *) buf, fname) == FAILURE) {
+        free(buf);
+        return NULL;
+    }
+    return buf;
+}
+    
+int
+saveOTSelections(char *fname, int *selections, int n)
+{
+    size_t size = sizeof(int) / sizeof(char) * n;
+    if (writeBufferToFile((char *) selections, size, fname) == FAILURE)
+        return FAILURE;
+
+    return SUCCESS;
+}
+
+int *
+loadOTSelections(char *fname)
+{
+    int *buf;
+
+    buf = malloc(filesize(fname));
+    if (readFileIntoBuffer((char *) buf, fname) == FAILURE) {
+        free(buf);
+        return NULL;
+    }
+    return buf;
 }

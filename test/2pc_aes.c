@@ -42,7 +42,8 @@ void aes_garb_off() {
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap);
     }
-    garbler_offline(chained_gcs, num_chained_gcs);
+    garbler_offline(chained_gcs, 128, num_chained_gcs);
+    free(chained_gcs);
 }
 int
 myCompare(const void * a, const void * b)
@@ -95,7 +96,7 @@ void aes_garb_on(char* function_path, bool timing) {
 void aes_eval_off() {
     int num_chained_gcs = NUM_GCS; // defined in common
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
-    evaluator_offline(chained_gcs, num_chained_gcs);
+    evaluator_offline(chained_gcs, 128, num_chained_gcs);
 }
 
 void aes_eval_on(bool testing) {

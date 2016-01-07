@@ -4,7 +4,9 @@
 #include "2pc_function_spec.h"
 #include "2pc_garbled_circuit.h"
 
-void garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs);
+void
+garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_eval_inputs,
+                int num_chained_gcs);
 
 int garbler_online(char* function_path, int *inputs, int num_garb_inputs, int num_chained_gcs, 
         unsigned long *ot_time, unsigned long *tot_time);
