@@ -170,7 +170,40 @@ def processTotRawInstructions(ret_dict):
             RuntimeError("instruction type not detected")
     ret_dict['tot_raw_instructions'] = num_raw_instrs
 
-num_message_blocks = 10
+def computeNumGates(ret_dict):
+    """
+    Does not change state of ret_dict, only returns number of gates
+
+    xor component
+        128 xor gates
+    aes_round gates:
+        num_xor 3072
+        num_and 576
+        num_zero 128
+        num_one 128
+        num_xor + num_and 3648
+        total 3904
+    """
+    xor_gates_per_circuit = 128
+    aes_round_gates_per_circuit = 3904 # this number seems high
+    aes_final_gates_per_circuit = 3904
+    num_gates = 0
+
+    for component in ret_dict['components']:
+        if component['type'] == 'XOR':
+            num_gates += component['num'] * xor_gates_per_circuit
+        elif component['type'] == 'AES_ROUND':
+            num_gates += component['num'] * aes_round_gates_per_circuit
+        elif component['type'] == 'AES_FINAL_ROUND':
+            num_gates += component['num'] * aes_final_gates_per_circuit
+        else:
+            RuntimeError("type {} not detected".format(component['type']))
+        return num_gates
+
+
+
+
+num_message_blocks = 1
 num_rounds = 10
 assert(num_message_blocks > 0)
 ret_dict = OrderedDict()
@@ -195,6 +228,7 @@ for i in range(num_message_blocks-1):
     addMessageBlockXOR(ret_dict)
     addAES(ret_dict, num_rounds=num_rounds)
 processTotRawInstructions(ret_dict)
+num_gates = computeNumGates(ret_dict)
 
 assert(ret_dict['garbler_input_idx'] + ret_dict['evaluator_input_idx'] == ret_dict['n'])
 assert(ret_dict['input_idx'] == ret_dict['n'])
@@ -203,10 +237,8 @@ ret_dict['meta_data'] = OrderedDict({
         "num_message_blocks": num_message_blocks,
         "num_rounds": num_rounds,
         "garbler_inputs": ret_dict['garbler_input_idx'],
-        "evaluator_inputs": ret_dict['evaluator_input_idx']})
-
-pprint(ret_dict['InputMapping'])
-print('')
+        "evaluator_inputs": ret_dict['evaluator_input_idx'],
+        "num_gates": num_gates})
 
 s = json.dumps(ret_dict)
 print(s)
