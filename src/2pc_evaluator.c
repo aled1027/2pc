@@ -94,8 +94,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     block** labels = malloc(sizeof(block*) * num_chained_gcs);
 
     for (int i=0; i<num_chained_gcs; i++) {
-        (void) posix_memalign((void **) &labels[i], 128, sizeof(block) * chained_gcs[i].gc.n); 
-        assert(labels[i]);
+        labels[i] = allocate_blocks(chained_gcs[i].gc.n);
     }
 
     // 5. receive input_mapping, instructions
@@ -199,10 +198,8 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     int output_size;
     net_recv(sockfd, &output_size, sizeof(int), 0);
     block* outputmap;
-    (void) posix_memalign((void **) &outputmap, 128, sizeof(block) * 2 * output_size);
-    assert(outputmap);
+    outputmap = allocate_blocks(2 * output_size);
     net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0); 
-    //print_blocks("outputmap ", outputmap, 4);
 
     // 10. Close state and network
     close(sockfd);
@@ -211,10 +208,10 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     // 11a. evaluate: follow instructions and evaluate components
     block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
     for (int i=0; i<num_chained_gcs; i++) {
-        (void) posix_memalign((void **) &computedOutputMap[i], 128, sizeof(block) * chained_gcs[i].gc.m);
-        assert(computedOutputMap[i]);
+        computedOutputMap[i] = allocate_blocks(chained_gcs[i].gc.m);
     }
-    evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions, labels, circuitMapping, computedOutputMap);
+    evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
+                       labels, circuitMapping, computedOutputMap);
 
     // 11b. use computedOutputMap and outputMap to get actual outputs
     int *output = malloc(sizeof(int) * output_size);
@@ -236,13 +233,15 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     }
     printf("\n");
     
-    *tot_time = RDTSC - start_time;
-
     // 12. clean up
     for (int i=0; i<num_chained_gcs; i++) {
         free(labels[i]);
     } 
     free(labels);
+    free(outputmap);
+    free(output);
+
+    *tot_time = RDTSC - start_time;
 }
 
 void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
