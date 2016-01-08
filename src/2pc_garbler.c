@@ -50,12 +50,7 @@ garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_eval_inputs,
 
         (void) sprintf(lblName, "%s/%s", GARBLER_DIR, "lbl");
 
-        (void) posix_memalign((void **) &evalLabels, 128,
-                              sizeof(block) * 2 * num_eval_inputs);
-        if (evalLabels == NULL) {
-            perror("posix_memalign");
-            exit(EXIT_FAILURE);
-        }
+        evalLabels = allocate_blocks(2 * num_eval_inputs);
             
         ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs, 2,
                    new_msg_reader, new_item_reader);
@@ -122,8 +117,9 @@ garbler_online(char* function_path, int *inputs, int num_garb_inputs,
 }
 
 void 
-garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
-        int* circuitMapping, int *inputs, unsigned long *ot_time) 
+garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs,
+           int num_chained_gcs, int* circuitMapping, int *inputs,
+           unsigned long *ot_time)
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
     
@@ -151,14 +147,30 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
 
     // 4. send labels
     // upper bounding memory with n
+    InputMapping imap = function->input_mapping;
     block *evalLabels, *garbLabels;
-    evalLabels = allocate_blocks(2 * function->n * num_chained_gcs);
-    garbLabels = allocate_blocks(2 * function->n * num_chained_gcs);
+
+    /* calculate input lengths */
+    int num_eval_inputs = 0, num_garb_inputs = 0;
+    for (int i = 0; i < imap.size; ++i) {
+        switch (imap.inputter[i]) {
+        case PERSON_GARBLER:
+            num_garb_inputs++;
+            break;
+        case PERSON_EVALUATOR:
+            num_eval_inputs++;
+            break;
+        default:
+            assert(false);
+            exit(EXIT_FAILURE);
+        }
+    }
+    evalLabels = allocate_blocks(2 * num_eval_inputs);
+    garbLabels = allocate_blocks(num_garb_inputs);
 
     // TODO could probably figure out a way to avoid copying, but easiest and fast enough for now.
-    InputMapping imap = function->input_mapping;
     int eval_p = 0, garb_p = 0; // counters for looping over garbler and evaluator's structures
-    for (int i=0; i<imap.size; i++) {
+    for (int i = 0; i < imap.size; i++) {
         if (imap.inputter[i] == PERSON_GARBLER) {
             assert(inputs[garb_p] == 0 || inputs[garb_p] == 1);
             // copy into garbLabels from the circuit's inputLabels
@@ -173,9 +185,8 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs, int num_c
             eval_p+=2;
         } 
     }
-    int num_eval_inputs = eval_p / 2;
-    int num_garb_inputs = garb_p;
 
+    /* send garbler's wire labels */
     net_send(fd, &num_garb_inputs, sizeof(int), 0);
     if (num_garb_inputs > 0) {
         net_send(fd, garbLabels, sizeof(block) * num_garb_inputs, 0);
