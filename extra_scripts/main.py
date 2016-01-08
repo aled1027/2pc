@@ -203,7 +203,7 @@ def computeNumGates(ret_dict):
 
 
 
-num_message_blocks = 1
+num_message_blocks = 10
 num_rounds = 10
 assert(num_message_blocks > 0)
 ret_dict = OrderedDict()

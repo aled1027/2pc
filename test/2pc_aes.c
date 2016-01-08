@@ -14,7 +14,7 @@
 int NUM_GCS = 10;
 int NUM_TRIALS = 20;
 int MEDIAN_IDX = 11; // NUM_TRIALS / 2 - 1
-bool is_testing = true;
+bool is_timing = false;
 unsigned long NUM_GATES = 36480;
 
 void aes_garb_off() {
@@ -90,6 +90,10 @@ void aes_garb_on(char* function_path, bool timing) {
         unsigned long *ot_time = malloc(sizeof(unsigned long));
         unsigned long *tot_time = malloc(sizeof(unsigned long));
         garbler_online(function_path, inputs, num_garb_inputs, num_chained_gcs, ot_time, tot_time);
+
+        printf("ot_time: %lu\n", *ot_time / NUM_GATES);
+        printf("tot_time: %lu\n", *tot_time / NUM_GATES);
+        printf("time without ot: %lu\n", (*tot_time - *ot_time) / NUM_GATES);
     }
 }
 
@@ -99,8 +103,8 @@ void aes_eval_off() {
     evaluator_offline(chained_gcs, 128, num_chained_gcs);
 }
 
-void aes_eval_on(bool testing) {
-    if (testing) {
+void aes_eval_on(bool timing) {
+    if (timing) {
         unsigned long *ot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
         unsigned long *tot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
         for (int j=0; j<NUM_TRIALS; j++) {
@@ -134,6 +138,10 @@ void aes_eval_on(bool testing) {
         unsigned long *ot_time = malloc(sizeof(unsigned long));
         unsigned long *tot_time = malloc(sizeof(unsigned long));
         evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, ot_time, tot_time);
+
+        printf("ot_time: %lu\n", *ot_time / NUM_GATES);
+        printf("tot_time: %lu\n", *tot_time / NUM_GATES);
+        printf("time without ot: %lu\n", (*tot_time - *ot_time) / NUM_GATES);
     }
 }
 
@@ -144,10 +152,10 @@ int main(int argc, char *argv[]) {
     srand_sse(time(NULL));
     char* function_path = "functions/aes.json";
     if (strcmp(argv[1], "eval_online") == 0) {
-        aes_eval_on(is_testing);
+        aes_eval_on(is_timing);
     } else if (strcmp(argv[1], "garb_online") == 0) {
         printf("Running garb online\n");
-        aes_garb_on(function_path, is_testing);
+        aes_garb_on(function_path, is_timing);
     } else if (strcmp(argv[1], "garb_offline") == 0) {
         aes_garb_off();
     } else if (strcmp(argv[1], "eval_offline") == 0) {
