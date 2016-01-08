@@ -72,7 +72,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
 
     // 2. load chained garbled circuits from disk
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
-    for (int i=0; i<num_chained_gcs; i++) {
+    for (int i = 0; i < num_chained_gcs; i++) {
         loadChainedGC(&chained_gcs[i], i, false); // false indicates this is evaluator
     }
 
@@ -93,7 +93,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     FunctionSpec function;
     block** labels = malloc(sizeof(block*) * num_chained_gcs);
 
-    for (int i=0; i<num_chained_gcs; i++) {
+    for (int i = 0; i < num_chained_gcs; i++) {
         labels[i] = allocate_blocks(chained_gcs[i].gc.n);
     }
 
@@ -169,7 +169,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     // 8. process eval_labels and garb_labels into labels
     InputMapping* input_mapping = &function.input_mapping;
     int garb_p = 0, eval_p = 0;
-    for (int i=0; i<input_mapping->size; i++) {
+    for (int i = 0; i < input_mapping->size; i++) {
         if (input_mapping->inputter[i] == PERSON_GARBLER) {
             //printf("(gc_id: %d, wire: %d) grabbing garb input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], garb_p);
             labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = garb_labels[garb_p]; 
@@ -207,7 +207,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
 
     // 11a. evaluate: follow instructions and evaluate components
     block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
-    for (int i=0; i<num_chained_gcs; i++) {
+    for (int i = 0; i < num_chained_gcs; i++) {
         computedOutputMap[i] = allocate_blocks(chained_gcs[i].gc.m);
     }
     evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
@@ -216,7 +216,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     // 11b. use computedOutputMap and outputMap to get actual outputs
     int *output = malloc(sizeof(int) * output_size);
     int p_output = 0;
-    for (int i=0; i<output_arr_size; i++) {
+    for (int i = 0; i < output_arr_size; i++) {
         int dist = end_wire_idx[i] - start_wire_idx[i] + 1;
         // gc_idx is not based on circuitMapping because computedOutputMap 
         // populated based on indices in functionSpec
@@ -228,13 +228,13 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     assert(output_size == p_output);
 
     printf("Output: ");
-    for (int i=0; i<output_size; i++) {
+    for (int i = 0; i < output_size; i++) {
         printf("%d", output[i]);
     }
     printf("\n");
     
     // 12. clean up
-    for (int i=0; i<num_chained_gcs; i++) {
+    for (int i = 0; i < num_chained_gcs; i++) {
         free(labels[i]);
     } 
     free(labels);
@@ -257,7 +257,7 @@ void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      */
     assert(computedOutputMap); // memory should already be allocated
     int savedCircId;
-    for (int i=0; i<instructions->size; i++) {
+    for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
         switch(cur->type) {
             case EVAL:

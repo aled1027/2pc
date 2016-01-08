@@ -14,7 +14,7 @@
 int NUM_GCS = 10;
 int NUM_TRIALS = 20;
 int MEDIAN_IDX = 11; // NUM_TRIALS / 2 - 1
-bool is_testing = true;
+bool is_timing = false;
 unsigned long NUM_GATES = 36480;
 
 void aes_garb_off() {
@@ -56,19 +56,19 @@ void aes_garb_on(char* function_path, bool timing) {
     if (timing) {
         unsigned long *ot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
         unsigned long *tot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
-        for (int j=0; j<NUM_TRIALS; j++) {
+        for (int i = 0; i < NUM_TRIALS; i++) {
             int num_chained_gcs = NUM_GCS;
             int num_garb_inputs, *inputs;
 
             num_garb_inputs = 128*10;
             inputs = malloc(sizeof(int) * num_garb_inputs);
             assert(inputs);
-            for (int i=0; i<num_garb_inputs; i++) {
-                inputs[i] = rand() % 2; 
+            for (int j = 0; j < num_garb_inputs; j++) {
+                inputs[j] = rand() % 2; 
             }
             garbler_online(function_path, inputs, num_garb_inputs, num_chained_gcs, 
-                    &ot_time[j], &tot_time[j]);
-            printf("%lu, %lu\n", ot_time[j], tot_time[j]);
+                    &ot_time[i], &tot_time[i]);
+            printf("%lu, %lu\n", ot_time[i], tot_time[i]);
         }
 
 	    qsort(ot_time, NUM_TRIALS, sizeof(unsigned long), myCompare);
@@ -84,12 +84,16 @@ void aes_garb_on(char* function_path, bool timing) {
         num_garb_inputs = 128*10;
         inputs = malloc(sizeof(int) * num_garb_inputs);
         assert(inputs);
-        for (int i=0; i<num_garb_inputs; i++) {
+        for (int i = 0; i < num_garb_inputs; i++) {
             inputs[i] = rand() % 2; 
         }
         unsigned long *ot_time = malloc(sizeof(unsigned long));
         unsigned long *tot_time = malloc(sizeof(unsigned long));
         garbler_online(function_path, inputs, num_garb_inputs, num_chained_gcs, ot_time, tot_time);
+
+        printf("ot_time: %lu\n", *ot_time / NUM_GATES);
+        printf("tot_time: %lu\n", *tot_time / NUM_GATES);
+        printf("time without ot: %lu\n", (*tot_time - *ot_time) / NUM_GATES);
     }
 }
 
@@ -99,22 +103,22 @@ void aes_eval_off() {
     evaluator_offline(chained_gcs, 128, num_chained_gcs);
 }
 
-void aes_eval_on(bool testing) {
-    if (testing) {
+void aes_eval_on(bool timing) {
+    if (timing) {
         unsigned long *ot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
         unsigned long *tot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
-        for (int j=0; j<NUM_TRIALS; j++) {
+        for (int i = 0; i < NUM_TRIALS; i++) {
             sleep(1); // uncomment this if getting hung up
             int num_eval_inputs = 128;
             int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
             assert(eval_inputs);
 
-            for (int i=0; i<num_eval_inputs; i++) {
-                eval_inputs[i] = rand() % 2;
+            for (int j = 0; j < num_eval_inputs; j++) {
+                eval_inputs[j] = rand() % 2;
             }
 
             int num_chained_gcs = NUM_GCS;
-            evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, &ot_time[j], &tot_time[j]);
+            evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, &ot_time[i], &tot_time[i]);
         }
 	    qsort(ot_time, NUM_TRIALS, sizeof(unsigned long), myCompare);
 	    qsort(tot_time, NUM_TRIALS, sizeof(unsigned long), myCompare);
@@ -126,7 +130,7 @@ void aes_eval_on(bool testing) {
         int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
         assert(eval_inputs);
 
-        for (int i=0; i<num_eval_inputs; i++) {
+        for (int i = 0; i < num_eval_inputs; i++) {
             eval_inputs[i] = rand() % 2;
         }
 
@@ -134,6 +138,10 @@ void aes_eval_on(bool testing) {
         unsigned long *ot_time = malloc(sizeof(unsigned long));
         unsigned long *tot_time = malloc(sizeof(unsigned long));
         evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, ot_time, tot_time);
+
+        printf("ot_time: %lu\n", *ot_time / NUM_GATES);
+        printf("tot_time: %lu\n", *tot_time / NUM_GATES);
+        printf("time without ot: %lu\n", (*tot_time - *ot_time) / NUM_GATES);
     }
 }
 
@@ -144,10 +152,10 @@ int main(int argc, char *argv[]) {
     srand_sse(time(NULL));
     char* function_path = "functions/aes.json";
     if (strcmp(argv[1], "eval_online") == 0) {
-        aes_eval_on(is_testing);
+        aes_eval_on(is_timing);
     } else if (strcmp(argv[1], "garb_online") == 0) {
         printf("Running garb online\n");
-        aes_garb_on(function_path, is_testing);
+        aes_garb_on(function_path, is_timing);
     } else if (strcmp(argv[1], "garb_offline") == 0) {
         aes_garb_off();
     } else if (strcmp(argv[1], "eval_offline") == 0) {
@@ -156,6 +164,5 @@ int main(int argc, char *argv[]) {
     } else {
         printf("Seeing test/2pc_aes.c:main for usage\n");
     }
-    
     return 0;
 } 

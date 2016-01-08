@@ -10,13 +10,16 @@
 
 #include "arg.h"
 
-int NUM_XOR_GCS = 20;
-int NUM_AES_GCS = 100;
-int NUM_FINAL_AES_GCS = 20;
-int NUM_GCS = 240;
+int NUM_XOR_GCS = 10;
+int NUM_AES_GCS = 90;
+int NUM_FINAL_AES_GCS = 10;
+int NUM_GCS = 110;
+int NUM_GATES = 351360;
 
 int NUM_GARB_INPUTS = 12928;
 int NUM_EVAL_INPUTS = 1280;
+char *FUNCTION_PATH = "functions/cbc_10_10.json"; /* 10,90,10,garb=12928,eval=1280,gates=351360 */
+//char* FUNCTION_PATH = "functions/cbc_2_2.json"; /* 2,2,2,garb=640,eval=256, gates=7808 */
 
 void cbc_garb_off() {
     printf("Running cbc garb offline\n");
@@ -29,15 +32,12 @@ void cbc_garb_off() {
     for (int i = 0; i < num_chained_gcs; i++) {
         GarbledCircuit* p_gc = &(chained_gcs[i].gc);
         if (i < NUM_XOR_GCS) {
-            printf("building XOR\n");
             buildXORCircuit(p_gc, &delta);
             chained_gcs[i].type = XOR;
         } else if (i < NUM_XOR_GCS + NUM_AES_GCS) {
-            printf("building AES ROUND\n");
             buildAESRoundComponentCircuit(p_gc, false, &delta);
             chained_gcs[i].type = AES_ROUND;
         } else {
-            printf("building AES FINAL ROUND\n");
             buildAESRoundComponentCircuit(p_gc, true, &delta);
             chained_gcs[i].type = AES_FINAL_ROUND;
 
@@ -49,14 +49,14 @@ void cbc_garb_off() {
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap);
     }
-    printf("%d circuits generated\n", num_chained_gcs);
-    garbler_offline(chained_gcs, num_chained_gcs);
+    garbler_offline(chained_gcs, NUM_EVAL_INPUTS, num_chained_gcs);
+    free(chained_gcs);
 }
 
 void cbc_eval_off() {
-    int num_chained_gcs = NUM_GCS; // defined in common
+    int num_chained_gcs = NUM_GCS; 
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
-    evaluator_offline(chained_gcs, num_chained_gcs);
+    evaluator_offline(chained_gcs, NUM_EVAL_INPUTS, num_chained_gcs);
 }
 
 void cbc_garb_on(char* function_path) {
@@ -68,7 +68,7 @@ void cbc_garb_on(char* function_path) {
     garb_inputs = malloc(sizeof(int) * num_garb_inputs);
     assert(garb_inputs);
     printf("input: ");
-    for (int i=0; i<num_garb_inputs; i++) {
+    for (int i = 0; i < num_garb_inputs; i++) {
         if ((i % 128) == 0) 
             printf("\n");
         garb_inputs[i] = rand() % 2; 
@@ -78,6 +78,9 @@ void cbc_garb_on(char* function_path) {
     unsigned long *ot_time = malloc(sizeof(unsigned long));
     unsigned long *tot_time = malloc(sizeof(unsigned long));
     garbler_online(function_path, garb_inputs, num_garb_inputs, num_chained_gcs, ot_time, tot_time);
+    printf("ot_time: %lu\n", *ot_time / NUM_GATES);
+    printf("tot_time: %lu\n", *tot_time / NUM_GATES);
+    printf("time without ot: %lu\n", (*tot_time - *ot_time) / NUM_GATES);
 }
 
 void cbc_eval_on() {
@@ -86,7 +89,7 @@ void cbc_eval_on() {
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
     assert(eval_inputs);
     printf("input: ");
-    for (int i=0; i<num_eval_inputs; i++) {
+    for (int i = 0; i < num_eval_inputs; i++) {
         if ((i % 128) == 0) 
             printf("\n");
         eval_inputs[i] = rand() % 2;
@@ -98,6 +101,10 @@ void cbc_eval_on() {
     unsigned long *ot_time = malloc(sizeof(unsigned long));
     unsigned long *tot_time = malloc(sizeof(unsigned long));
     evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, ot_time, tot_time);
+    printf("ot_time: %lu\n", *ot_time / NUM_GATES);
+    printf("tot_time: %lu\n", *tot_time / NUM_GATES);
+    printf("time without ot: %lu\n", (*tot_time - *ot_time) / NUM_GATES);
+
 }
 
 int main(int argc, char *argv[]) {
@@ -105,8 +112,9 @@ int main(int argc, char *argv[]) {
     
 	srand(time(NULL));
     srand_sse(time(NULL));
-    char* function_path = "functions/cbc.json";
     assert(argc == 2);
+    char *function_path = FUNCTION_PATH;
+    printf("Using function %s\n", function_path);
     if (strcmp(argv[1], "eval_online") == 0) {
         cbc_eval_on();
     } else if (strcmp(argv[1], "garb_online") == 0) {

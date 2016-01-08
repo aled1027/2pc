@@ -155,8 +155,7 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block*
     }
 }
 
-void 
-buildAESCircuit(GarbledCircuit *gc)
+void buildAESCircuit(GarbledCircuit *gc)
 {
 	GarblingContext garblingContext;
 
@@ -304,7 +303,7 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler)
 
 void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num) 
 {
-    for (int i=0; i<num; i++) {
+    for (int i = 0; i < num; i++) {
         ChainedGarbledCircuit *chained_gc = &chained_gcs[i];
         GarbledCircuit *gc = &chained_gc->gc;
 

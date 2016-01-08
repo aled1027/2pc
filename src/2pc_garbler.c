@@ -84,7 +84,7 @@ garbler_online(char* function_path, int *inputs, int num_garb_inputs,
 
     chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
     assert(chained_gcs);
-    for (int i=0; i<num_chained_gcs; i++) {
+    for (int i = 0; i < num_chained_gcs; i++) {
         loadChainedGC(&chained_gcs[i], i, true);
         //printf("loaded circuit of type: %d\n", chained_gcs[i].type);
     }
@@ -255,7 +255,7 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs,
         outputmap = allocate_blocks(2 * function->m);
         int p_outputmap = 0;
 
-        for (int j=0; j<function->output.size; j++) {
+        for (int j = 0; j < function->output.size; j++) {
             int gc_id = circuitMapping[function->output.gc_id[j]];
             int start_wire_idx = function->output.start_wire_idx[j];
             int end_wire_idx = function->output.end_wire_idx[j];
@@ -298,7 +298,7 @@ garbler_make_real_instructions(FunctionSpec *function, ChainedGarbledCircuit* ch
     num_component_types = function->num_component_types;
 
     // loop over type of circuit
-    for (int i=0; i<num_component_types; i++) {
+    for (int i = 0; i < num_component_types; i++) {
         CircuitType needed_type = function->components[i].circuit_type;
         int num_needed = function->components[i].num;
         int* circuit_ids = function->components[i].circuit_ids; // = {0,1,2};
@@ -307,7 +307,7 @@ garbler_make_real_instructions(FunctionSpec *function, ChainedGarbledCircuit* ch
         int j = 0, k = 0;
 
         // find an available circuit
-        for (int k=0; k<num_chained_gcs; k++) {
+        for (int k = 0; k < num_chained_gcs; k++) {
             if (!is_circuit_used[k] && chained_gcs[k].type == needed_type) {
                 // map it, and increment j
                 circuitMapping[circuit_ids[j]] = k;
@@ -325,7 +325,7 @@ garbler_make_real_instructions(FunctionSpec *function, ChainedGarbledCircuit* ch
     // set the chaining offsets.
     int num_instructions = function->instructions.size;
     Instruction *cur;
-    for (int i=0; i<num_instructions; i++) {
+    for (int i = 0; i < num_instructions; i++) {
         cur = &(function->instructions.instr[i]);
         if (cur->type == CHAIN) {
             cur->chOffset = xorBlocks(

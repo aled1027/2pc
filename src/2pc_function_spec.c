@@ -7,7 +7,7 @@
 int 
 freeFunctionSpec(FunctionSpec* function) 
 {
-    for (int i=0; i<function->num_component_types; i++) {
+    for (int i = 0; i < function->num_component_types; i++) {
         free(function->components[i].circuit_ids);
     }
     free(function->components);
@@ -114,7 +114,7 @@ json_load_components(json_t *root, FunctionSpec *function)
     function->num_component_types = size;
     function->components = malloc(sizeof(FunctionComponent) * size);
 
-    for (int i=0; i<size; i++) {
+    for (int i = 0; i < size; i++) {
         jComponent = json_array_get(jComponents, i);
         assert(json_is_object(jComponent));
 
@@ -136,7 +136,7 @@ json_load_components(json_t *root, FunctionSpec *function)
         jCircuit_ids = json_object_get(jComponent, "circuit_ids");
         assert (json_is_array(jCircuit_ids));
 
-        for (int k=0; k<num; k++) {
+        for (int k = 0; k < num; k++) {
             jId = json_array_get(jCircuit_ids, k);
             function->components[i].circuit_ids[k] = json_integer_value(jId);
         }
@@ -161,7 +161,7 @@ json_load_output(json_t *root, FunctionSpec *function)
     int sum = 0;
 
     // loop over output and extract info
-    for (int i=0; i<p_output->size; i++) {
+    for (int i = 0; i < p_output->size; i++) {
         jOutput = json_array_get(jOutputs, i);
         assert(json_is_object(jOutput));
 
@@ -197,7 +197,7 @@ void
 print_input_mapping(InputMapping* inputMapping) 
 {
     printf("InputMapping size: %d\n", inputMapping->size);
-    for (int i=0; i<inputMapping->size; i++) {
+    for (int i = 0; i < inputMapping->size; i++) {
         printf("%d -> (%d, %d)\n", inputMapping->input_idx[i], inputMapping->gc_id[i], inputMapping->wire_id[i]);
     }
 }
@@ -206,7 +206,7 @@ void
 print_instructions(Instructions* instr) 
 {
     printf("Instructions:\n");
-    for (int i=0; i<instr->size; i++) {
+    for (int i = 0; i < instr->size; i++) {
         switch(instr->instr[i].type) {
             case EVAL:
                 printf("EVAL %d\n", instr->instr[i].evCircId);
@@ -257,7 +257,7 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
 
     int l = 0;
     inputMapping->size = n;
-    for (int i=0; i<loop_size; i++) {
+    for (int i = 0; i < loop_size; i++) {
         // Get info from the json pointers
         jMap = json_array_get(jInputMapping, i);
         assert(json_is_object(jMap));

@@ -53,6 +53,12 @@ aes_garb_off:
 aes_eval_off:
 	./$(BINDIR)/$(AES) eval_offline
 
+aes_garb_on:
+	./$(BINDIR)/$(AES) garb_online
+
+aes_eval_on:
+	./$(BINDIR)/$(AES) eval_online
+
 aes_gdb_garb:
 	gdb --args $(BINDIR)/$(AES) garb_online
 
