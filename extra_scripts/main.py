@@ -1,6 +1,8 @@
 from pprint import pprint
 import json # json.dumps
 from collections import OrderedDict
+import argparse
+
 
 # assumes evaluator is supplying message
 # garbler is providing iv and key
@@ -167,7 +169,7 @@ def processTotRawInstructions(ret_dict):
         elif instruction['type'] == 'CHAIN':
             num_raw_instrs += (instruction['to_wire_id_end'] - instruction['to_wire_id_start'] + 1)
         else:
-            RuntimeError("instruction type not detected")
+            raise RuntimeError("instruction type not detected")
     ret_dict['tot_raw_instructions'] = num_raw_instrs
 
 def computeNumGates(ret_dict):
@@ -197,48 +199,79 @@ def computeNumGates(ret_dict):
         elif component['type'] == 'AES_FINAL_ROUND':
             num_gates += component['num'] * aes_final_gates_per_circuit
         else:
-            RuntimeError("type {} not detected".format(component['type']))
+            raise RuntimeError("type {} not detected".format(component['type']))
         return num_gates
 
+def cbc(num_message_blocks, num_rounds):
+    assert(num_message_blocks > 0)
+    ret_dict = OrderedDict()
+    # mesage bits input + key bits input + iv
+    ret_dict['n'] = (num_message_blocks*128) + (num_message_blocks*num_rounds*128) + 128
+    ret_dict['m'] = num_message_blocks*128
+    ret_dict['InputMapping'] = []
+    ret_dict['Output'] = []
+    ret_dict['instructions'] = []
+    ret_dict['components'] = []
+    ret_dict['gcs_used'] = 0
+    ret_dict['garbler_input_idx'] = 0
+    ret_dict['evaluator_input_idx'] = 0
+    ret_dict['input_idx'] = 0
+    ret_dict['tot_raw_instructions'] = 0
 
-
-
-num_message_blocks = 10
-num_rounds = 10
-assert(num_message_blocks > 0)
-ret_dict = OrderedDict()
-# mesage bits input + key bits input + iv
-ret_dict['n'] = (num_message_blocks*128) + (num_message_blocks*num_rounds*128) + 128
-ret_dict['m'] = num_message_blocks*128
-ret_dict['InputMapping'] = []
-ret_dict['Output'] = []
-ret_dict['instructions'] = []
-ret_dict['components'] = []
-ret_dict['gcs_used'] = 0
-ret_dict['garbler_input_idx'] = 0
-ret_dict['evaluator_input_idx'] = 0
-ret_dict['input_idx'] = 0
-ret_dict['tot_raw_instructions'] = 0
-
-initializeComponents(ret_dict)
-addIVXOR(ret_dict)
-addAES(ret_dict, num_rounds=num_rounds)
-for i in range(num_message_blocks-1):
-    print("in for loop, i=",i)
-    addMessageBlockXOR(ret_dict)
+    initializeComponents(ret_dict)
+    addIVXOR(ret_dict)
     addAES(ret_dict, num_rounds=num_rounds)
-processTotRawInstructions(ret_dict)
-num_gates = computeNumGates(ret_dict)
+    for i in range(num_message_blocks-1):
+        print("in for loop, i=",i)
+        addMessageBlockXOR(ret_dict)
+        addAES(ret_dict, num_rounds=num_rounds)
+    processTotRawInstructions(ret_dict)
+    num_gates = computeNumGates(ret_dict)
 
-assert(ret_dict['garbler_input_idx'] + ret_dict['evaluator_input_idx'] == ret_dict['n'])
-assert(ret_dict['input_idx'] == ret_dict['n'])
+    assert(ret_dict['garbler_input_idx'] + ret_dict['evaluator_input_idx'] == ret_dict['n'])
+    assert(ret_dict['input_idx'] == ret_dict['n'])
 
-ret_dict['meta_data'] = OrderedDict({
-        "num_message_blocks": num_message_blocks,
-        "num_rounds": num_rounds,
-        "garbler_inputs": ret_dict['garbler_input_idx'],
-        "evaluator_inputs": ret_dict['evaluator_input_idx'],
-        "num_gates": num_gates})
+    ret_dict['meta_data'] = OrderedDict({
+            "num_message_blocks": num_message_blocks,
+            "num_rounds": num_rounds,
+            "garbler_inputs": ret_dict['garbler_input_idx'],
+            "evaluator_inputs": ret_dict['evaluator_input_idx'],
+            "num_gates": num_gates})
 
-s = json.dumps(ret_dict)
-print(s)
+    s = json.dumps(ret_dict)
+    print(s)
+
+def ctr(num_message_blocks, num_rounds):
+    """
+    Generates the JSON for CTR mode.
+
+    CTR is nontrivial only if one party provides the IV and one party provides the AES key.
+    But since who chooses the IV doesn't matter, can't we just decide at the time of encryption that the provider
+    of the key will also provide the IV?
+
+    If the same provides both the key and the IV, then the 2PC computation is only the xor operatoin for each block.
+    """
+    raise RuntimeError("Not yet implemented")
+
+if __name__=='__main__':
+    # command line instructions
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mode', choices=('cbc', 'ctr'))
+    parser.add_argument('num_rounds', type=int, help='number of rounds when performing aes')
+    parser.add_argument('num_message_blocks', type=int, help='number of message blocks')
+
+    # parsing args
+    args = parser.parse_args()
+    num_message_blocks = args.num_message_blocks
+    num_rounds = args.num_rounds
+
+    if args.mode == 'cbc':
+        print("Doing CBC with {} message blocks and {} rounds".format(num_message_blocks, num_rounds))
+        cbc(num_message_blocks, num_rounds)
+    elif args.mode == 'ctr':
+        print("Doing CTR with {} message blocks and {} rounds".format(num_message_blocks, num_rounds))
+        ctr(num_message_blocks, num_rounds)
+
+
+
+    print('here')
