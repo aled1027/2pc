@@ -18,7 +18,7 @@ int NUM_GATES = 351360;
 
 int NUM_GARB_INPUTS = 12928;
 int NUM_EVAL_INPUTS = 1280;
-char* FUNCTION_PATH = "functions/cbc_10_10.json"; /* 10,90,10,garb=12928,eval=1280,gates=351360 */
+char *FUNCTION_PATH = "functions/cbc_10_10.json"; /* 10,90,10,garb=12928,eval=1280,gates=351360 */
 //char* FUNCTION_PATH = "functions/cbc_2_2.json"; /* 2,2,2,garb=640,eval=256, gates=7808 */
 
 void cbc_garb_off() {
@@ -68,7 +68,7 @@ void cbc_garb_on(char* function_path) {
     garb_inputs = malloc(sizeof(int) * num_garb_inputs);
     assert(garb_inputs);
     printf("input: ");
-    for (int i=0; i<num_garb_inputs; i++) {
+    for (int i = 0; i < num_garb_inputs; i++) {
         if ((i % 128) == 0) 
             printf("\n");
         garb_inputs[i] = rand() % 2; 
@@ -89,7 +89,7 @@ void cbc_eval_on() {
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
     assert(eval_inputs);
     printf("input: ");
-    for (int i=0; i<num_eval_inputs; i++) {
+    for (int i = 0; i < num_eval_inputs; i++) {
         if ((i % 128) == 0) 
             printf("\n");
         eval_inputs[i] = rand() % 2;
