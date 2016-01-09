@@ -251,7 +251,7 @@ def ctr(num_message_blocks, num_rounds):
 
     If the same provides both the key and the IV, then the 2PC computation is only the xor operatoin for each block.
     """
-    raise RuntimeError("Not yet implemented")
+    raise NotImplementedError
 
 if __name__=='__main__':
     # command line instructions

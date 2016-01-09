@@ -34,8 +34,39 @@
 1. In one terminal run `make aes_garb_on`
 1. In another terminal run `make aes_eval_on`
 
+## To run CBC
+### Offline
+1. Generate the json using by running `python extra_scripts/main.py --mode cbc 10 8`
+    - 10 indicates 10 rounds for aes
+    - 8 indicates that there will be 8 128 bit message blocks
+1. Copy the output of previously run script to `functions/cbc.json`
+1. In one terminal run `make cbc_garb_off`
+1. In another terminal run `make cbc_eval_off`
+1. Now the directores `files/evaluator_gcs` and `files/garbler_gcs` should be populated with files.
+
+### Online
+1. In one terminal run `make cbc_garb_on`
+1. In another terminal run `make cbc_eval_on`
+
 ## Miscellaneous Notes
 - to view json files: [json online editor](http://www.jsoneditoronline.org/)
+- taking about 65 c/g for CBC 10 10 
+
+- Sometimes get the compile error: "Typedef redefinition with different types".
+    - It's referring to line 61 JustGarble/include/aes.h, 
+        - `typedef struct { __m128i rd_key[15]; int rounds; } AES_KEY;`
+    - And to line 84 openssl/aes.h,
+        - `typedef struct aes_key_st AES_KEY`
+    - My weird solution to the error - not sure why it works right now, but will figure it out - to go back to previous commmit and generate the .o files.
+    - So I do:
+        - 'make clean`
+        - `git checkout 0610e654354982b11fc0537ae93774bdc743b5d6`
+        - `make`
+        - `git checkout master`
+        - `make`
+    - And for some reason that works.
+    - But I if I do `make clean; make;`, I get the error.
+    - It's weird because the file in the 2pc code that includes these files is `src/ot_np.c`, and that file hasn't been updated since the project was started.
 
 ## File Organization
 - Core 2pc files:

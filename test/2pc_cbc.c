@@ -7,23 +7,41 @@
 
 #include "2pc_garbler.h" 
 #include "2pc_evaluator.h" 
+#include "utils.h"
 
 #include "arg.h"
 
-int NUM_XOR_GCS = 10;
-int NUM_AES_GCS = 90;
-int NUM_FINAL_AES_GCS = 10;
-int NUM_GCS = 110;
-int NUM_GATES = 351360;
+int NUM_AES_ROUNDS = 10;
+int NUM_CBC_BLOCKS = 10;
 
-int NUM_GARB_INPUTS = 12928;
-int NUM_EVAL_INPUTS = 1280;
-char *FUNCTION_PATH = "functions/cbc_10_10.json"; /* 10,90,10,garb=12928,eval=1280,gates=351360 */
-//char* FUNCTION_PATH = "functions/cbc_2_2.json"; /* 2,2,2,garb=640,eval=256, gates=7808 */
+char *FULL_FUNCTION_PATH = "functions/full_cbc.json";
+char *COMPONENT_FUNCTION_PATH = "functions/cbc_10_10.json"; 
+//char* COMPONENT_FUNCTION_PATH = "functions/cbc_2_2.json";
 
-void cbc_garb_off() {
+static int getNumGarbInputs() { return (NUM_AES_ROUNDS * NUM_CBC_BLOCKS * 128) + 128; }
+static int getNumEvalInputs() { return NUM_CBC_BLOCKS * 128; }
+static int getNumXORCircs() { return NUM_CBC_BLOCKS; }
+static int getNumAESCircs() { return (NUM_AES_ROUNDS-1) * NUM_CBC_BLOCKS; }
+static int getNumFinalAESCircs() { return NUM_CBC_BLOCKS; }
+static int getNumCircs() { return getNumXORCircs() + getNumAESCircs() + getNumFinalAESCircs();}
+static int getM() { return NUM_CBC_BLOCKS * 128; }
+
+static int getNumGates() {
+    int gates_per_xor = 128;
+    int gates_per_aes = 3904;
+    int gates_per_aes_final = 3904; // TODO this number is off. should be less than aes round
+
+    return getNumXORCircs() * gates_per_xor + getNumAESCircs() * gates_per_aes + 
+        getNumFinalAESCircs() * gates_per_aes_final;
+}
+
+
+void cbc_garb_off() 
+{
     printf("Running cbc garb offline\n");
-    int num_chained_gcs = NUM_GCS; 
+    int num_chained_gcs = getNumCircs(); 
+    int num_xor_circs = getNumXORCircs();
+    int num_aes_circs = getNumAESCircs();
     ChainedGarbledCircuit *chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
 
     block delta = randomBlock();
@@ -31,10 +49,10 @@ void cbc_garb_off() {
 
     for (int i = 0; i < num_chained_gcs; i++) {
         GarbledCircuit* p_gc = &(chained_gcs[i].gc);
-        if (i < NUM_XOR_GCS) {
+        if (i < num_xor_circs) {
             buildXORCircuit(p_gc, &delta);
             chained_gcs[i].type = XOR;
-        } else if (i < NUM_XOR_GCS + NUM_AES_GCS) {
+        } else if (i < num_xor_circs + num_aes_circs) {
             buildAESRoundComponentCircuit(p_gc, false, &delta);
             chained_gcs[i].type = AES_ROUND;
         } else {
@@ -49,63 +67,147 @@ void cbc_garb_off() {
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap);
     }
-    garbler_offline(chained_gcs, NUM_EVAL_INPUTS, num_chained_gcs);
+    int num_eval_inputs = getNumEvalInputs();
+    garbler_offline(chained_gcs, num_eval_inputs, num_chained_gcs);
     free(chained_gcs);
 }
 
-void cbc_eval_off() {
-    int num_chained_gcs = NUM_GCS; 
+void cbc_eval_off() 
+{
+    int num_chained_gcs = getNumCircs(); 
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
-    evaluator_offline(chained_gcs, NUM_EVAL_INPUTS, num_chained_gcs);
+    int num_eval_inputs = getNumEvalInputs();
+    evaluator_offline(chained_gcs, num_eval_inputs, num_chained_gcs);
 }
 
-void cbc_garb_on(char* function_path) {
+void cbc_garb_on() 
+{
+    char *function_path = COMPONENT_FUNCTION_PATH;
     printf("Running cbc garb online\n");
-    int num_chained_gcs = NUM_GCS;
+    int num_chained_gcs = getNumCircs();
     int num_garb_inputs, *garb_inputs;
 
-    num_garb_inputs = NUM_GARB_INPUTS;
+    num_garb_inputs = getNumGarbInputs();
     garb_inputs = malloc(sizeof(int) * num_garb_inputs);
     assert(garb_inputs);
-    printf("input: ");
     for (int i = 0; i < num_garb_inputs; i++) {
-        if ((i % 128) == 0) 
-            printf("\n");
         garb_inputs[i] = rand() % 2; 
-        printf("%d",garb_inputs[i]);
     }
-    printf("\n");
-    unsigned long *ot_time = malloc(sizeof(unsigned long));
     unsigned long *tot_time = malloc(sizeof(unsigned long));
-    garbler_online(function_path, garb_inputs, num_garb_inputs, num_chained_gcs, ot_time, tot_time);
-    printf("ot_time: %lu\n", *ot_time / NUM_GATES);
-    printf("tot_time: %lu\n", *tot_time / NUM_GATES);
-    printf("time without ot: %lu\n", (*tot_time - *ot_time) / NUM_GATES);
+    garbler_online(function_path, garb_inputs, num_garb_inputs, num_chained_gcs, NULL, tot_time);
+    int num_gates = getNumGates();
+    printf("tot_time: %lu\n", *tot_time / num_gates);
 }
 
-void cbc_eval_on() {
+void cbc_eval_on() 
+{
     printf("Running cbc eval online\n");
-    int num_eval_inputs = NUM_EVAL_INPUTS;
+    int num_eval_inputs = getNumEvalInputs();
     int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
     assert(eval_inputs);
-    printf("input: ");
     for (int i = 0; i < num_eval_inputs; i++) {
-        if ((i % 128) == 0) 
-            printf("\n");
         eval_inputs[i] = rand() % 2;
-        printf("%d",eval_inputs[i]);
     }
-    printf("\n");
 
-    int num_chained_gcs = NUM_GCS;
-    unsigned long *ot_time = malloc(sizeof(unsigned long));
+    int num_chained_gcs = getNumCircs();
     unsigned long *tot_time = malloc(sizeof(unsigned long));
-    evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, ot_time, tot_time);
-    printf("ot_time: %lu\n", *ot_time / NUM_GATES);
-    printf("tot_time: %lu\n", *tot_time / NUM_GATES);
-    printf("time without ot: %lu\n", (*tot_time - *ot_time) / NUM_GATES);
-
+    evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, NULL, tot_time);
+    int num_gates = getNumGates();
+    printf("tot_time: %lu\n", *tot_time / num_gates);
 }
+
+void full_cbc_garb()
+{
+    /* Garbler offline phase for CBC where no components are used:
+     * only a single circuit
+     */
+    printf("Running full cbc garb offline\n");
+
+    // TODO: this time should be included in tot_time
+
+    block delta = randomBlock();
+    *((uint16_t *) (&delta)) |= 1;
+
+    GarbledCircuit gc;
+    buildCBCFullCircuit(&gc, NUM_CBC_BLOCKS, NUM_AES_ROUNDS, &delta);
+
+    InputLabels inputLabels = allocate_blocks(2 * gc.n);
+    OutputMap outputMap = allocate_blocks(2 * gc.m);
+    assert(inputLabels && outputMap);
+
+    garbleCircuit(&gc, inputLabels, outputMap);
+    int num_garb_inputs = getNumGarbInputs();
+    int num_eval_inputs = getNumEvalInputs();
+
+    int *garb_inputs = malloc(sizeof(int) * num_garb_inputs);
+    for (int i = 0; i < num_garb_inputs; i++) {
+        garb_inputs[i] = rand() % 2; 
+    }
+
+    InputMapping imap; // TODO Fill this and we are good
+    imap.size = num_eval_inputs + num_garb_inputs;
+    imap.input_idx = malloc(sizeof(int) * imap.size);
+    imap.gc_id = malloc(sizeof(int) * imap.size);
+    imap.wire_id = malloc(sizeof(int) * imap.size);
+    imap.inputter = malloc(sizeof(Person) * imap.size);
+
+    for (int i = 0; i < num_eval_inputs; i++) {
+        imap.input_idx[i] = i;
+        imap.gc_id[i] = 0;
+        imap.wire_id[i] = i;
+        imap.inputter[i] = PERSON_EVALUATOR;
+    }
+
+    for (int i = num_eval_inputs; i < num_eval_inputs + num_garb_inputs; i++) {
+        imap.input_idx[i] = i;
+        imap.gc_id[i] = 0;
+        imap.wire_id[i] = i;
+        imap.inputter[i] = PERSON_GARBLER;
+    }
+
+    unsigned long *tot_time = malloc(sizeof(unsigned long));
+    garbler_classic_2pc(&gc, inputLabels, &imap, outputMap,
+            num_garb_inputs, num_eval_inputs, garb_inputs, tot_time); 
+
+    free(inputLabels);
+    free(outputMap);
+}
+
+void full_cbc_eval()
+{
+    /* Evaluator offline phase for CBC where no components are used:
+     * only a single circuit
+     */
+    printf("Running full cbc eval offline\n");
+    int num_garb_inputs = getNumGarbInputs();
+    int num_eval_inputs = getNumEvalInputs();
+
+    int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
+    for (int i = 0; i < num_eval_inputs; i++) {
+        eval_inputs[i] = rand() % 2;
+    }
+    int *output = malloc(sizeof(int) * getM());
+    unsigned long *tot_time = malloc(sizeof(unsigned long));
+    evaluator_classic_2pc(eval_inputs, output, num_garb_inputs, 
+            num_eval_inputs, tot_time);
+}
+
+//void full_cbc_eval_on()
+//{
+//    printf("Running full cbc eval online\n");
+//    int num_eval_inputs = getNumEvalInputs();
+//    int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
+//    assert(eval_inputs);
+//    for (int i = 0; i < num_eval_inputs; i++) {
+//        eval_inputs[i] = rand() % 2;
+//    }
+//
+//    int num_chained_gcs = getNumCircs();
+//    unsigned long *tot_time = malloc(sizeof(unsigned long));
+//    evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, NULL, tot_time);
+//    int num_gates = getNumGates();
+//    printf("tot_time: %lu\n", *tot_time / num_gates);
+//}
 
 int main(int argc, char *argv[]) {
     // TODO add in arg.h stuff
@@ -113,16 +215,20 @@ int main(int argc, char *argv[]) {
 	srand(time(NULL));
     srand_sse(time(NULL));
     assert(argc == 2);
-    char *function_path = FUNCTION_PATH;
-    printf("Using function %s\n", function_path);
     if (strcmp(argv[1], "eval_online") == 0) {
         cbc_eval_on();
     } else if (strcmp(argv[1], "garb_online") == 0) {
-        cbc_garb_on(function_path);
+        cbc_garb_on();
     } else if (strcmp(argv[1], "garb_offline") == 0) {
         cbc_garb_off();
     } else if (strcmp(argv[1], "eval_offline") == 0) {
         cbc_eval_off();
+
+    } else if (strcmp(argv[1], "full_garb_on") == 0) {
+        full_cbc_garb();
+    } else if (strcmp(argv[1], "full_eval_on") == 0) {
+        full_cbc_eval();
+
     } else {
         printf("See test/2pc_cbc.c:main for usage\n");
     }

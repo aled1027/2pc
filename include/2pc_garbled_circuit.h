@@ -12,6 +12,7 @@ typedef enum {
     AES_ROUND = 4,
     AES_FINAL_ROUND = 5,
     XOR = 6,
+    FULL_CBC = 7,
     CIRCUIT_TYPE_ERR = -1
     } CircuitType;
 
@@ -35,8 +36,11 @@ typedef struct {
     char** gc_paths; 
 } GCsMetadata;
 
-int createGarbledCircuits(ChainedGarbledCircuit* chained_gcs, int n);
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
+
+void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
+        int *inputWires, int *outputWires);
+void buildCBCFullCircuit(GarbledCircuit *gc, int num_message_blocks, int num_aes_rounds, block *delta);
 void buildAdderCircuit(GarbledCircuit *gc);
 void buildAESCircuit(GarbledCircuit *gc);
 void buildXORCircuit(GarbledCircuit *gc, block* delta);

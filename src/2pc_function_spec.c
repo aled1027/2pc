@@ -322,6 +322,8 @@ get_circuit_type_from_string(const char* type)
         return AES_FINAL_ROUND;
     } else if (strcmp(type, "XOR") == 0) {
         return XOR;
+    } else if (strcmp(type, "FULL_CBC") == 0) {
+        return FULL_CBC;
     } else {
         fprintf(stderr, "circuit type error when loading json: can't detect %s\n", type);
         return CIRCUIT_TYPE_ERR;

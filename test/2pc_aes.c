@@ -17,7 +17,8 @@ int MEDIAN_IDX = 11; // NUM_TRIALS / 2 - 1
 bool is_timing = false;
 unsigned long NUM_GATES = 36480;
 
-void aes_garb_off() {
+void aes_garb_off() 
+{
     printf("Running garb offline\n");
     int num_chained_gcs = NUM_GCS; // defined in 2pc_common.h
     ChainedGarbledCircuit *chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
@@ -45,13 +46,14 @@ void aes_garb_off() {
     garbler_offline(chained_gcs, 128, num_chained_gcs);
     free(chained_gcs);
 }
-int
-myCompare(const void * a, const void * b)
+
+int myCompare(const void * a, const void * b)
 {
 	return (int) (*(unsigned long*) a - *(unsigned long*) b);
 }
 
-void aes_garb_on(char* function_path, bool timing) {
+void aes_garb_on(char* function_path, bool timing) 
+{
     // crude addition for timings
     if (timing) {
         unsigned long *ot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
@@ -97,13 +99,15 @@ void aes_garb_on(char* function_path, bool timing) {
     }
 }
 
-void aes_eval_off() {
+void aes_eval_off() 
+{
     int num_chained_gcs = NUM_GCS; // defined in common
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
     evaluator_offline(chained_gcs, 128, num_chained_gcs);
 }
 
-void aes_eval_on(bool timing) {
+void aes_eval_on(bool timing) 
+{
     if (timing) {
         unsigned long *ot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
         unsigned long *tot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
@@ -145,7 +149,8 @@ void aes_eval_on(bool timing) {
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) 
+{
     // TODO add in arg.h stuff
     
 	srand(time(NULL));

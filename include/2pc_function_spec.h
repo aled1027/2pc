@@ -57,7 +57,8 @@ typedef struct {
     int *start_wire_idx;
     int *end_wire_idx;
     int size; // size of the arrays
-} Output;
+} 
+Output;
 
 typedef struct {
     /* The specifiction for a function. 
