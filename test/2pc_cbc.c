@@ -178,6 +178,7 @@ void full_cbc_eval()
     /* Evaluator offline phase for CBC where no components are used:
      * only a single circuit
      */
+
     printf("Running full cbc eval offline\n");
     int num_garb_inputs = getNumGarbInputs();
     int num_eval_inputs = getNumEvalInputs();
@@ -190,24 +191,15 @@ void full_cbc_eval()
     unsigned long *tot_time = malloc(sizeof(unsigned long));
     evaluator_classic_2pc(eval_inputs, output, num_garb_inputs, 
             num_eval_inputs, tot_time);
-}
+    printf("tot_time %lu\n", *tot_time / getNumGates());
 
-//void full_cbc_eval_on()
-//{
-//    printf("Running full cbc eval online\n");
-//    int num_eval_inputs = getNumEvalInputs();
-//    int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
-//    assert(eval_inputs);
-//    for (int i = 0; i < num_eval_inputs; i++) {
-//        eval_inputs[i] = rand() % 2;
-//    }
-//
-//    int num_chained_gcs = getNumCircs();
-//    unsigned long *tot_time = malloc(sizeof(unsigned long));
-//    evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, NULL, tot_time);
-//    int num_gates = getNumGates();
-//    printf("tot_time: %lu\n", *tot_time / num_gates);
-//}
+    //printf("output: ");
+    //for (int i = 0; i < num_eval_inputs; i++) {
+    //    if (i % 128 == 0)
+    //        printf("\n");
+    //    printf("%d", output[i]);
+    //}
+}
 
 int main(int argc, char *argv[]) {
     // TODO add in arg.h stuff

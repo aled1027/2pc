@@ -33,12 +33,11 @@ void evaluator_classic_2pc(int *input, int *output,
     gc_comm_recv(sockfd, &gc);
     assert(num_garb_inputs + num_eval_inputs == gc.n);
 
-
-    /* Receive input_mapping */
+    //* Receive input_mapping */
     size_t buf_size;
     net_recv(sockfd, &buf_size, sizeof(size_t), 0);
     char *buffer = malloc(buf_size);
-    net_recv(sockfd, &buffer, buf_size, 0);
+    net_recv(sockfd, buffer, buf_size, 0);
     InputMapping input_mapping;
     readBufferIntoInputMapping(&input_mapping, buffer);
     free(buffer);
@@ -46,9 +45,9 @@ void evaluator_classic_2pc(int *input, int *output,
     /* Receive garb_labels */
     block *garb_labels = allocate_blocks(num_garb_inputs);
     if (num_garb_inputs > 0) 
-        net_recv(sockfd, &garb_labels, sizeof(block) * num_garb_inputs, 0);
+        net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
 
-    /* Receive eval_labels via OT */
+    ///* Receive eval_labels via OT */
     block *eval_labels = allocate_blocks(2 * num_eval_inputs);
     ot_np_recv(&state, sockfd, input, num_eval_inputs, sizeof(block), 2, eval_labels,
                new_choice_reader, new_msg_writer);
@@ -68,18 +67,18 @@ void evaluator_classic_2pc(int *input, int *output,
 
     /* Receive output_map */
     OutputMap output_map = allocate_blocks(2 * gc.m);
-    net_recv(sockfd, &output_map, sizeof(block) * 2 * gc.m, 0);
+    net_recv(sockfd, output_map, sizeof(block) * 2 * gc.m, 0);
 
-    /* Evaluate the circuit */
+    ///* Evaluate the circuit */
     block *computed_output_map = allocate_blocks(gc.m);
     evaluate(&gc, labels, computed_output_map);
     mapOutputs(output_map, computed_output_map, output, gc.m);
 
-    /* Close and clean up network */
+    ///* Close and clean up network */
     close(sockfd);
     state_cleanup(&state);
 
-    /* free up memory */
+    ///* free up memory */
     free(output_map);
     free(computed_output_map);
     free(eval_labels);

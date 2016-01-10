@@ -281,6 +281,7 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
         jWireIdx = json_object_get(jMap, "end_wire_idx");
         assert(json_is_integer(jWireIdx));
         int end_wire_idx = json_integer_value(jWireIdx);
+        assert(end_input_idx - start_input_idx == end_wire_idx - start_wire_idx);
         
         jInputter = json_object_get(jMap, "inputter");
         assert(json_is_string(jInputter));
@@ -295,9 +296,7 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
             inputter = PERSON_ERR;
         }
 
-        // Double check with line 95-106 of 2pc_evaluator.c
         // process and save the info to inputMapping
-        assert(end_input_idx - start_input_idx == end_wire_idx - start_wire_idx);
         for (int j = start_input_idx, k = start_wire_idx; j <= end_input_idx; j++, k++, l++) {
             inputMapping->input_idx[l] = j;
             inputMapping->wire_id[l] = k;
@@ -432,7 +431,6 @@ json_load_instructions(json_t *root, FunctionSpec *function)
     }
     return SUCCESS;
 }
-
 
 int 
 writeInstructionsToBuffer(Instructions* instructions, char* buffer) 

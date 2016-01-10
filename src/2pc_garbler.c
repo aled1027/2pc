@@ -1,5 +1,4 @@
 #include "2pc_garbler.h"
-
 #include <assert.h> 
 #include <stdio.h>
 #include <stdbool.h>
