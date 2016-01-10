@@ -10,12 +10,13 @@
 #include "2pc_evaluator.h" 
 
 #include "arg.h"
+#include "utils.h"
 
 int NUM_GCS = 10;
 int NUM_TRIALS = 20;
 int MEDIAN_IDX = 11; // NUM_TRIALS / 2 - 1
 bool is_timing = false;
-unsigned long NUM_GATES = 36480;
+unsigned long NUM_GATES = 34000;
 
 void aes_garb_off() 
 {
@@ -149,10 +150,87 @@ void aes_eval_on(bool timing)
     }
 }
 
+void full_aes_garb() 
+{
+    printf("Running full aes garb offline\n");
+    GarbledCircuit gc;
+    buildAESCircuit(&gc);
+
+    InputLabels inputLabels = allocate_blocks(2 * gc.n);
+    OutputMap outputMap = allocate_blocks(2 * gc.m);
+    assert(inputLabels && outputMap);
+
+    garbleCircuit(&gc, inputLabels, outputMap);
+    int num_garb_inputs = 128 * 10;
+    int num_eval_inputs = 128;
+
+    int *garb_inputs = malloc(sizeof(int) * num_garb_inputs);
+    for (int i = 0; i < num_garb_inputs; i++) {
+        garb_inputs[i] = rand() % 2; 
+    }
+
+    InputMapping imap; // TODO Fill this and we are good
+    imap.size = num_eval_inputs + num_garb_inputs;
+    imap.input_idx = malloc(sizeof(int) * imap.size);
+    imap.gc_id = malloc(sizeof(int) * imap.size);
+    imap.wire_id = malloc(sizeof(int) * imap.size);
+    imap.inputter = malloc(sizeof(Person) * imap.size);
+
+    for (int i = 0; i < num_eval_inputs; i++) {
+        imap.input_idx[i] = i;
+        imap.gc_id[i] = 0;
+        imap.wire_id[i] = i;
+        imap.inputter[i] = PERSON_EVALUATOR;
+    }
+
+    for (int i = num_eval_inputs; i < num_eval_inputs + num_garb_inputs; i++) {
+        imap.input_idx[i] = i;
+        imap.gc_id[i] = 0;
+        imap.wire_id[i] = i;
+        imap.inputter[i] = PERSON_GARBLER;
+    }
+
+    unsigned long *tot_time = malloc(sizeof(unsigned long));
+    garbler_classic_2pc(&gc, inputLabels, &imap, outputMap,
+            num_garb_inputs, num_eval_inputs, garb_inputs, tot_time); 
+
+    free(inputLabels);
+    free(outputMap);
+}
+
+void full_aes_eval() 
+{
+    /* Evaluator offline phase for CBC where no components are used:
+     * only a single circuit
+     */
+
+    printf("Running full aes eval offline\n");
+    int num_garb_inputs = 128 * 10;
+    int num_eval_inputs = 128;
+    int m = 128;
+
+    int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
+    for (int i = 0; i < num_eval_inputs; i++) {
+        eval_inputs[i] = rand() % 2;
+    }
+    int *output = malloc(sizeof(int) * m);
+    unsigned long *tot_time = malloc(sizeof(unsigned long));
+    evaluator_classic_2pc(eval_inputs, output, num_garb_inputs, 
+            num_eval_inputs, tot_time);
+    printf("tot_time %lu\n", *tot_time / NUM_GATES);
+
+    //printf("output: ");
+    //for (int i = 0; i < num_eval_inputs; i++) {
+    //    if (i % 128 == 0)
+    //        printf("\n");
+    //    printf("%d", output[i]);
+    //}
+
+}
+
 int main(int argc, char *argv[]) 
 {
     // TODO add in arg.h stuff
-    
 	srand(time(NULL));
     srand_sse(time(NULL));
     char* function_path = "functions/aes.json";
@@ -166,6 +244,12 @@ int main(int argc, char *argv[])
     } else if (strcmp(argv[1], "eval_offline") == 0) {
         printf("Running val offline\n");
         aes_eval_off();
+
+    } else if (strcmp(argv[1], "full_garb") == 0) {
+        full_aes_garb();
+    } else if (strcmp(argv[1], "full_eval") == 0) {
+        full_aes_eval();
+
     } else {
         printf("Seeing test/2pc_aes.c:main for usage\n");
     }

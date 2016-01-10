@@ -99,6 +99,12 @@ aes_gdb_garb:
 aes_gdb_eval:
 	gdb --args $(BINDIR)/$(AES) eval_online
 
+aes_full_garb:
+	gdb --args $(BINDIR)/$(AES) full_garb
+
+aes_full_eval:
+	gdb --args $(BINDIR)/$(AES) full_eval
+
 ##########
 # EXTRAS #
 ##########

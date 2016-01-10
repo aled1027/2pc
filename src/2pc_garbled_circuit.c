@@ -289,7 +289,7 @@ void buildAESCircuit(GarbledCircuit *gc)
 			addKeyInputs[i + 128] = (round + 2) * 128 + i;
 		}
 	}
-	final = mixColumnOutputs;
+	final = shiftRowsOutputs;
 	finishBuilding(gc, &garblingContext, outputMap, final);
 }
 
