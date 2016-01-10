@@ -6,6 +6,7 @@
 
 #include "utils.h"
 #include "2pc_common.h"
+#include "gates.h"
 
 int 
 freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc) 
@@ -16,6 +17,132 @@ freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc)
     return 0;
 }
 
+void
+buildLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gc_context) 
+{
+    /* Makes a "LevenshteinCore" circuit as defined in 
+     * Faster Secure Two-Party Computation Using Garbled Circuits
+     * Page 9, figure 5c. 
+     *
+     * Note: they use a two-bit alphabet, they call the size of the alphabet sigma,
+     * because there are four possible nucleobases. Here sigma is hardcoded as 2
+     */
+    int l = 100; /* length of input strings, and max size in bits of a and b */
+    /* Input = D[i-1][j-1] ||D[i-1][j] || D[i][j-1] || a[i] || b[j] */
+
+    /* TODO These things should be happening before and after the function?
+     * Or do we want this build to be self contained? */
+    
+    /* input wires indices for the 5 input objects */
+    int *D_minus_minus = allocate_ints(l); /*D[i-1][j-1] */
+    int *D_minus_same = allocate_ints(l); /* D[1-1][j] */
+    int *D_same_minus = allocate_ints(l); /* D[i][j-1] */
+    int symbol0[2];
+    int symbol1[2];
+
+    /* arrayPopulateRange is inclusive on start and exclusive on end */
+    arrayPopulateRange(D_minus_minus, 0, l);
+    arrayPopulateRange(D_minus_same, l, 2*l);
+    arrayPopulateRange(D_same_minus, 2*l, 3*l);
+    arrayPopulateRange(symbol0, 3 * l, 3 * l + 2);
+    arrayPopulateRange(symbol0, 3 * l + 2, 3 * l + 4);
+
+    /* First MIN circuit 
+     * D_minus_same, D_same_minus MIN circuit */
+    int *min_inputs = allocate_ints(2*l);
+    memcpy(min_inputs, D_minus_same, sizeof(int) * l);
+    memcpy(min_inputs + l, D_same_minus, sizeof(int) * l);
+    int *min_outputs = allocate_ints(l);
+    MINCircuit(gc, gc_context, 2*l, min_inputs, min_outputs);
+
+    /* Second MIN Circuit 
+     * Uses input from first min cricuit and D_minus_minus */
+    memcpy(min_inputs, D_minus_minus, sizeof(int) * l);
+    memcpy(min_inputs + l, min_outputs, sizeof(int) * l);
+    MINCircuitWithLEQOutput(gc, gc_context, 2*l, min_inputs, min_outputs); 
+
+    /* T */
+    int *xor_output = allocate_ints(2);
+    int T_output;
+    XORGate(gc, gc_context, symbol0[0], symbol1[1], xor_output[0]);
+    XORGate(gc, gc_context, symbol0[1], symbol1[0], xor_output[1]);
+    ORGate(gc, gc_context, xor_output[0], xor_output[1], T_output);
+
+    /* 2-1 MUX */
+    int mux_switch = min_outputs[l + 1];
+    int mux_input[2];
+    mux_input[0] = T_output;
+    int fixed_one_wire = fixedOneWire(gc, gc_context);
+    mux_input[1] = fixed_one_wire;
+
+    int and_output[2];
+    ANDGate(gc, gc_context, mux_input[0], mux_switch, and_output[0]);
+
+    int not_mux_switch;
+    NOTGate(gc, gc_context, mux_switch, not_mux_switch);
+    ANDGate(gc, gc_context, mux_input[1], not_mux_switch, and_output[1]);
+
+    int mux_output;
+    ORGate(gc, gc_context, and_output[0], and_output[1], mux_output);
+
+    /* AddOneBit */
+    int *l_bit_number = allocate_ints(l); /* set to have value 1 (because we want to add 1) */
+    l_bit_number[l-1] = fixed_one_wire;
+    int fixed_zero_wire = fixedZeroWire(gc, gc_context);
+    for (int i = 0; i < l - 1; i++)
+        l_bit_number[i] = fixed_zero_wire;
+
+    /* set inputs for AddOneBit */
+    int *add_inputs = allocate_ints(2*l);
+    memcpy(add_inputs, min_outputs, sizeof(int) * l);
+    memcpy(add_inputs + l, l_bit_number, sizeof(int) * l);
+
+    int *add_outputs = allocate_ints(2*l);
+    ADDCircuit(gc, gc_context, 2*l, add_inputs, add_outputs);
+
+    /* outputwires are add_outputs */
+	finishBuilding(gc, gc_context, outputMap, add_outputs);
+
+    /* Free a ton of pointers */
+    free(D_minus_minus);
+    free(D_minus_same);
+    free(D_same_minus);
+    free(min_inputs);
+    free(min_outputs);
+    free(xor_output);
+    free(l_bit_number);
+    free(add_inputs);
+    free(add_outputs);
+}
+
+int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext, int n,
+		int* inputs, int* outputs) {
+    /* Essentially copied from JustGarble/src/circuits.c.
+     * Different from their MIN circuit because it has output size equal to n/2 + 1
+     * where that last bit indicates the output of the LEQ circuit,
+     * e.g. outputs[2/n + 1] = 1 iff input0 <= input1
+     */
+
+	int i;
+	int leqOutput[1];
+	int andOneOutput[n / 2];
+	int andTwoOutput[n / 2];
+	int notOutput = getNextWire(garblingContext);
+	LEQCircuit(gc, garblingContext, n, inputs, leqOutput);
+	NOTGate(gc, garblingContext, leqOutput[0], notOutput);
+	for (i = 0; i < n / 2; i++) {
+		andOneOutput[i] = getNextWire(garblingContext);
+		andTwoOutput[i] = getNextWire(garblingContext);
+		outputs[i] = getNextWire(garblingContext);
+		ANDGate(gc, garblingContext, leqOutput[0], inputs[i], andOneOutput[i]);
+		ANDGate(gc, garblingContext, notOutput, inputs[n / 2 + i],
+				andTwoOutput[i]);
+		XORGate(gc, garblingContext, andOneOutput[i], andTwoOutput[i],
+				outputs[i]);
+	}
+    outputs[n/2 + 1] = leqOutput[0];
+	return 0;
+}
 void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
         int *inputWires, int *outputWires) 
 {

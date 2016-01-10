@@ -180,7 +180,7 @@ garbler_online(char* function_path, int *inputs, int num_garb_inputs,
     garbler_make_real_instructions(&function, chained_gcs, num_chained_gcs, circuitMapping);
 
     /*main function; does core of work*/
-    garbler_go(&function, chained_gcs, NUM_GCS, circuitMapping, inputs, tot_time);
+    garbler_go(&function, chained_gcs, num_chained_gcs, circuitMapping, inputs, tot_time);
 
     *tot_time = RDTSC - tot_time_start;
 

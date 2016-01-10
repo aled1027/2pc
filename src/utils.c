@@ -28,6 +28,25 @@ ot_free(void *p)
     return _mm_free(p);
 }
 
+void
+arrayPopulateRange(int *arr, int start, int end) 
+{
+    /* exclusive on end */
+    for (int i = start; i < end; i++)
+        arr[i] = i;
+}
+
+int *
+allocate_ints(size_t nints)
+{
+    int *ret = malloc(sizeof(int) * nints);
+    if (ret == NULL) {
+        perror("allocate_ints");
+        exit(EXIT_FAILURE);
+    }
+    return ret;
+}
+
 block *
 allocate_blocks(size_t nblocks)
 {
@@ -41,7 +60,8 @@ allocate_blocks(size_t nblocks)
 }
 
 long 
-filesize(const char *filename) {
+filesize(const char *filename) 
+{
     /* returns size of file in bytes */
 	struct stat st;
 
@@ -52,8 +72,8 @@ filesize(const char *filename) {
 }
 
 int 
-writeBufferToFile(char* buffer, size_t buf_size, char* fileName) {
-
+writeBufferToFile(char* buffer, size_t buf_size, char* fileName) 
+{
     FILE *f;
     f = fopen(fileName, "w");
     if (f == NULL) {
@@ -66,7 +86,8 @@ writeBufferToFile(char* buffer, size_t buf_size, char* fileName) {
 }
 
 int
-readFileIntoBuffer(char* buffer, char* fileName) {
+readFileIntoBuffer(char* buffer, char* fileName) 
+{
     /* assume buffer is already malloced */
     assert(buffer);
     FILE *f = fopen(fileName, "r");

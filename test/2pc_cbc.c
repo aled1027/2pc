@@ -133,7 +133,6 @@ void full_cbc_garb()
 
     InputLabels inputLabels = allocate_blocks(2 * gc.n);
     OutputMap outputMap = allocate_blocks(2 * gc.m);
-    assert(inputLabels && outputMap);
 
     garbleCircuit(&gc, inputLabels, outputMap);
     int num_garb_inputs = getNumGarbInputs();

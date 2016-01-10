@@ -37,6 +37,8 @@ typedef struct {
 } GCsMetadata;
 
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
+int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext, int n,
+		int* inputs, int* outputs);
 
 void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
         int *inputWires, int *outputWires);
