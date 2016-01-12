@@ -42,7 +42,8 @@ void aes_garb_off()
         (void) posix_memalign((void **) &chained_gcs[i].inputLabels, 128, sizeof(block) * 2 * chained_gcs[i].gc.n);
         (void) posix_memalign((void **) &chained_gcs[i].outputMap, 128, sizeof(block) * 2 * chained_gcs[i].gc.m);
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
-        garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap);
+        garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap,
+                      GARBLE_TYPE_STANDARD);
     }
     garbler_offline(chained_gcs, 128, num_chained_gcs);
     free(chained_gcs);
@@ -160,7 +161,7 @@ void full_aes_garb()
     OutputMap outputMap = allocate_blocks(2 * gc.m);
     assert(inputLabels && outputMap);
 
-    garbleCircuit(&gc, inputLabels, outputMap);
+    garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
     int num_garb_inputs = 128 * 10;
     int num_eval_inputs = 128;
 
