@@ -157,8 +157,8 @@ void full_aes_garb()
     GarbledCircuit gc;
     buildAESCircuit(&gc);
 
-    InputLabels inputLabels = allocate_blocks(2 * gc.n);
-    OutputMap outputMap = allocate_blocks(2 * gc.m);
+    block *inputLabels = allocate_blocks(2 * gc.n);
+    block *outputMap = allocate_blocks(2 * gc.m);
     assert(inputLabels && outputMap);
 
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
@@ -232,8 +232,7 @@ void full_aes_eval()
 int main(int argc, char *argv[]) 
 {
     // TODO add in arg.h stuff
-	srand(time(NULL));
-    srand_sse(time(NULL));
+    seedRandom();
     char* function_path = "functions/aes.json";
     if (strcmp(argv[1], "eval_online") == 0) {
         aes_eval_on(is_timing);

@@ -16,8 +16,8 @@
 #include "gc_comm.h"
 
 void 
-garbler_classic_2pc(GarbledCircuit *gc, InputLabels input_labels, 
-        InputMapping *input_mapping, OutputMap output_map,
+garbler_classic_2pc(GarbledCircuit *gc, block *input_labels, 
+        InputMapping *input_mapping, block *output_map,
         int num_garb_inputs, int num_eval_inputs,
         int *inputs, unsigned long *tot_time)
 {
@@ -28,7 +28,7 @@ garbler_classic_2pc(GarbledCircuit *gc, InputLabels input_labels,
     assert(gc->n == num_garb_inputs + num_eval_inputs);
 
     /* Setup network connection with evaluator */
-    int serverfd, fd, res;
+    int serverfd, fd;
     struct state state;
     state_init(&state);
 
@@ -102,7 +102,7 @@ garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_eval_inputs,
 {
     /* sends ChainedGcs to evaluator and saves ChainedGcs to disk */
     // setup connection
-    int serverfd, fd, res;
+    int serverfd, fd;
     struct state state;
     state_init(&state);
 
@@ -200,7 +200,7 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs,
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
     
     // 1. setup connection
-    int serverfd, fd, res;
+    int serverfd, fd;
     struct state state;
     state_init(&state);
 
@@ -379,7 +379,7 @@ garbler_make_real_instructions(FunctionSpec *function, ChainedGarbledCircuit* ch
         int* circuit_ids = function->components[i].circuit_ids; // = {0,1,2};
         
         // j indexes circuit_ids, k indexes is_circuit_used and saved_gcs
-        int j = 0, k = 0;
+        int j = 0;
 
         // find an available circuit
         for (int k = 0; k < num_chained_gcs; k++) {

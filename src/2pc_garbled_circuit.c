@@ -6,6 +6,7 @@
 
 #include "utils.h"
 #include "2pc_common.h"
+#include "circuits.h"
 
 int 
 freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc) 
@@ -82,10 +83,10 @@ buildCBCFullCircuit (GarbledCircuit *gc, int num_message_blocks, int num_aes_rou
     int *outputWires = (int*) malloc(sizeof(int) * m);
     assert(aesIn && outputWires);
 
-    InputLabels inputLabels = allocate_blocks(2*n); 
-    OutputMap outputMap = allocate_blocks(2*m);
+    block *inputLabels = allocate_blocks(2*n); 
+    block *outputMap = allocate_blocks(2*m);
 
-	createInputLabelsWithR(inputLabels, n, delta);
+	createInputLabelsWithR(inputLabels, n, *delta);
 	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
     GarblingContext gc_context;
 	startBuilding(gc, &gc_context);
@@ -171,7 +172,7 @@ buildXORCircuit(GarbledCircuit *gc, block *delta) {
     block inputLabels[2*n];
     block outputMap[2*m];
 
-	createInputLabelsWithR(inputLabels, n, delta);
+	createInputLabelsWithR(inputLabels, n, *delta);
 	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
 	startBuilding(gc, &garblingContext);
     XORCircuit(gc, &garblingContext, 256, inp, outs);
@@ -203,7 +204,7 @@ void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block*
     // in justGarble/src/garble.c line 190ish. 
     // the for loop overwires these values with values that it created.
     // but justGarble's tests are setup like this, where the values are overwritten.
-	createInputLabelsWithR(inputLabels, n, delta);
+	createInputLabelsWithR(inputLabels, n, *delta);
 	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
 	startBuilding(gc, &garblingContext);
 	countToN(prevAndKey, 256); 
@@ -251,8 +252,8 @@ void buildAESCircuit(GarbledCircuit *gc)
 	int mixColumnOutputs[n];
 	block labels[2 * n];
 	block outputbs[m];
-	OutputMap outputMap = outputbs;
-	InputLabels inputLabels = labels;
+	block *outputMap = outputbs;
+	block *inputLabels = labels;
 	int i;
 
 	createInputLabels(labels, n);

@@ -43,7 +43,7 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
     mpz_t *Cs = NULL, *Crs = NULL, *pk0s = NULL;
     char buf[field_size], *msg = NULL;
     int err = 0;
-    double start, end;
+    /* double start, end; */
 
 #ifdef AES_HW
     //fprintf(stderr, "OT-NP: Using AESNI\n");
@@ -52,7 +52,7 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
     //fprintf(stderr, "OT-NP: Using SHA-1\n");
 #endif
 
-    start = current_time();
+    /* start = current_time(); */
 
     mpz_inits(r, gr, pk, pk0, NULL);
 
@@ -89,46 +89,46 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
         random_element(Cs[i], &st->p);
     }
 
-    end = current_time();
+    /* end = current_time(); */
     //fprintf(stderr, "Initialization: %f\n", end - start);
 
     // send g^r to receiver
-    start = current_time();
+    /* start = current_time(); */
     mpz_to_array(buf, gr, sizeof buf);
     if (net_send(fd, buf, sizeof buf, 0) == -1)
         ERROR;
-    end = current_time();
+    /* end = current_time(); */
     //fprintf(stderr, "Send g^r to receiver: %f\n", end - start);
 
     // send Cs to receiver
-    start = current_time();
+    /* start = current_time(); */
     for (int i = 0; i < N - 1; ++i) {
         mpz_to_array(buf, Cs[i], sizeof buf);
         if (net_send(fd, buf, sizeof buf, 0) == -1)
             ERROR;
     }
-    end = current_time();
+    /* end = current_time(); */
     //fprintf(stderr, "Send Cs to receiver: %f\n", end - start);
 
-    start = current_time();
+    /* start = current_time(); */
     for (int i = 0; i < N - 1; ++i) {
         // compute C_i^r
         mpz_powm(Crs[i], Cs[i], r, st->p.p);
     }
-    end = current_time();
+    /* end = current_time(); */
     //fprintf(stderr, "Compute C_i^r: %f\n", end - start);
 
-    start = current_time();
+    /* start = current_time(); */
     for (int j = 0; j < num_ots; ++j) {
         // get pk0 from receiver
         if (net_recv(fd, buf, sizeof buf, 0) == -1)
             ERROR;
         array_to_mpz(pk0s[j], buf, sizeof buf);
     }
-    end = current_time();
+    /* end = current_time(); */
     //fprintf(stderr, "Get pk0 from receiver: %f\n", end - start);
 
-    start = current_time();
+    /* start = current_time(); */
     for (int j = 0; j < num_ots; ++j) {
         void *ot = ot_msg_reader(msgs, j);
         for (int i = 0; i < N; ++i) {
@@ -165,7 +165,7 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
                 ERROR;
         }
     }
-    end = current_time();
+    /* end = current_time(); */
     //fprintf(stderr, "Send hashes to receiver: %f\n", end - start);
 
  cleanup:
@@ -202,7 +202,7 @@ ot_np_recv(struct state *st, int fd, void *choices, int nchoices, int msglength,
     mpz_t *Cs = NULL, *ks = NULL;
     char buf[field_size], *from = NULL, *msg = NULL;
     int err = 0;
-    double start, end;
+    /* double start, end; */
 
 #ifdef AES_HW
     //fprintf(stderr, "OT-NP: Using AESNI\n");
@@ -238,24 +238,24 @@ ot_np_recv(struct state *st, int fd, void *choices, int nchoices, int msglength,
 #endif
 
     // get g^r from sender
-    start = current_time();
+    /* start = current_time(); */
     if (net_recv(fd, buf, sizeof buf, 0) == -1)
         ERROR;
     array_to_mpz(gr, buf, sizeof buf);
-    end = current_time();
+    /* end = current_time(); */
     //fprintf(stderr, "Get g^r from sender: %f\n", end - start);
 
     // get Cs from sender
-    start = current_time();
+    /* start = current_time(); */
     for (int i = 0; i < N - 1; ++i) {
         if (net_recv(fd, buf, sizeof buf, 0) == -1)
             ERROR;
         array_to_mpz(Cs[i], buf, sizeof buf);
     }
-    end = current_time();
+    /* end = current_time(); */
     //fprintf(stderr, "Get Cs from sender: %f\n", end - start);
 
-    start = current_time();
+    /* start = current_time(); */
     for (int j = 0; j < nchoices; ++j) {
         long choice;
 
@@ -277,10 +277,10 @@ ot_np_recv(struct state *st, int fd, void *choices, int nchoices, int msglength,
         if (net_send(fd, buf, sizeof buf, 0) == -1)
             ERROR;
     }
-    end = current_time();
+    /* end = current_time(); */
     //fprintf(stderr, "Send pk0s to sender: %f\n", end - start);
 
-    start = current_time();
+    /* start = current_time(); */
     for (int j = 0; j < nchoices; ++j) {
         long choice;
 
@@ -314,7 +314,7 @@ ot_np_recv(struct state *st, int fd, void *choices, int nchoices, int msglength,
             }
         }
     }
-    end = current_time();
+    /* end = current_time(); */
     //fprintf(stderr, "Receive hashes from sender: %f\n", end - start);
 
  cleanup:

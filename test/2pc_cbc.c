@@ -132,8 +132,8 @@ void full_cbc_garb()
     GarbledCircuit gc;
     buildCBCFullCircuit(&gc, NUM_CBC_BLOCKS, NUM_AES_ROUNDS, &delta);
 
-    InputLabels inputLabels = allocate_blocks(2 * gc.n);
-    OutputMap outputMap = allocate_blocks(2 * gc.m);
+    block *inputLabels = allocate_blocks(2 * gc.n);
+    block *outputMap = allocate_blocks(2 * gc.m);
     assert(inputLabels && outputMap);
 
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
@@ -204,9 +204,9 @@ void full_cbc_eval()
 
 int main(int argc, char *argv[]) {
     // TODO add in arg.h stuff
+
+    seedRandom();
     
-	srand(time(NULL));
-    srand_sse(time(NULL));
     assert(argc == 2);
     if (strcmp(argv[1], "eval_online") == 0) {
         cbc_eval_on();

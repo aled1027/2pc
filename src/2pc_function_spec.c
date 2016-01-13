@@ -482,7 +482,6 @@ readBufferIntoInstructions(Instructions* instructions, char* buffer)
     memcpy(&(instructions->size), buffer+p, sizeof(int));
     p += sizeof(int);
 
-    int size = instructions->size;
     instructions->instr = (Instruction *) malloc(sizeof(Instruction) * instructions->size);
     assert(instructions->instr);
 

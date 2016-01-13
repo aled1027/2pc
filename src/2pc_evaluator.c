@@ -19,7 +19,7 @@ void evaluator_classic_2pc(int *input, int *output,
     assert(input && output && tot_time);
     *tot_time = RDTSC;
 
-    int sockfd, len;
+    int sockfd;
     struct state state;
     state_init(&state);
 
@@ -66,12 +66,12 @@ void evaluator_classic_2pc(int *input, int *output,
     }   
 
     /* Receive output_map */
-    OutputMap output_map = allocate_blocks(2 * gc.m);
+    block *output_map = allocate_blocks(2 * gc.m);
     net_recv(sockfd, output_map, sizeof(block) * 2 * gc.m, 0);
 
     /* Evaluate the circuit */
     block *computed_output_map = allocate_blocks(gc.m);
-    evaluate(&gc, labels, computed_output_map);
+    evaluate(&gc, labels, computed_output_map, GARBLE_TYPE_STANDARD);
     mapOutputs(output_map, computed_output_map, output, gc.m);
 
     /* Close and clean up network */
@@ -92,7 +92,7 @@ void
 evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_eval_inputs,
                   int num_chained_gcs)
 {
-    int sockfd, len;
+    int sockfd;
     struct state state;
     state_init(&state);
 
@@ -153,7 +153,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     }
 
     // 3. setup connection
-    int sockfd, len;
+    int sockfd;
     struct state state;
     state_init(&state);
 
@@ -163,7 +163,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     }
 
     // 4. allocate some memory
-	unsigned long start_time, ot_start_time;
+	unsigned long start_time;
     start_time = RDTSC;
 
     FunctionSpec function;
@@ -340,7 +340,7 @@ void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                 savedCircId = circuitMapping[cur->evCircId];
                 // printf("evaling %d on instruction %d\n", savedCircId, i);
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
-                        computedOutputMap[cur->evCircId]);
+                         computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
                 break;
             case CHAIN:
                 // printf("chaining (%d,%d) -> (%d,%d)\n", cur->chFromCircId, cur->chFromWireId, cur->chToCircId, cur->chToWireId);

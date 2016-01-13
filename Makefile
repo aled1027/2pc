@@ -18,9 +18,10 @@ OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 INCLUDES := $(wildcard $(SRCDIR)/*.h)
 IDIR =include
 JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
+CIRCUITSRC := $(wildcard $(JUSTGARBLE)/circuit/*.c)
 
-CC=clang
-CFLAGS= -g -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -Wno-typedef-redefinition -Wno-unused-function -maes -msse4 -march=native
+CC=gcc
+CFLAGS= -g -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -Wno-typedef-redefinition -Wno-unused-function -maes -msse4 -march=native
 LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson
 
 AES = 2pc_aes
@@ -33,10 +34,10 @@ CBC = 2pc_cbc
 all: AES CBC
 
 AES: $(OBJECTS) $(TESTDIR)/$(AES).c
-	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(AES).c -o $(BINDIR)/$(AES) $(LIBS) $(CFLAGS) 
+	$(CC) $(JUSTGARBLESRC) $(CIRCUITSRC) $(OBJFULL) $(TESTDIR)/$(AES).c -o $(BINDIR)/$(AES) $(LIBS) $(CFLAGS) 
 
 CBC: $(OBJECTS) $(TESTDIR)/$(CBC).c
-	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(CBC).c -o $(BINDIR)/$(CBC) $(LIBS) $(CFLAGS) 
+	$(CC) $(JUSTGARBLESRC) $(CIRCUITSRC) $(OBJFULL) $(TESTDIR)/$(CBC).c -o $(BINDIR)/$(CBC) $(LIBS) $(CFLAGS) 
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	$(CC) -c $< -o $@ $(CFLAGS) 

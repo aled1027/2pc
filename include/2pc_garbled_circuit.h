@@ -66,5 +66,4 @@ void print_wire(Wire *w);
 void print_gc(GarbledCircuit *gc);
 void print_blocks(const char *str, block *blks, int length);
 
-int createInputLabelsWithR(InputLabels inputLabels, int n, block* R);
 #endif

@@ -5,8 +5,8 @@
 #include "2pc_garbled_circuit.h"
 
 
-void garbler_classic_2pc(GarbledCircuit *gc, InputLabels input_labels, 
-        InputMapping *input_mapping, OutputMap outputMap,
+void garbler_classic_2pc(GarbledCircuit *gc, block *input_labels, 
+        InputMapping *input_mapping, block *outputMap,
         int num_garb_inputs, int num_eval_inputs, int *inputs,
         unsigned long *tot_time);
 
