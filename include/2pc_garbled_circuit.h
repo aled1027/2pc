@@ -37,9 +37,17 @@ typedef struct {
 } GCsMetadata;
 
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
+
+void buildMinCircuit(GarbledCircuit *gc, InputLabels inputLabels, OutputMap outputMap,
+        int *outputWires);
+void buildLevenshteinCircuit(GarbledCircuit *gc, InputLabels inputLabels, OutputMap outputMap,
+        int *outputWires, int l, int m);
+
+void addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext, 
+        int l, int *inputWires, int *outputWires);
+
 int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext, int n,
 		int* inputs, int* outputs);
-
 void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
         int *inputWires, int *outputWires);
 void buildCBCFullCircuit(GarbledCircuit *gc, int num_message_blocks, int num_aes_rounds, block *delta);
@@ -52,14 +60,10 @@ int saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler);
 int loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler);
 void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num);
 
-int
-saveOTLabels(char *fname, block *labels, int n, bool isSender);
-block *
-loadOTLabels(char *fname);
-int
-saveOTSelections(char *fname, int *selections, int n);
-int *
-loadOTSelections(char *fname);
+int saveOTLabels(char *fname, block *labels, int n, bool isSender);
+block *loadOTLabels(char *fname);
+int saveOTSelections(char *fname, int *selections, int n);
+int *loadOTSelections(char *fname);
 
 void print_block(block blk);
 void print_garbled_gate(GarbledGate *gg);
@@ -67,6 +71,4 @@ void print_garbled_table(GarbledTable *gt);
 void print_wire(Wire *w);
 void print_gc(GarbledCircuit *gc);
 void print_blocks(const char *str, block *blks, int length);
-
-int createInputLabelsWithR(InputLabels inputLabels, int n, block* R);
 #endif

@@ -8,8 +8,10 @@
 #include "2pc_garbler.h" 
 #include "2pc_evaluator.h" 
 #include "utils.h"
+#include <math.h>
 
 #include "arg.h"
+#include "gates.h"
 
 void leven_garb_off() 
 {
@@ -20,6 +22,7 @@ void leven_eval_off()
 {
     printf("Running leven eval offline\n");
 }
+
 void leven_garb_on() 
 {
     printf("Running leven garb online\n");
@@ -28,107 +31,94 @@ void leven_garb_on()
 void leven_eval_on() 
 {
     printf("Running leven eval online\n");
-    }
+}
 
 void full_leven_garb()
 {
     /* Garbler offline phase for leven where no components are used:
      * only a single circuit
      */
-    printf("Running full leven garb offline\n");
+    printf("Running full leven garb\n");
 
-    // TODO: this time should be included in tot_time
+    int l = 2; /* single parameter */
 
-    block delta = randomBlock();
-    *((uint16_t *) (&delta)) |= 1;
+    int DIntSize = (int) floor(log2(l)) + 1;
+    int inputsDevotedToD = DIntSize * (l+1);
 
-    int n = (l * 3) + 2 * 2;
-    int m = l;
-    int q = 50000; /* number of gates */ 
-    int r = n + q; /* number of wires */
+    int n = inputsDevotedToD + 2*2*l;
+    int core_n = (3 * DIntSize) + 4;
+    int m = 400;
 
-    InputLabels inputLabels = allocate_blocks(2*n); 
-    OutputMap outputMap = allocate_blocks(2*m);
-    createInputLabelsWithR(inputLabels, n, delta);
-
+    /* Build and Garble */
     GarbledCircuit gc;
-	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
-	startBuilding(gc, gc_context);
-
-    buildLevenschteinCircuit(&gc, &gc_context);
-
-    InputLabels input_labels = allocate_blocks(2 * gc.n);
-    OutputMap output_map = allocate_blocks(2 * gc.m);
-
+    int *outputWires = allocate_ints(m);
+    InputLabels inputLabels = allocate_blocks(2*n);
+    OutputMap outputMap = allocate_blocks(2*m);
+    buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, m);
     garbleCircuit(&gc, inputLabels, outputMap);
-    int num_garb_inputs = getNumGarbInputs();
-    int num_eval_inputs = getNumEvalInputs();
+    //print_gc(&gc);
 
-    int *garb_inputs = malloc(sizeof(int) * num_garb_inputs);
-    for (int i = 0; i < num_garb_inputs; i++) {
-        garb_inputs[i] = rand() % 2; 
-    }
+    /* Get Inputs */
+    int *inputs = allocate_ints(n);
+    //since l = 1, we need to include 0,1
+    // L = 1
+    //inputs[0] = 0;
+    //inputs[1] = 1;
+    //inputs[2] = 1;
+    //inputs[3] = 1;
+    //inputs[4] = 1;
+    //inputs[5] = 0;
 
-    InputMapping imap; // TODO Fill this and we are good
-    imap.size = num_eval_inputs + num_garb_inputs;
-    imap.input_idx = malloc(sizeof(int) * imap.size);
-    imap.gc_id = malloc(sizeof(int) * imap.size);
-    imap.wire_id = malloc(sizeof(int) * imap.size);
-    imap.inputter = malloc(sizeof(Person) * imap.size);
+    // L = 2
+    inputs[0] = 0;
+    inputs[1] = 0;
+    inputs[2] = 1;
+    inputs[3] = 0;
+    inputs[4] = 0;
+    inputs[5] = 1;
 
-    for (int i = 0; i < num_eval_inputs; i++) {
-        imap.input_idx[i] = i;
-        imap.gc_id[i] = 0;
-        imap.wire_id[i] = i;
-        imap.inputter[i] = PERSON_EVALUATOR;
-    }
+    inputs[6] = 0;
+    inputs[7] = 0;
+    inputs[8] = 0;
+    inputs[9] = 0;
 
-    for (int i = num_eval_inputs; i < num_eval_inputs + num_garb_inputs; i++) {
-        imap.input_idx[i] = i;
-        imap.gc_id[i] = 0;
-        imap.wire_id[i] = i;
-        imap.inputter[i] = PERSON_GARBLER;
-    }
+    inputs[10] = 1;
+    inputs[11] = 1;
+    inputs[12] = 0;
+    inputs[13] = 0;
+    printf("Inputs: ");
+    for (int i = 0; i < n; i++) 
+        printf("%d", inputs[i]);
+    printf("\n");
 
-    unsigned long *tot_time = malloc(sizeof(unsigned long));
-    garbler_classic_2pc(&gc, inputLabels, &imap, outputMap,
-            num_garb_inputs, num_eval_inputs, garb_inputs, tot_time); 
+    /* Evaluate */
+    block *extractedLabels = allocate_blocks(n);
+    extractLabels(extractedLabels, inputLabels, inputs, n);
+    block *computedOutputMap = allocate_blocks(m);
+    evaluate(&gc, extractedLabels, computedOutputMap);
 
-    free(inputLabels);
-    free(outputMap);
+    /* Results */
+    int *outputs = allocate_ints(m);
+    for (int i=0; i<m; i++)
+        outputs[i] = 55;
+    mapOutputs(outputMap, computedOutputMap, outputs, m);
+    printf("Outputs: \n");
+
+    printf("outputs[354]: %d\n", outputs[354]);
+    printf("outputs[358]: %d\n", outputs[358]);
+
+    //for (int i = 0; i < m; i++)
+    //    printf("%d", outputs[i]);
+    //    //printf("%i: %d\n", i, outputs[i]);
 }
 
 void full_leven_eval()
 {
-    /* Evaluator offline phase for leven where no components are used:
-     * only a single circuit
-     */
-
-    printf("Running full leven eval offline\n");
-    int num_garb_inputs = getNumGarbInputs();
-    int num_eval_inputs = getNumEvalInputs();
-
-    int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
-    for (int i = 0; i < num_eval_inputs; i++) {
-        eval_inputs[i] = rand() % 2;
-    }
-    int *output = malloc(sizeof(int) * getM());
-    unsigned long *tot_time = malloc(sizeof(unsigned long));
-    evaluator_classic_2pc(eval_inputs, output, num_garb_inputs, 
-            num_eval_inputs, tot_time);
-    printf("tot_time %lu\n", *tot_time / getNumGates());
-
-    //printf("output: ");
-    //for (int i = 0; i < num_eval_inputs; i++) {
-    //    if (i % 128 == 0)
-    //        printf("\n");
-    //    printf("%d", output[i]);
-    //}
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) 
+{
     // TODO add in arg.h stuff
-    
 	srand(time(NULL));
     srand_sse(time(NULL));
     assert(argc == 2);
@@ -141,9 +131,9 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(argv[1], "eval_offline") == 0) {
         leven_eval_off();
 
-    } else if (strcmp(argv[1], "full_garb_on") == 0) {
+    } else if (strcmp(argv[1], "full_garb") == 0) {
         full_leven_garb();
-    } else if (strcmp(argv[1], "full_eval_on") == 0) {
+    } else if (strcmp(argv[1], "full_eval") == 0) {
         full_leven_eval();
 
     } else {

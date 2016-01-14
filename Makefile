@@ -25,18 +25,27 @@ LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson
 
 AES = 2pc_aes
 CBC = 2pc_cbc
+LEVEN = 2pc_leven
+MISC_TESTS = 2pc_misc_tests
 
 
 ###############
 # COMPILATION #
 ###############
-all: AES CBC
+all: AES CBC LEVEN MISC_TESTS
+
 
 AES: $(OBJECTS) $(TESTDIR)/$(AES).c
 	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(AES).c -o $(BINDIR)/$(AES) $(LIBS) $(CFLAGS) 
 
 CBC: $(OBJECTS) $(TESTDIR)/$(CBC).c
 	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(CBC).c -o $(BINDIR)/$(CBC) $(LIBS) $(CFLAGS) 
+
+LEVEN: $(OBJECTS) $(TESTDIR)/$(LEVEN).c
+	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(LEVEN).c -o $(BINDIR)/$(LEVEN) $(LIBS) $(CFLAGS) 
+
+MISC_TESTS: $(OBJECTS) $(TESTDIR)/$(MISC_TESTS).c
+	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(MISC_TESTS).c -o $(BINDIR)/$(MISC_TESTS) $(LIBS) $(CFLAGS) 
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	$(CC) -c $< -o $@ $(CFLAGS) 
@@ -104,6 +113,21 @@ aes_full_garb:
 
 aes_full_eval:
 	gdb --args $(BINDIR)/$(AES) full_eval
+
+#########
+# LEVEN #
+#########
+leven_full_garb:
+	gdb --args $(BINDIR)/$(LEVEN) full_garb
+
+leven_full_eval:
+	gdb --args $(BINDIR)/$(LEVEN) full_eval
+
+##############
+# MISC TESTS #
+##############
+run_test:
+	./$(BINDIR)/$(MISC_TESTS) not
 
 ##########
 # EXTRAS #

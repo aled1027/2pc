@@ -13,6 +13,9 @@
 #define MAX(a, b)                               \
     (a) > (b) ? (a) : (b)
 
+void
+reverse_array(int *arr, size_t nints);
+
 double
 current_time(void);
 

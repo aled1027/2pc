@@ -18,6 +18,7 @@ void evaluator_classic_2pc(int *input, int *output,
 {
     assert(input && output && tot_time);
     *tot_time = RDTSC;
+    printf("eval_inputs: %d %d\n", input[0], input[1]);
 
     int sockfd, len;
     struct state state;
@@ -49,21 +50,24 @@ void evaluator_classic_2pc(int *input, int *output,
 
     /* Receive eval_labels via OT */
     block *eval_labels = allocate_blocks(2 * num_eval_inputs);
-    ot_np_recv(&state, sockfd, input, num_eval_inputs, sizeof(block), 2, eval_labels,
-               new_choice_reader, new_msg_writer);
+    if (num_eval_inputs > 0) {
+        ot_np_recv(&state, sockfd, input, num_eval_inputs, sizeof(block), 2, eval_labels,
+                   new_choice_reader, new_msg_writer);
+    }
 
     /* Plug labels in correctly based on input_mapping */
     block *labels = allocate_blocks(gc.n);
     int garb_p = 0, eval_p = 0;
     for (int i = 0; i < input_mapping.size; i++) {
         if (input_mapping.inputter[i] == PERSON_GARBLER) {
-            labels[input_mapping.wire_id[i]] = garb_labels[garb_p]; 
+            memcpy(&labels[input_mapping.wire_id[i]], &garb_labels[garb_p], sizeof(block));
             garb_p++;
         } else if (input_mapping.inputter[i] == PERSON_EVALUATOR) {
-            labels[input_mapping.wire_id[i]] = eval_labels[eval_p]; 
+            memcpy(&labels[input_mapping.wire_id[i]], &eval_labels[eval_p], sizeof(block));
             eval_p++;
         }
     }   
+
 
     /* Receive output_map */
     OutputMap output_map = allocate_blocks(2 * gc.m);

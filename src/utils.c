@@ -8,6 +8,17 @@
 
 #include "state.h"
 
+void
+reverse_array(int *arr, size_t nints) 
+{
+    int *temp = allocate_ints(nints);
+    for (int i = 0; i < nints; i++) {
+        temp[i] = arr[nints-i-1];
+    }
+    memcpy(arr, temp, sizeof(int) * nints);
+    free(temp);
+}
+
 double
 current_time(void)
 {
@@ -32,8 +43,10 @@ void
 arrayPopulateRange(int *arr, int start, int end) 
 {
     /* exclusive on end */
-    for (int i = start; i < end; i++)
-        arr[i] = i;
+    int i = 0;
+    for (int j = start; j < end; i++, j++) {
+        arr[i] = j;
+    }
 }
 
 int *

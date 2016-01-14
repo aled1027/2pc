@@ -76,14 +76,18 @@ garbler_classic_2pc(GarbledCircuit *gc, InputLabels input_labels,
             exit(EXIT_FAILURE);
         }
     }
+    assert(garb_p == num_garb_inputs);
+    assert(eval_p = 2*num_eval_inputs);
 
     /* Send garb_labels */
     if (num_garb_inputs > 0)
         net_send(fd, garb_labels, sizeof(block) * num_garb_inputs, 0);
 
     /* Send eval_label via OT */
-    ot_np_send(&state, fd, eval_labels, sizeof(block), num_eval_inputs, 2,
-               new_msg_reader, new_item_reader);
+    if (num_eval_inputs > 0) {
+        ot_np_send(&state, fd, eval_labels, sizeof(block), num_eval_inputs, 2,
+                   new_msg_reader, new_item_reader);
+    }
 
     /* Send output_map to evaluator */
     net_send(fd, output_map, sizeof(block) * 2 * gc->m, 0);
