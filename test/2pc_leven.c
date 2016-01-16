@@ -13,6 +13,8 @@
 #include "arg.h"
 #include "gates.h"
 
+int l = 29;
+
 void leven_garb_off() 
 {
     printf("Running leven garb offline\n");
@@ -35,19 +37,31 @@ void leven_eval_on()
 
 void full_leven_garb()
 {
-    /* Garbler offline phase for leven where no components are used:
-     * only a single circuit
+    /* Runs the garbler for a full circuit of levenshtein distance. 
+     * The only paramter is the integer l, which defines
+     * the length of the input string for each party.
+     * The alphabet is of size 4, i.e. 2 bits, so the actual length
+     * of each party's input string is 2*l bits.
      */
-    printf("Running full leven garb\n");
-
-    int l = 2; /* single parameter */
-
     int DIntSize = (int) floor(log2(l)) + 1;
     int inputsDevotedToD = DIntSize * (l+1);
-
     int n = inputsDevotedToD + 2*2*l;
-    int core_n = (3 * DIntSize) + 4;
-    int m = 400;
+    int numEvalInputs = 2*l;
+    int numGarbInputs = n - numEvalInputs;
+    int m = DIntSize;
+
+    /* Set Inputs */
+    int *inputs = allocate_ints(numGarbInputs);
+
+    /* The first inputsDevotedToD inputs are the numbers 
+     * 0 through l+1 encoded in binary */
+    for (int i = 0; i < l + 1; i++) 
+        convertToBinary(i, inputs + (DIntSize) * i, DIntSize);
+    for (int i = inputsDevotedToD; i < numGarbInputs; i++) {
+        inputs[i] = rand() % 2;
+        printf("%d", inputs[i]);
+    }
+    printf("\n");
 
     /* Build and Garble */
     GarbledCircuit gc;
@@ -56,68 +70,85 @@ void full_leven_garb()
     OutputMap outputMap = allocate_blocks(2*m);
     buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, m);
     garbleCircuit(&gc, inputLabels, outputMap);
-    //print_gc(&gc);
+    
+    /* Set input mapping */
+    InputMapping imap; 
+    imap.size = n;
+    imap.input_idx = malloc(sizeof(int) * imap.size);
+    imap.gc_id = malloc(sizeof(int) * imap.size);
+    imap.wire_id = malloc(sizeof(int) * imap.size);
+    imap.inputter = malloc(sizeof(Person) * imap.size);
 
-    /* Get Inputs */
-    int *inputs = allocate_ints(n);
-    //since l = 1, we need to include 0,1
-    // L = 1
-    //inputs[0] = 0;
-    //inputs[1] = 1;
-    //inputs[2] = 1;
-    //inputs[3] = 1;
-    //inputs[4] = 1;
-    //inputs[5] = 0;
+    for (int i = 0; i < numGarbInputs; i++) {
+        imap.input_idx[i] = i;
+        imap.gc_id[i] = 0;
+        imap.wire_id[i] = i;
+        imap.inputter[i] = PERSON_GARBLER;
+    }
 
-    // L = 2
-    inputs[0] = 0;
-    inputs[1] = 0;
-    inputs[2] = 1;
-    inputs[3] = 0;
-    inputs[4] = 0;
-    inputs[5] = 1;
+    for (int i = numGarbInputs; i < n; i++) {
+        imap.input_idx[i] = i;
+        imap.gc_id[i] = 0;
+        imap.wire_id[i] = i;
+        imap.inputter[i] = PERSON_EVALUATOR;
+    }
 
-    inputs[6] = 0;
-    inputs[7] = 0;
-    inputs[8] = 0;
-    inputs[9] = 0;
-
-    inputs[10] = 1;
-    inputs[11] = 1;
-    inputs[12] = 0;
-    inputs[13] = 0;
-    printf("Inputs: ");
-    for (int i = 0; i < n; i++) 
-        printf("%d", inputs[i]);
-    printf("\n");
-
-    /* Evaluate */
-    block *extractedLabels = allocate_blocks(n);
-    extractLabels(extractedLabels, inputLabels, inputs, n);
-    block *computedOutputMap = allocate_blocks(m);
-    evaluate(&gc, extractedLabels, computedOutputMap);
+    /* Online work */
+    unsigned long tot_time;
+    garbler_classic_2pc(&gc, inputLabels, &imap, outputMap,
+        numGarbInputs, numEvalInputs, inputs, &tot_time);
 
     /* Results */
-    int *outputs = allocate_ints(m);
-    for (int i=0; i<m; i++)
-        outputs[i] = 55;
-    mapOutputs(outputMap, computedOutputMap, outputs, m);
-    printf("Outputs: \n");
-
-    printf("outputs[354]: %d\n", outputs[354]);
-    printf("outputs[358]: %d\n", outputs[358]);
-
-    //for (int i = 0; i < m; i++)
-    //    printf("%d", outputs[i]);
-    //    //printf("%i: %d\n", i, outputs[i]);
+    removeGarbledCircuit(&gc);
+    free(inputs);
+    free(inputLabels);
+    free(outputWires);
+    free(outputMap);
 }
 
 void full_leven_eval()
 {
+    /* Runs the evaluator for a full circuit of 
+     * levenshtein distance. The only paramter is the integer l,
+     * which defines the length of the input string for each party.
+     * The alphabet is of size 4, i.e. 2 bits, so the actual length
+     * of each party's input string is 2*l bits.
+     */
+    int DIntSize = (int) floor(log2(l)) + 1;
+    int inputsDevotedToD = DIntSize * (l+1);
+    int n = inputsDevotedToD + 2*2*l;
+    int numEvalInputs = 2*l;
+    int numGarbInputs = n - numEvalInputs;
+    int m = DIntSize;
+
+    /* Set Inputs */
+    int *inputs = allocate_ints(numEvalInputs);
+    printf("Input: ");
+    for (int i = 0; i < numEvalInputs; i++) { 
+        inputs[i] = rand() % 2;
+        printf("%d", inputs[i]);
+    }
+    printf("\n");
+
+    /* Online work */
+    int *outputs = allocate_ints(m);
+    unsigned long tot_time;
+    evaluator_classic_2pc(inputs, outputs, numGarbInputs, numEvalInputs, &tot_time);
+
+    /* Results */
+    printf("Output: ");
+    for (int i = 0; i < m; i++) 
+        printf("%d", outputs[i]);
+    printf("\n");
+
+    free(inputs);
+    free(outputs);
 }
 
 int main(int argc, char *argv[]) 
 {
+    assert(l < 35); /* it might crash your computer */
+
     // TODO add in arg.h stuff
 	srand(time(NULL));
     srand_sse(time(NULL));

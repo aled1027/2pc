@@ -33,8 +33,7 @@ MISC_TESTS = 2pc_misc_tests
 # COMPILATION #
 ###############
 #all: AES CBC LEVEN MISC_TESTS
-all: MISC_TESTS
-
+all: LEVEN
 
 AES: $(OBJECTS) $(TESTDIR)/$(AES).c
 	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(AES).c -o $(BINDIR)/$(AES) $(LIBS) $(CFLAGS) 

@@ -46,6 +46,8 @@ void buildLevenshteinCircuit(GarbledCircuit *gc, InputLabels inputLabels, Output
     int n = inputsDevotedToD + 2*2*l;
     int core_n = (3 * DIntSize) + 4;
     int q = 100000; /* number of gates */ 
+    if (l > 20)
+        q = 5000000;
     int r = n + q; /* number of wires */
 
     block delta = randomBlock();

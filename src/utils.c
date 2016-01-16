@@ -8,6 +8,18 @@
 
 #include "state.h"
 
+void convertToBinary(int x, int *arr, int narr)
+{
+    int i = 0;
+    while (x > 0) {
+        arr[i] = (x % 2);
+        x >>= 1;
+        i++;
+    }
+    for (int j = i; j < narr; j++)
+        arr[j] = 0;
+}
+
 void
 reverse_array(int *arr, size_t nints) 
 {
@@ -121,3 +133,4 @@ debug(char *s)
     fprintf(stderr, "DEBUG: %s\n", s);
     fflush(stderr);
 }
+

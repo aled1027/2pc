@@ -9,22 +9,7 @@
 #include "utils.h"
 #include <math.h>
 
-#include "arg.h"
 #include "gates.h"
-
-#define MIN3(a, b, c) ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
-
-void convertToBinary(int x, int *arr, int narr)
-{
-    int i = 0;
-    while (x > 0) {
-        arr[i] = (x % 2);
-        x >>= 1;
-        i++;
-    }
-    for (int j = i; j < narr; j++)
-        arr[j] = 0;
-}
 
 int levenshteinDistance(int *s1, int *s2, int l) 
 {

@@ -18,7 +18,6 @@ void evaluator_classic_2pc(int *input, int *output,
 {
     assert(input && output && tot_time);
     *tot_time = RDTSC;
-    printf("eval_inputs: %d %d\n", input[0], input[1]);
 
     int sockfd, len;
     struct state state;
