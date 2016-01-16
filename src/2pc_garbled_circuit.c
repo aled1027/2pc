@@ -122,8 +122,14 @@ void buildLevenshteinCircuit(GarbledCircuit *gc, InputLabels inputLabels, Output
         }
     }
     memcpy(outputWires, D[l][l], sizeof(int) * DIntSize);
-    //countToN(outputWires,m);
     finishBuilding(gc, &gcContext, outputMap, outputWires);
+    for (int i = 0; i < l+1; i++)
+        for (int j = 0; j < l+1; j++)
+            free(D[i][j]);
+    free(inputWires);
+    free(coreInputWires);
+    free(coreOutputWires);
+    removeGarblingContext(&gcContext);
 }
 
 void

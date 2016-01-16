@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <assert.h>
 #include <time.h>
 
 #include "2pc_garbler.h" 
@@ -17,7 +16,6 @@
 
 void convertToBinary(int x, int *arr, int narr)
 {
-    // Add case for 0
     int i = 0;
     while (x > 0) {
         arr[i] = (x % 2);
@@ -101,7 +99,6 @@ void notGateTest()
      * when I 
      */
     /* Paramters */
-    //printf("Running not gate test\n");
     int n = 1;
     int m = 3;
     int q = 3;
@@ -159,7 +156,6 @@ void notGateTest()
 
 void minTest() 
 {
-    printf("Running the min test\n");
     int n = 4;
     int m = 2;
     int q = 50;
@@ -167,10 +163,8 @@ void minTest()
 
     /* Inputs */
     int inputs[n];
-    inputs[0] = 0;
-    inputs[1] = 1;
-    inputs[2] = 1;
-    inputs[3] = 0;
+    for (int i = 0; i < n; i++)
+        inputs[i] = rand() % 2;
 
     /* Build Circuit */
     InputLabels inputLabels = allocate_blocks(2*n);
@@ -196,37 +190,37 @@ void minTest()
     extractLabels(extractedLabels, inputLabels, inputs, n);
     block *computedOutputMap = allocate_blocks(m);
     evaluate(&gc, extractedLabels, computedOutputMap);
-
-    /* Results */
     int *outputs = allocate_ints(m);
     mapOutputs(outputMap, computedOutputMap, outputs, m);
-    printf("Outputs: %d %d\n", outputs[0], outputs[1]);
 
-    /* Automated Testing */
-    //bool failed = false;
-    //if (inputs[0] == 0) {
-    //    if (outputs[0] != inputs[1]) { 
-    //        failed = true;
-    //    }
-    //} else {
-    //    if (outputs[0] != inputs[2]) {
-    //        failed = true;
-    //    }
-    //}
-    //if (failed) {
-    //    printf("MUX test failed\n");
-    //    printf("inputs: %d %d %d\n", inputs[0], inputs[1], inputs[2]);
-    //    printf("outputs: %d\n", outputs[0]);
-    //}
+    removeGarbledCircuit(&gc);
+    removeGarblingContext(&gcContext);
 
-    //free(outputs);
-    //free(inputs);
-    //free(inputWires);
-    //free(outputWires);
-    //free(extractedLabels);
-    //free(inputLabels);
-    //free(outputMap);
-    //free(computedOutputMap);
+    /* Automated checking */
+    bool failed = false;
+    int realCheck = lessThanCheck(inputs, 4);
+    if (realCheck == 0) {
+        if (outputs[0] != inputs[0] || outputs[1] != inputs[1]) {
+            failed = true;
+        }
+    } else {
+        if (outputs[0] != inputs[2] || outputs[1] != inputs[3] ) {
+            failed = true;
+        }
+    }
+    if (failed) {
+        printf("MIN test failed\n");
+        printf("inputs: %d %d %d %d\n", inputs[0], inputs[1], inputs[2], inputs[3]);
+        printf("outputs: %d %d\n", outputs[0], outputs[1]);
+    }
+
+    free(outputs);
+    free(inputWires);
+    free(outputWires);
+    free(extractedLabels);
+    free(inputLabels);
+    free(outputMap);
+    free(computedOutputMap);
 
 }
 
@@ -309,11 +303,6 @@ void LESTest(int n)
     for (int i = 0; i < n; i++)
         inputs[i] = rand() % 2;
 
-    //inputs[0] = 1;
-    //inputs[1] = 0;
-    //inputs[2] = 0;
-    //inputs[3] = 1; 
-
     /* Build Circuit */
     InputLabels inputLabels = allocate_blocks(2*n);
     createInputLabels(inputLabels, n);
@@ -343,8 +332,6 @@ void LESTest(int n)
     /* Results */
     int *outputs = allocate_ints(m);
     mapOutputs(outputMap, computedOutputMap, outputs, m);
-    /*printf("inputs: %d %d %d %d\n", inputs[0], inputs[1], inputs[2], inputs[3]);*/
-    /*printf("outputs: %d\n", outputs[0]);*/
 
     /* Automated checking */
     int check = lessThanCheck(inputs, n);
@@ -366,8 +353,6 @@ void LESTest(int n)
 
 void levenTest(int l)
 {
-    printf("Running full leven garb\n");
-
     int DIntSize = (int) floor(log2(l)) + 1;
     int inputsDevotedToD = DIntSize * (l+1);
     int n = inputsDevotedToD + 2*2*l;
@@ -384,29 +369,12 @@ void levenTest(int l)
 
     /* Set Inputs */
     int *inputs = allocate_ints(n);
-    // L = 3
-    // TODO AUTO set inputsDevotedToD:
-    inputs[0] = 0;
-    inputs[1] = 0;
-    inputs[2] = 1;
-    inputs[3] = 0;
-    inputs[4] = 0;
-    inputs[5] = 1;
-    inputs[6] = 1;
-    inputs[7] = 1;
-
-    //inputs[8] = 0;
-    //inputs[9] = 1;
-    //inputs[10] = 0;
-    //inputs[11] = 0;
-    //inputs[12] = 1;
-    //inputs[13] = 1;
-    //inputs[14] = 0;
-    //inputs[15] = 0;
-    //inputs[16] = 0;
-    //inputs[17] = 1;
-    //inputs[18] = 0;
-    //inputs[19] = 0;
+    /* The first inputsDevotedToD inputs are the numbers 
+     * 0 through l+1 encoded in binary 
+     */
+    for (int i = 0; i < l + 1; i++) {
+        convertToBinary(i, inputs + (DIntSize) * i, DIntSize);
+    }
 
     for (int i = inputsDevotedToD; i < n; i++)
         inputs[i] = rand() % 2;
@@ -416,6 +384,7 @@ void levenTest(int l)
     extractLabels(extractedLabels, inputLabels, inputs, n);
     block *computedOutputMap = allocate_blocks(m);
     evaluate(&gc, extractedLabels, computedOutputMap);
+    removeGarbledCircuit(&gc);
 
     /* Results */
     int *outputs = allocate_ints(m);
@@ -460,59 +429,41 @@ void levenTest(int l)
     free(extractedLabels);
     free(computedOutputMap);
     free(outputs);
-
-    /* Check results (for debugging) */
-    //printf("real dist: %d\n", realDist);
-    //printf("Inputs: ");
-    //printf("\n");
-    //int realInputs = n - inputsDevotedToD;
-    //for (int i = inputsDevotedToD; i < n; i++) { 
-    //    printf("%d", inputs[i]);
-    //    if (i == inputsDevotedToD + (realInputs/2) - 1)
-    //        printf("\n");
-    //}
-    //printf("\n");
-    //printf("Real: ");
-    //for (int i = 0; i < DIntSize; i++) 
-    //    printf("%d", realDistArr[i]);
-    //printf("\n");
-    //printf("computed %d%d\n", outputs[655], outputs[659]);
 }
 
 int main(int argc, char *argv[]) 
 {
 	srand(time(NULL));
     srand_sse(time(NULL));
-    assert(argc == 2);
     int nruns = 50;
 
-    if (strcmp(argv[1], "leven") == 0) {
+    for (int l = 2; l < 16; l++) {
+        printf("Running leven test for l=%d\n", l);
         for (int i = 0; i < nruns; i++)
-            levenTest(3);
-
-    } else if (strcmp(argv[1], "min") == 0) {
-        printf("Running min test\n");
-        minTest();
-
-    } else if (strcmp(argv[1], "not") == 0) {
-        for (int i = 0; i < nruns; i++)
-            notGateTest();
-
-    } else if (strcmp(argv[1], "mux") == 0) {
-        printf("Running MUX test\n");
-        for (int i = 0; i < nruns; i++)
-            MUXTest();
-
-    } else if (strcmp(argv[1], "les") == 0) {
-        printf("Running LES test\n");
-        for (int n = 2; n < 16; n+=2) {
-            printf("n = %d\n", n);
-            for (int i = 0; i < nruns; i++) 
-              LESTest(n);
-        }
-    } else {
-        printf("See test/2pc_misc_tests.c:main for usage\n");
+            levenTest(l);
+        printf("Ran leven test %d times\n", nruns);
     }
-    
+
+    printf("Running min test\n");
+    for (int i = 0; i < nruns; i++)
+        minTest();
+    printf("Ran min test %d times\n", nruns);
+
+    printf("Running not gate test\n");
+    for (int i = 0; i < nruns; i++)
+        notGateTest();
+    printf("Ran note gate test %d times\n", nruns);
+
+    printf("Running MUX test\n");
+    for (int i = 0; i < nruns; i++)
+        MUXTest();
+    printf("Ran mux test %d times\n", nruns);
+
+    for (int n = 2; n < 16; n+=2) {
+        printf("Running LES test for n=%d\n", n);
+        for (int i = 0; i < nruns; i++) 
+          LESTest(n);
+        printf("Running LES test %d times\n", nruns);
+    }
     return 0;
 } 

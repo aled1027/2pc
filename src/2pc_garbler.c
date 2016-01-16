@@ -247,7 +247,6 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs,
     block *evalLabels = allocate_blocks(2 * num_eval_inputs);
     block *garbLabels = allocate_blocks(num_garb_inputs);
 
-    // TODO could probably figure out a way to avoid copying, but easiest and fast enough for now.
     int eval_p = 0, garb_p = 0; // counters for looping over garbler and evaluator's structures
     for (int i = 0; i < imap.size; i++) {
         if (imap.inputter[i] == PERSON_GARBLER) {

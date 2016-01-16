@@ -32,7 +32,8 @@ MISC_TESTS = 2pc_misc_tests
 ###############
 # COMPILATION #
 ###############
-all: AES CBC LEVEN MISC_TESTS
+#all: AES CBC LEVEN MISC_TESTS
+all: MISC_TESTS
 
 
 AES: $(OBJECTS) $(TESTDIR)/$(AES).c
@@ -126,8 +127,11 @@ leven_full_eval:
 ##############
 # MISC TESTS #
 ##############
-run_test:
-	./$(BINDIR)/$(MISC_TESTS) not
+valg:
+	valgrind --leak-check=full ./$(BINDIR)/$(MISC_TESTS)
+
+all_tests:
+	./$(BINDIR)/$(MISC_TESTS)
 
 ##########
 # EXTRAS #
