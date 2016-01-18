@@ -11,12 +11,8 @@
 
 #include "arg.h"
 
-int NUM_AES_ROUNDS = 10;
-int NUM_CBC_BLOCKS = 10;
-
-char *FULL_FUNCTION_PATH = "functions/full_cbc.json";
-char *COMPONENT_FUNCTION_PATH = "functions/cbc_10_10.json"; 
-//char* COMPONENT_FUNCTION_PATH = "functions/cbc_2_2.json";
+static int NUM_AES_ROUNDS = 10;
+static int NUM_CBC_BLOCKS = 10;
 
 static int getNumGarbInputs() { return (NUM_AES_ROUNDS * NUM_CBC_BLOCKS * 128) + 128; }
 static int getNumEvalInputs() { return NUM_CBC_BLOCKS * 128; }
@@ -70,50 +66,6 @@ void cbc_garb_off()
     int num_eval_inputs = getNumEvalInputs();
     garbler_offline(chained_gcs, num_eval_inputs, num_chained_gcs);
     free(chained_gcs);
-}
-
-void cbc_eval_off()
-{
-    int num_chained_gcs = getNumCircs(); 
-    ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
-    int num_eval_inputs = getNumEvalInputs();
-    evaluator_offline(chained_gcs, num_eval_inputs, num_chained_gcs);
-}
-
-void cbc_garb_on() 
-{
-    char *function_path = COMPONENT_FUNCTION_PATH;
-    printf("Running cbc garb online\n");
-    int num_chained_gcs = getNumCircs();
-    int num_garb_inputs, *garb_inputs;
-
-    num_garb_inputs = getNumGarbInputs();
-    garb_inputs = malloc(sizeof(int) * num_garb_inputs);
-    assert(garb_inputs);
-    for (int i = 0; i < num_garb_inputs; i++) {
-        garb_inputs[i] = rand() % 2; 
-    }
-    unsigned long *tot_time = malloc(sizeof(unsigned long));
-    garbler_online(function_path, garb_inputs, num_garb_inputs, num_chained_gcs, NULL, tot_time);
-    int num_gates = getNumGates();
-    printf("tot_time: %lu\n", *tot_time / num_gates);
-}
-
-void cbc_eval_on()
-{
-    printf("Running cbc eval online\n");
-    int num_eval_inputs = getNumEvalInputs();
-    int *eval_inputs = malloc(sizeof(int) * num_eval_inputs);
-    assert(eval_inputs);
-    for (int i = 0; i < num_eval_inputs; i++) {
-        eval_inputs[i] = rand() % 2;
-    }
-
-    int num_chained_gcs = getNumCircs();
-    unsigned long *tot_time = malloc(sizeof(unsigned long));
-    evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, NULL, tot_time);
-    int num_gates = getNumGates();
-    printf("tot_time: %lu\n", *tot_time / num_gates);
 }
 
 void full_cbc_garb()
