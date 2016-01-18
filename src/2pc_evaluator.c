@@ -55,8 +55,10 @@ void evaluator_classic_2pc(int *input, int *output,
     }
 
     /* Plug labels in correctly based on input_mapping */
+    // TODO update!
     block *labels = allocate_blocks(gc.n);
-    int garb_p = 0, eval_p = 0;
+    int garb_p = 0;
+    int eval_p = 0;
     for (int i = 0; i < input_mapping.size; i++) {
         if (input_mapping.inputter[i] == PERSON_GARBLER) {
             memcpy(&labels[input_mapping.wire_id[i]], &garb_labels[garb_p], sizeof(block));
@@ -144,7 +146,7 @@ evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_eval_inputs,
 }
 
 void
-evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs, 
+evaluator_online(int *eval_inputs, int num_eval_inputs, int num_garb_inputs, int num_chained_gcs, 
         unsigned long *ot_time, unsigned long *tot_time)
 {
     // 1. I guess there is no 1 now.
@@ -169,6 +171,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
 	unsigned long start_time, ot_start_time;
     start_time = RDTSC;
 
+    // TODO don't use whole function -- only the parts eval needs
     FunctionSpec function;
     block** labels = malloc(sizeof(block*) * num_chained_gcs);
 
@@ -200,15 +203,13 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     // circuitMapping maps instruction-gc-ids --> saved-gc-ids 
     int circuitMappingSize, *circuitMapping;
     net_recv(sockfd, &circuitMappingSize, sizeof(int), 0);
-    circuitMapping = malloc(sizeof(int) * circuitMappingSize);
-    net_recv(sockfd, circuitMapping, sizeof(int)*circuitMappingSize, 0);
+    circuitMapping = allocate_ints(circuitMappingSize);
+    net_recv(sockfd, circuitMapping, sizeof(int) * circuitMappingSize, 0);
 
     // 7. receive labels
     // receieve labels based on garblers inputs
-    int num_garb_inputs;
     block *garb_labels, *eval_labels;
 
-    net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
     if (num_garb_inputs > 0) {
         garb_labels = allocate_blocks(num_garb_inputs);
         net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
@@ -247,16 +248,26 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
 
     // 8. process eval_labels and garb_labels into labels
     InputMapping* input_mapping = &function.input_mapping;
-    int garb_p = 0, eval_p = 0;
+    int circ = 0;
+    int wire = 0;
     for (int i = 0; i < input_mapping->size; i++) {
-        if (input_mapping->inputter[i] == PERSON_GARBLER) {
-            //printf("(gc_id: %d, wire: %d) grabbing garb input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], garb_p);
-            labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = garb_labels[garb_p]; 
-            garb_p++;
-        } else if (input_mapping->inputter[i] == PERSON_EVALUATOR) {
-            //printf("(gc_id: %d, wire: %d) grabbing eval input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], eval_p);
-            labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = eval_labels[eval_p]; 
-            eval_p++;
+        int input_idx = input_mapping->input_idx[i];
+        switch(input_mapping->inputter[i]) {
+            case PERSON_GARBLER:
+                //circ = circuitMapping[input_mapping->gc_id[i]];
+                circ = input_mapping->gc_id[i];
+                wire = input_mapping->wire_id[i];
+                labels[circ][wire] = garb_labels[input_idx]; 
+                break;
+            case PERSON_EVALUATOR:
+                //circ = circuitMapping[input_mapping->gc_id[i]];
+                circ = input_mapping->gc_id[i];
+                wire = input_mapping->wire_id[i];
+                labels[circ][wire] = eval_labels[input_idx]; 
+                break;
+            default:
+                printf("Person not detected while processing input_mapping.\n");
+                break;
         }
     }
 
@@ -285,9 +296,9 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     state_cleanup(&state);
 
     // 11a. evaluate: follow instructions and evaluate components
-    block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
+    block** computedOutputMap = (block**) malloc(sizeof(block*) * num_chained_gcs);
     for (int i = 0; i < num_chained_gcs; i++) {
-        computedOutputMap[i] = allocate_blocks(chained_gcs[i].gc.m);
+        computedOutputMap[i] = (block*) allocate_blocks(chained_gcs[i].gc.m);
     }
     evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
                        labels, circuitMapping, computedOutputMap);
@@ -296,12 +307,14 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     int *output = malloc(sizeof(int) * output_size);
     int p_output = 0;
     for (int i = 0; i < output_arr_size; i++) {
-        int dist = end_wire_idx[i] - start_wire_idx[i] + 1;
-        // gc_idx is not based on circuitMapping because computedOutputMap 
-        // populated based on indices in functionSpec
+        int start = start_wire_idx[i];
+        int end = end_wire_idx[i];
+        int dist = end - start + 1;
         int gc_idx = output_gc_id[i]; 
-        mapOutputs(&outputmap[p_output*2], &computedOutputMap[gc_idx][start_wire_idx[i]],
+
+        mapOutputs(&outputmap[p_output*2], &computedOutputMap[gc_idx][start],
                 &output[p_output], dist);
+
         p_output += dist;
     }
     assert(output_size == p_output);
@@ -335,25 +348,23 @@ void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      * whereas saved gc id'ed arbitrarily.
      */
     assert(computedOutputMap); // memory should already be allocated
-    int savedCircId;
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
+        int circId;
         switch(cur->type) {
             case EVAL:
-                savedCircId = circuitMapping[cur->evCircId];
-                // printf("evaling %d on instruction %d\n", savedCircId, i);
-                evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
+                circId = circuitMapping[cur->evCircId];
+                evaluate(&chained_gcs[circId].gc, labels[cur->evCircId], 
                         computedOutputMap[cur->evCircId]);
                 break;
             case CHAIN:
-                // printf("chaining (%d,%d) -> (%d,%d)\n", cur->chFromCircId, cur->chFromWireId, cur->chToCircId, cur->chToWireId);
                 labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
                         computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
                         cur->chOffset);
                 break;
             default:
                 printf("Error: Instruction %d is not of a valid type\n", i);
-                return;
+                break;
         }
     }
 }

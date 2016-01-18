@@ -61,15 +61,15 @@ void aes_garb_on(char* function_path, bool timing)
         unsigned long *tot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
         for (int i = 0; i < NUM_TRIALS; i++) {
             int num_chained_gcs = NUM_GCS;
-            int num_garb_inputs, *inputs;
-
-            num_garb_inputs = 128*10;
-            inputs = malloc(sizeof(int) * num_garb_inputs);
+            int num_eval_inputs = 128;
+            int num_garb_inputs = 128*10;
+            int *inputs = malloc(sizeof(int) * num_garb_inputs);
             assert(inputs);
             for (int j = 0; j < num_garb_inputs; j++) {
                 inputs[j] = rand() % 2; 
             }
-            garbler_online(function_path, inputs, num_garb_inputs, num_chained_gcs, 
+
+            garbler_online(function_path, inputs, num_garb_inputs, num_eval_inputs, num_chained_gcs, 
                     &ot_time[i], &tot_time[i]);
             printf("%lu, %lu\n", ot_time[i], tot_time[i]);
         }
@@ -82,17 +82,17 @@ void aes_garb_on(char* function_path, bool timing)
     } else {
         // CHECK NUM GCS
         int num_chained_gcs = NUM_GCS;
-        int num_garb_inputs, *inputs;
-
-        num_garb_inputs = 128*10;
-        inputs = malloc(sizeof(int) * num_garb_inputs);
+        int num_garb_inputs = 128*10;
+        int num_eval_inputs = 128;
+        int *inputs = malloc(sizeof(int) * num_garb_inputs);
         assert(inputs);
         for (int i = 0; i < num_garb_inputs; i++) {
             inputs[i] = rand() % 2; 
         }
         unsigned long *ot_time = malloc(sizeof(unsigned long));
         unsigned long *tot_time = malloc(sizeof(unsigned long));
-        garbler_online(function_path, inputs, num_garb_inputs, num_chained_gcs, ot_time, tot_time);
+        garbler_online(function_path, inputs, num_garb_inputs, num_eval_inputs,
+                num_chained_gcs, ot_time, tot_time);
 
         printf("ot_time: %lu\n", *ot_time / NUM_GATES);
         printf("tot_time: %lu\n", *tot_time / NUM_GATES);
@@ -123,7 +123,9 @@ void aes_eval_on(bool timing)
             }
 
             int num_chained_gcs = NUM_GCS;
-            evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, &ot_time[i], &tot_time[i]);
+            int num_garb_inputs = 10*128;
+            evaluator_online(eval_inputs, num_eval_inputs, num_garb_inputs, 
+                    num_chained_gcs, &ot_time[i], &tot_time[i]);
         }
 	    qsort(ot_time, NUM_TRIALS, sizeof(unsigned long), myCompare);
 	    qsort(tot_time, NUM_TRIALS, sizeof(unsigned long), myCompare);
@@ -140,9 +142,10 @@ void aes_eval_on(bool timing)
         }
 
         int num_chained_gcs = NUM_GCS;
+        int num_garb_inputs = 128*10;
         unsigned long *ot_time = malloc(sizeof(unsigned long));
         unsigned long *tot_time = malloc(sizeof(unsigned long));
-        evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, ot_time, tot_time);
+        evaluator_online(eval_inputs, num_eval_inputs, num_garb_inputs, num_chained_gcs, ot_time, tot_time);
 
         printf("ot_time: %lu\n", *ot_time / NUM_GATES);
         printf("tot_time: %lu\n", *tot_time / NUM_GATES);

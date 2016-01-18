@@ -120,7 +120,8 @@ void leven_eval_on()
         evalInputs[i] = rand() % 2;
 
     unsigned long tot_time;
-    evaluator_online(evalInputs, numEvalInputs, numCircuits, NULL, &tot_time);
+    int numGarbInputs = 128*10;
+    evaluator_online(evalInputs, numEvalInputs, numGarbInputs, numCircuits, NULL, &tot_time);
 }
 
 void full_leven_garb()

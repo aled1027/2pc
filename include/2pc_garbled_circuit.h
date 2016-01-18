@@ -13,6 +13,7 @@ typedef enum {
     AES_FINAL_ROUND = 5,
     XOR = 6,
     FULL_CBC = 7,
+    LEVEN_CORE = 8,
     CIRCUIT_TYPE_ERR = -1
     } CircuitType;
 

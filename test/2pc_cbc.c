@@ -11,12 +11,12 @@
 
 #include "arg.h"
 
-int NUM_AES_ROUNDS = 10;
-int NUM_CBC_BLOCKS = 10;
+int NUM_AES_ROUNDS = 2;
+int NUM_CBC_BLOCKS = 2;
 
-char *FULL_FUNCTION_PATH = "functions/full_cbc.json";
-char *COMPONENT_FUNCTION_PATH = "functions/cbc_10_10.json"; 
-//char* COMPONENT_FUNCTION_PATH = "functions/cbc_2_2.json";
+//char *FULL_FUNCTION_PATH = "functions/full_cbc.json";
+//char *COMPONENT_FUNCTION_PATH = "functions/cbc_10_10.json"; 
+char* COMPONENT_FUNCTION_PATH = "functions/cbc_2_2.json";
 
 static int getNumGarbInputs() { return (NUM_AES_ROUNDS * NUM_CBC_BLOCKS * 128) + 128; }
 static int getNumEvalInputs() { return NUM_CBC_BLOCKS * 128; }
@@ -25,8 +25,8 @@ static int getNumAESCircs() { return (NUM_AES_ROUNDS-1) * NUM_CBC_BLOCKS; }
 static int getNumFinalAESCircs() { return NUM_CBC_BLOCKS; }
 static int getNumCircs() { return getNumXORCircs() + getNumAESCircs() + getNumFinalAESCircs();}
 static int getM() { return NUM_CBC_BLOCKS * 128; }
-
-static int getNumGates() {
+static int getNumGates() 
+{
     int gates_per_xor = 128;
     int gates_per_aes = 3904;
     int gates_per_aes_final = 3904; // TODO this number is off. should be less than aes round
@@ -34,7 +34,6 @@ static int getNumGates() {
     return getNumXORCircs() * gates_per_xor + getNumAESCircs() * gates_per_aes + 
         getNumFinalAESCircs() * gates_per_aes_final;
 }
-
 
 void cbc_garb_off() 
 {
@@ -85,16 +84,20 @@ void cbc_garb_on()
     char *function_path = COMPONENT_FUNCTION_PATH;
     printf("Running cbc garb online\n");
     int num_chained_gcs = getNumCircs();
-    int num_garb_inputs, *garb_inputs;
+    int num_garb_inputs = getNumGarbInputs();
 
-    num_garb_inputs = getNumGarbInputs();
-    garb_inputs = malloc(sizeof(int) * num_garb_inputs);
+    int *garb_inputs = malloc(sizeof(int) * num_garb_inputs);
     assert(garb_inputs);
+    printf("\n");
     for (int i = 0; i < num_garb_inputs; i++) {
         garb_inputs[i] = rand() % 2; 
+        printf("%d", garb_inputs[i]);
     }
+    printf("\n");
+
+    int num_eval_inputs = getNumEvalInputs();
     unsigned long *tot_time = malloc(sizeof(unsigned long));
-    garbler_online(function_path, garb_inputs, num_garb_inputs, num_chained_gcs, NULL, tot_time);
+    garbler_online(function_path, garb_inputs, num_garb_inputs, num_eval_inputs, num_chained_gcs, NULL, tot_time);
     int num_gates = getNumGates();
     printf("tot_time: %lu\n", *tot_time / num_gates);
 }
@@ -107,11 +110,14 @@ void cbc_eval_on()
     assert(eval_inputs);
     for (int i = 0; i < num_eval_inputs; i++) {
         eval_inputs[i] = rand() % 2;
+        printf("%d", eval_inputs[i]);
     }
+    printf("\n");
 
     int num_chained_gcs = getNumCircs();
+    int num_garb_inputs = getNumGarbInputs();
     unsigned long *tot_time = malloc(sizeof(unsigned long));
-    evaluator_online(eval_inputs, num_eval_inputs, num_chained_gcs, NULL, tot_time);
+    evaluator_online(eval_inputs, num_eval_inputs, num_garb_inputs, num_chained_gcs, NULL, tot_time);
     int num_gates = getNumGates();
     printf("tot_time: %lu\n", *tot_time / num_gates);
 }
@@ -200,7 +206,8 @@ void full_cbc_eval()
     //}
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) 
+{
     // TODO add in arg.h stuff
     
 	srand(time(NULL));

@@ -11,8 +11,8 @@ void evaluator_classic_2pc(int *input, int *output,
 void evaluator_offline(ChainedGarbledCircuit *chained_gcs, 
         int num_eval_inputs, int num_chained_gcs);
 
-void evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs, 
-        unsigned long *ot_time, unsigned long *tot_time);
+void evaluator_online(int *eval_inputs, int num_eval_inputs, int num_garb_inputs,
+        int num_chained_gcs, unsigned long *ot_time, unsigned long *tot_time);
 
 void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         Instructions* instructions, block** labels, int* circuitMapping,
