@@ -133,8 +133,9 @@ send_instructions_and_input_mapping(FunctionSpec *function, int fd)
 }
 
 static void
-garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs,
-           int num_chained_gcs, int* circuitMapping, int *inputs, unsigned long *ot_time)
+garbler_go(FunctionSpec* function, char *dir, ChainedGarbledCircuit* chained_gcs,
+           int num_chained_gcs, int* circuitMapping, int *inputs,
+           unsigned long *ot_time)
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
     
@@ -212,7 +213,7 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs,
         block *randLabels;
         char lblName[50];
 
-        (void) sprintf(lblName, "%s/%s", GARBLER_DIR, "lbl");
+        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
 
         randLabels = loadOTLabels(lblName);
         if (randLabels == NULL) {
@@ -352,8 +353,8 @@ garbler_make_real_instructions(FunctionSpec *function, ChainedGarbledCircuit* ch
 }
 
 void
-garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_eval_inputs,
-                int num_chained_gcs)
+garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
+                int num_eval_inputs, int num_chained_gcs)
 {
     /* sends ChainedGcs to evaluator and saves ChainedGcs to disk */
     // setup connection
@@ -374,7 +375,7 @@ garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_eval_inputs,
     /* send GCs */
     for (int i = 0; i < num_chained_gcs; i++) {
         chained_gc_comm_send(fd, &chained_gcs[i]);
-        saveChainedGC(&chained_gcs[i], true);
+        saveChainedGC(&chained_gcs[i], dir, true);
     }
 
     /* pre-processing OT using random labels */
@@ -383,7 +384,7 @@ garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_eval_inputs,
 
         char lblName[50];
 
-        (void) sprintf(lblName, "%s/%s", GARBLER_DIR, "lbl");
+        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
 
         evalLabels = allocate_blocks(2 * num_eval_inputs);
             
@@ -400,7 +401,7 @@ garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_eval_inputs,
 }
 
 int
-garbler_online(char* function_path, int *inputs, int num_garb_inputs,
+garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
                int num_chained_gcs, unsigned long *ot_time,
                unsigned long *tot_time) 
 {
@@ -416,7 +417,7 @@ garbler_online(char* function_path, int *inputs, int num_garb_inputs,
     ChainedGarbledCircuit *chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
     assert(chained_gcs);
     for (int i = 0; i < num_chained_gcs; i++) {
-        loadChainedGC(&chained_gcs[i], i, true);
+        loadChainedGC(&chained_gcs[i], dir, i, true);
         /*printf("loaded circuit of type: %d\n", chained_gcs[i].type);*/
     }
 
@@ -435,7 +436,8 @@ garbler_online(char* function_path, int *inputs, int num_garb_inputs,
     garbler_make_real_instructions(&function, chained_gcs, num_chained_gcs, circuitMapping);
 
     /*main function; does core of work*/
-    garbler_go(&function, chained_gcs, num_chained_gcs, circuitMapping, inputs, tot_time);
+    garbler_go(&function, dir, chained_gcs, num_chained_gcs, circuitMapping,
+               inputs, tot_time);
 
     *tot_time = RDTSC - tot_time_start;
 

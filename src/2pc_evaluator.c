@@ -140,8 +140,8 @@ void evaluator_classic_2pc(int *input, int *output,
 }
 
 void 
-evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_eval_inputs,
-                  int num_chained_gcs)
+evaluator_offline(ChainedGarbledCircuit *chained_gcs, char *dir,
+                  int num_eval_inputs, int num_chained_gcs)
 {
     int sockfd;
     struct state state;
@@ -155,7 +155,7 @@ evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_eval_inputs,
     /* receive GCs */
     for (int i = 0; i < num_chained_gcs; i++) {
         chained_gc_comm_recv(sockfd, &chained_gcs[i]);
-        saveChainedGC(&chained_gcs[i], false);
+        saveChainedGC(&chained_gcs[i], dir, false);
     }
 
     /* pre-processing OT using random selection bits */
@@ -166,8 +166,8 @@ evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_eval_inputs,
         char selName[50];
         char lblName[50];
 
-        (void) sprintf(selName, "%s/%s", EVALUATOR_DIR, "sel");
-        (void) sprintf(lblName, "%s/%s", EVALUATOR_DIR, "lbl");
+        (void) sprintf(selName, "%s/%s", dir, "sel"); /* XXX: security hole */
+        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
 
         selections = malloc(sizeof(int) * num_eval_inputs);
         if (selections == NULL) {
@@ -192,15 +192,16 @@ evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_eval_inputs,
 }
 
 void
-evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs, 
-                 unsigned long *ot_time, unsigned long *tot_time)
+evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
+                 int num_chained_gcs, unsigned long *ot_time,
+                 unsigned long *tot_time)
 {
     // 1. I guess there is no 1 now.
 
     // 2. load chained garbled circuits from disk
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
     for (int i = 0; i < num_chained_gcs; i++) {
-        loadChainedGC(&chained_gcs[i], i, false); // false indicates this is evaluator
+        loadChainedGC(&chained_gcs[i], dir, i, false); // false indicates this is evaluator
     }
 
     // 3. setup connection
@@ -268,8 +269,8 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
         block *recvLabels;
         char selName[50], lblName[50];
 
-        (void) sprintf(selName, "%s/%s", EVALUATOR_DIR, "sel");
-        (void) sprintf(lblName, "%s/%s", EVALUATOR_DIR, "lbl");
+        (void) sprintf(selName, "%s/%s", dir, "sel"); /* XXX: security hole */
+        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
 
         recvLabels = malloc(sizeof(block) * 2 * num_eval_inputs);
 

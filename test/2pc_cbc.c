@@ -32,7 +32,7 @@ static int getNumGates() {
         getNumFinalAESCircs() * gates_per_aes_final;
 }
 
-void cbc_garb_off()
+void cbc_garb_off(char *dir)
 {
     printf("Running cbc garb offline\n");
     int num_chained_gcs = getNumCircs(); 
@@ -65,7 +65,7 @@ void cbc_garb_off()
                       GARBLE_TYPE_STANDARD);
     }
     int num_eval_inputs = getNumEvalInputs();
-    garbler_offline(chained_gcs, num_eval_inputs, num_chained_gcs);
+    garbler_offline(dir, chained_gcs, num_eval_inputs, num_chained_gcs);
     free(chained_gcs);
 }
 

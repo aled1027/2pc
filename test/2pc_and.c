@@ -8,7 +8,7 @@
 #include <assert.h>
 
 void
-and_garb_off(int ninputs, int nlayers, int nchains)
+and_garb_off(char *dir, int ninputs, int nlayers, int nchains)
 {
     ChainedGarbledCircuit *gcs;
     block delta;
@@ -31,7 +31,7 @@ and_garb_off(int ninputs, int nlayers, int nchains)
         gcs[i].outputMap = allocate_blocks(2 * gc->m);
         garbleCircuit(gc, gcs[i].inputLabels, gcs[i].outputMap, GARBLE_TYPE_STANDARD);
     }
-    garbler_offline(gcs, ninputs, nchains);
+    garbler_offline(dir, gcs, ninputs, nchains);
     for (int i = 0; i < nchains; ++i) {
         removeGarbledCircuit(&gcs[i].gc);
     }

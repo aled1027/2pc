@@ -2,7 +2,7 @@
 #define TWOPC_AND_H
 
 void
-and_garb_off(int ninputs, int nlayers, int nchains);
+and_garb_off(char *dir, int ninputs, int nlayers, int nchains);
 void
 and_garb_full(int ninputs, int nlayers);
 void

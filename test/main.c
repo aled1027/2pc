@@ -28,6 +28,10 @@ static int getNumFinalAESCircs() { return NUM_CBC_BLOCKS; }
 static int getNumCircs() { return getNumXORCircs() + getNumAESCircs() + getNumFinalAESCircs();}
 static int getM() { return NUM_CBC_BLOCKS * 128; }
 
+#define GARBLER_DIR "files/garbler_gcs"
+#define EVALUATOR_DIR "files/evaluator_gcs"
+
+
 /* XXX: not great, but OK for now */
 
 static struct option opts[] =
@@ -67,7 +71,7 @@ eval_off(int ninputs, int nchains)
     ChainedGarbledCircuit *gcs;
 
     gcs = malloc(sizeof(ChainedGarbledCircuit) * nchains);
-    evaluator_offline(gcs, ninputs, nchains);
+    evaluator_offline(gcs, EVALUATOR_DIR, ninputs, nchains);
     free(gcs);
 }
 
@@ -93,7 +97,7 @@ garb_on(char* function_path, int ninputs, int nchains, bool timing)
         for (int j = 0; j < ninputs; j++) {
             inputs[j] = rand() % 2; 
         }
-        garbler_online(function_path, inputs, ninputs, nchains, 
+        garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &ot_time[i], &tot_time[i]);
         printf("%lu, %lu\n", ot_time[i], tot_time[i]);
     }
@@ -128,7 +132,8 @@ eval_on(int ninputs, int nchains, bool timing)
         for (int j = 0; j < ninputs; j++) {
             inputs[j] = rand() % 2;
         }
-        evaluator_online(inputs, ninputs, nchains, &ot_time[i], &tot_time[i]);
+        evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &ot_time[i],
+                         &tot_time[i]);
     }
 
     if (timing) {
@@ -170,7 +175,7 @@ main(int argc, char *argv[])
         case 0:
             break;
         case 'a':
-            and_garb_off(128, 10, NUM_GCS);
+            and_garb_off(GARBLER_DIR, 128, 10, NUM_GCS);
             exit(EXIT_SUCCESS);
         case 'A':
             eval_off(0, NUM_GCS);
@@ -189,42 +194,42 @@ main(int argc, char *argv[])
             exit(EXIT_SUCCESS);
 
         case 'd':
-            aes_garb_off();
-            exit(1);
+            aes_garb_off(GARBLER_DIR, NUM_GCS);
+            exit(EXIT_SUCCESS);
         case 'D':
             eval_off(128, NUM_GCS);
-            exit(1);
+            exit(EXIT_SUCCESS);
         case 'e':
             garb_on("functions/aes.json", 1280, NUM_GCS, is_timing);
-            exit(1);
+            exit(EXIT_SUCCESS);
         case 'E':
             eval_on(128, NUM_GCS, is_timing);
-            exit(1);
+            exit(EXIT_SUCCESS);
         case 'f':
             full_aes_garb();
-            exit(1);
+            exit(EXIT_SUCCESS);
         case 'F':
             full_aes_eval();
-            exit(1);
+            exit(EXIT_SUCCESS);
         case 'g':
-            cbc_garb_off();
-            exit(1);
+            cbc_garb_off(GARBLER_DIR);
+            exit(EXIT_SUCCESS);
         case 'G':
             eval_off(getNumEvalInputs(), getNumCircs());
-            exit(1);
+            exit(EXIT_SUCCESS);
         case 'i':
             garb_on("functions/cbc_10_10.json", getNumGarbInputs(),
                     getNumCircs(), is_timing);
-            exit(1);
+            exit(EXIT_SUCCESS);
         case 'I':
             eval_on(getNumEvalInputs(), getNumCircs(), is_timing);
-            exit(1);
+            exit(EXIT_SUCCESS);
         case 'j':
             full_cbc_garb();
-            exit(1);
+            exit(EXIT_SUCCESS);
         case 'J':
             full_cbc_eval();
-            exit(1);
+            exit(EXIT_SUCCESS);
         case 't':
             is_timing = true;
             break;

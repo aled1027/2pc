@@ -27,8 +27,9 @@ typedef struct {
 
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
 
-int saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler);
-int loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler);
+int saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler);
+int loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
+                  bool isGarbler);
 void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num);
 
 int

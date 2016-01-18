@@ -14,7 +14,8 @@
 
 /* static unsigned long NUM_GATES = 34000; */
 
-void aes_garb_off(int nchains)
+void
+aes_garb_off(char *dir, int nchains)
 {
     printf("Running garb offline\n");
     ChainedGarbledCircuit *chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * nchains);
@@ -39,11 +40,12 @@ void aes_garb_off(int nchains)
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap,
                       GARBLE_TYPE_STANDARD);
     }
-    garbler_offline(chained_gcs, 128, nchains);
+    garbler_offline(dir, chained_gcs, 128, nchains);
     freeChainedGarbledCircuit(chained_gcs);
 }
 
-void full_aes_garb()
+void
+full_aes_garb(void)
 {
     printf("Running full aes garb offline\n");
     GarbledCircuit gc;
@@ -91,7 +93,8 @@ void full_aes_garb()
     free(outputMap);
 }
 
-void full_aes_eval()
+void
+full_aes_eval(void)
 {
     /* Evaluator offline phase for CBC where no components are used:
      * only a single circuit

@@ -18,7 +18,7 @@ freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc)
 }
 
 int 
-saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler) 
+saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler)
 {
     char* buffer;
     size_t buffer_size = 1;
@@ -94,9 +94,9 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler)
     char fileName[50];
 
     if (isGarbler) {
-        sprintf(fileName, GARBLER_GC_PATH, chained_gc->id);
+        sprintf(fileName, "%s/chained_gc_%d", dir, chained_gc->id);
     } else { 
-        sprintf(fileName, EVALUATOR_GC_PATH, chained_gc->id);
+        sprintf(fileName, "%s/chained_gc_%d", dir, chained_gc->id);
     }
 
     if (writeBufferToFile(buffer, buffer_size, fileName) == FAILURE) {
@@ -122,15 +122,16 @@ void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num)
 }
 
 int 
-loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler) 
+loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
+              bool isGarbler) 
 {
     char* buffer, fileName[50];
     long fs;
 
     if (isGarbler) {
-        sprintf(fileName, GARBLER_GC_PATH, id);
+        sprintf(fileName, "%s/chained_gc_%d", dir, id);
     } else { 
-        sprintf(fileName, EVALUATOR_GC_PATH, id);
+        sprintf(fileName, "%s/chained_gc_%d", dir, id);
     }
 
     fs = filesize(fileName);
