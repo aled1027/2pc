@@ -2,7 +2,7 @@
 #define MPC_GARBLER_H
 
 #include "2pc_function_spec.h"
-#include "2pc_garbled_circuit.h"
+/* #include "2pc_garbled_circuit.h" */
 
 
 void garbler_classic_2pc(GarbledCircuit *gc, block *input_labels, 

@@ -142,8 +142,6 @@ eval_on(int ninputs, int nchains, bool timing)
     }
 }
 
-
-
 int
 main(int argc, char *argv[])
 {

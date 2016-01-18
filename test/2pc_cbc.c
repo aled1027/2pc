@@ -5,8 +5,9 @@
 #include <assert.h>
 #include <time.h>
 
-#include "2pc_garbler.h" 
-#include "2pc_evaluator.h" 
+#include "2pc_garbler.h"
+#include "2pc_evaluator.h"
+#include "components.h"
 #include "utils.h"
 
 #include "arg.h"
@@ -144,38 +145,4 @@ void full_cbc_eval()
     evaluator_classic_2pc(eval_inputs, output, num_garb_inputs, 
             num_eval_inputs, tot_time);
     printf("tot_time %lu\n", *tot_time / getNumGates());
-
-    //printf("output: ");
-    //for (int i = 0; i < num_eval_inputs; i++) {
-    //    if (i % 128 == 0)
-    //        printf("\n");
-    //    printf("%d", output[i]);
-    //}
 }
-
-/* int main(int argc, char *argv[]) { */
-/*     // TODO add in arg.h stuff */
-
-/*     seedRandom(); */
-    
-/*     assert(argc == 2); */
-/*     if (strcmp(argv[1], "eval_online") == 0) { */
-/*         cbc_eval_on(); */
-/*     } else if (strcmp(argv[1], "garb_online") == 0) { */
-/*         cbc_garb_on(); */
-/*     } else if (strcmp(argv[1], "garb_offline") == 0) { */
-/*         cbc_garb_off(); */
-/*     } else if (strcmp(argv[1], "eval_offline") == 0) { */
-/*         cbc_eval_off(); */
-
-/*     } else if (strcmp(argv[1], "full_garb_on") == 0) { */
-/*         full_cbc_garb(); */
-/*     } else if (strcmp(argv[1], "full_eval_on") == 0) { */
-/*         full_cbc_eval(); */
-
-/*     } else { */
-/*         printf("See test/2pc_cbc.c:main for usage\n"); */
-/*     } */
-    
-/*     return 0; */
-/* }  */

@@ -4,17 +4,7 @@
 #include <stdbool.h>
 #include "justGarble.h"
 
-typedef enum {
-    ADDER22 = 0, 
-    ADDER23 = 1, 
-    ADD = 2,
-    MULT = 3,
-    AES_ROUND = 4,
-    AES_FINAL_ROUND = 5,
-    XOR = 6,
-    FULL_CBC = 7,
-    CIRCUIT_TYPE_ERR = -1
-    } CircuitType;
+#include "components.h"
 
 typedef struct {
     /* Our abstraction/layer on top of GarbledCircuit */
@@ -25,26 +15,18 @@ typedef struct {
     block* outputMap; // block*
 } ChainedGarbledCircuit; 
 
-typedef struct { 
-    /* index is i \in {0, ... , num_gcs-1} 
-     * so gc with index i has properties gc_types[i], gc_valids[i], gc_paths[i]. 
-     */
+/* typedef struct {  */
+/*     /\* index is i \in {0, ... , num_gcs-1}  */
+/*      * so gc with index i has properties gc_types[i], gc_valids[i], gc_paths[i].  */
+/*      *\/ */
 
-    int num_gcs;
-    CircuitType* gc_types;
-    bool* gc_valids;
-    char** gc_paths; 
-} GCsMetadata;
+/*     int num_gcs; */
+/*     CircuitType* gc_types; */
+/*     bool* gc_valids; */
+/*     char** gc_paths;  */
+/* } GCsMetadata; */
 
 int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
-
-void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
-        int *inputWires, int *outputWires);
-void buildCBCFullCircuit(GarbledCircuit *gc, int num_message_blocks, int num_aes_rounds, block *delta);
-void buildAdderCircuit(GarbledCircuit *gc);
-void buildAESCircuit(GarbledCircuit *gc);
-void buildXORCircuit(GarbledCircuit *gc, block* delta);
-void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalFound, block* delta);
 
 int saveChainedGC(ChainedGarbledCircuit* chained_gc, bool isGarbler);
 int loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler);

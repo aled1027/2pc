@@ -8,6 +8,7 @@
 
 #include "2pc_garbler.h"
 #include "2pc_evaluator.h"
+#include "components.h"
 
 #include "arg.h"
 #include "utils.h"
@@ -46,7 +47,7 @@ void aes_garb_off()
                       GARBLE_TYPE_STANDARD);
     }
     garbler_offline(chained_gcs, 128, num_chained_gcs);
-    free(chained_gcs);
+    freeChainedGarbledCircuit(chained_gcs);
 }
 
 void full_aes_garb()

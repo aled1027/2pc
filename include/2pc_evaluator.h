@@ -2,7 +2,6 @@
 #define MPC_EVALUATOR_H
 
 #include "2pc_function_spec.h"
-#include "2pc_garbled_circuit.h"
 
 void evaluator_classic_2pc(int *input, int *output,
         int num_garb_inputs, int num_eval_inputs,
