@@ -40,15 +40,15 @@ filesize(const char *filename) {
 }
 
 int 
-writeBufferToFile(char* buffer, size_t buf_size, char* fileName) {
-
+writeBufferToFile(char* buffer, size_t buf_size, char* fileName)
+{
     FILE *f;
     f = fopen(fileName, "w");
     if (f == NULL) {
         printf("Write: Error in opening file.\n");
         return FAILURE;
     }
-    fwrite(buffer, sizeof(char), buf_size, f);
+    (void) fwrite(buffer, sizeof(char), buf_size, f);
     fclose(f);
     return SUCCESS;
 }

@@ -10,8 +10,8 @@ typedef struct {
     GarbledCircuit gc;
     int id;
     CircuitType type;
-    block* inputLabels; // block*
-    block* outputMap; // block*
+    block* inputLabels;
+    block* outputMap;
 } ChainedGarbledCircuit; 
 
 /* typedef struct {  */

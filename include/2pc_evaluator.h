@@ -3,15 +3,16 @@
 
 #include "2pc_function_spec.h"
 
-void evaluator_classic_2pc(int *input, int *output,
-        int num_garb_inputs, int num_eval_inputs,
-        unsigned long *tot_time);
-
-void evaluator_offline(ChainedGarbledCircuit *chained_gcs, char *dir,
-                       int num_eval_inputs, int num_chained_gcs);
-
-void evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
-                      int num_chained_gcs, unsigned long *ot_time,
+void
+evaluator_classic_2pc(int *input, int *output,
+                      int num_garb_inputs, int num_eval_inputs,
                       unsigned long *tot_time);
+
+void
+evaluator_offline(char *dir, int num_eval_inputs, int nchains);
+
+void
+evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
+                 int num_chained_gcs, unsigned long *tot_time);
 
 #endif

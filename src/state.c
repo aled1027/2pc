@@ -39,7 +39,7 @@ state_init(struct state *s)
         }
     }
     if (ret == SUCCESS) {
-        fprintf(stderr, "Seed = %lu\n", seed);
+        /* fprintf(stderr, "Seed = %lu\n", seed); */
         gmp_randinit_default(s->p.rnd);
         gmp_randseed_ui(s->p.rnd, seed);
         (void) close(file);

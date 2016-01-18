@@ -14,6 +14,6 @@ void garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
 
 int garbler_online(char *function_path, char *dir, int *inputs,
                    int num_garb_inputs, int num_chained_gcs,
-                   unsigned long *ot_time, unsigned long *tot_time);
+                   unsigned long *tot_time);
 
 #endif

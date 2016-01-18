@@ -32,41 +32,40 @@ new_item_reader(void *item, int idx, ssize_t *mlen)
 
 void 
 garbler_classic_2pc(GarbledCircuit *gc, block *input_labels, 
-        InputMapping *input_mapping, block *output_map,
-        int num_garb_inputs, int num_eval_inputs,
-        int *inputs, unsigned long *tot_time)
+                    InputMapping *input_mapping, block *output_map,
+                    int num_garb_inputs, int num_eval_inputs,
+                    int *inputs, unsigned long *tot_time)
 {
-    /* Does 2PC in the classic way, without components. 
-     * Sends over the entire garbled circuit during the online phase.
-     */
+    /* Does 2PC in the classic way, without components. */
+    int serverfd, fd;
+    struct state state;
 
     assert(gc->n == num_garb_inputs + num_eval_inputs);
 
-    /* Setup network connection with evaluator */
-    int serverfd, fd;
-    struct state state;
     state_init(&state);
 
     if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
         perror("net_init_server");
         exit(EXIT_FAILURE);
     }
-
     if ((fd = net_server_accept(serverfd)) == FAILURE) {
         perror("net_server_accept");
         exit(EXIT_FAILURE);
     }
+
     *tot_time = RDTSC;
 
     /* send the garbled circuit */
     gc_comm_send(fd, gc);
 
     /* Send input_mapping to evaluator */
-    char *buffer = malloc(MAX_BUF_SIZE);
-    size_t buf_size = writeInputMappingToBuffer(input_mapping, buffer);
-    net_send(fd, &buf_size, sizeof(buf_size), 0);
-    net_send(fd, buffer, buf_size, 0);
-    free(buffer);
+    {
+        char *buffer = malloc(sizeof(int) + (3 * sizeof(int) + sizeof(Person)) * input_mapping->size);
+        size_t buf_size = writeInputMappingToBuffer(input_mapping, buffer);
+        net_send(fd, &buf_size, sizeof(buf_size), 0);
+        net_send(fd, buffer, buf_size, 0);
+        free(buffer);
+    }
 
     /* Setup for communicating labels to evaluator */
     /* Populate garb_labels and eval_labels as instructed by input_mapping */
@@ -103,6 +102,9 @@ garbler_classic_2pc(GarbledCircuit *gc, block *input_labels,
     /* Send output_map to evaluator */
     net_send(fd, output_map, sizeof(block) * 2 * gc->m, 0);
 
+    free(eval_labels);
+    free(garb_labels);
+
     /* close and clean up network connection */
     close(fd);
     close(serverfd);
@@ -116,9 +118,9 @@ send_instructions_and_input_mapping(FunctionSpec *function, int fd)
 {
     char *buffer1, *buffer2;
     size_t buf_size1, buf_size2;
-    buffer1 = malloc(MAX_BUF_SIZE);
-    buffer2 = malloc(MAX_BUF_SIZE);
-    assert(buffer1 && buffer2);
+
+    buffer1 = malloc(instructionBufferSize(&function->instructions));
+    buffer2 = malloc(inputMappingBufferSize(&function->input_mapping));
 
     buf_size1 = writeInstructionsToBuffer(&function->instructions, buffer1);
     buf_size2 = writeInputMappingToBuffer(&function->input_mapping, buffer2);
@@ -133,26 +135,13 @@ send_instructions_and_input_mapping(FunctionSpec *function, int fd)
 }
 
 static void
-garbler_go(FunctionSpec* function, char *dir, ChainedGarbledCircuit* chained_gcs,
-           int num_chained_gcs, int* circuitMapping, int *inputs,
-           unsigned long *ot_time)
+garbler_go(int fd, FunctionSpec* function, char *dir,
+           ChainedGarbledCircuit* chained_gcs,
+           int num_chained_gcs, int* circuitMapping, int *inputs)
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
     
     // 1. setup connection
-    int serverfd, fd;
-    struct state state;
-    state_init(&state);
-
-    if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
-        perror("net_init_server");
-        exit(EXIT_FAILURE);
-    }
-
-    if ((fd = net_server_accept(serverfd)) == FAILURE) {
-        perror("net_server_accept");
-        exit(EXIT_FAILURE);
-    }
 
     // 2. send instructions, input_mapping
     send_instructions_and_input_mapping(function, fd);
@@ -291,13 +280,12 @@ garbler_go(FunctionSpec* function, char *dir, ChainedGarbledCircuit* chained_gcs
     // 6. clean up
     free(evalLabels);
     free(garbLabels);
-    state_cleanup(&state);
-    close(fd);
-    close(serverfd);
 }
 
 static int
-garbler_make_real_instructions(FunctionSpec *function, ChainedGarbledCircuit* chained_gcs, int num_chained_gcs, int* circuitMapping) 
+garbler_make_real_instructions(FunctionSpec *function,
+                               ChainedGarbledCircuit *chained_gcs,
+                               int num_chained_gcs, int *circuitMapping) 
 {
     /* primary role: populate circuitMapping
      * circuitMapping maps instruction-gc-ids --> saved-gc-ids 
@@ -387,6 +375,9 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
         (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
 
         evalLabels = allocate_blocks(2 * num_eval_inputs);
+        for (int i = 0; i < 2 * num_eval_inputs; ++i) {
+            evalLabels[i] = randomBlock();
+        }
             
         ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs, 2,
                    new_msg_reader, new_item_reader);
@@ -402,23 +393,37 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
 
 int
 garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
-               int num_chained_gcs, unsigned long *ot_time,
-               unsigned long *tot_time) 
+               int num_chained_gcs, unsigned long *tot_time) 
 {
     /*runs the garbler code
      * First, initializes and loads function, and then calls garbler_go which
      * runs the core of the garbler's code
      */
+    int serverfd, fd;
+    struct state state;
+    unsigned long start;
 
     assert(tot_time); /* tot_time should be malloced before function is called */
 
-    unsigned long tot_time_start = RDTSC; // TODO this includes waiting time for evaluator
+    state_init(&state);
+
+    if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
+        perror("net_init_server");
+        exit(EXIT_FAILURE);
+    }
+
+    if ((fd = net_server_accept(serverfd)) == FAILURE) {
+        perror("net_server_accept");
+        exit(EXIT_FAILURE);
+    }
+
+    /* start timing after socket connection */
+    start = RDTSC;
 
     ChainedGarbledCircuit *chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
     assert(chained_gcs);
     for (int i = 0; i < num_chained_gcs; i++) {
         loadChainedGC(&chained_gcs[i], dir, i, true);
-        /*printf("loaded circuit of type: %d\n", chained_gcs[i].type);*/
     }
 
     /*load function allocates a bunch of memory for the function*/
@@ -436,16 +441,19 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     garbler_make_real_instructions(&function, chained_gcs, num_chained_gcs, circuitMapping);
 
     /*main function; does core of work*/
-    garbler_go(&function, dir, chained_gcs, num_chained_gcs, circuitMapping,
-               inputs, tot_time);
+    garbler_go(fd, &function, dir, chained_gcs, num_chained_gcs, circuitMapping,
+               inputs);
 
-    *tot_time = RDTSC - tot_time_start;
-
-    free(inputs);
     free(circuitMapping);
     freeChainedGcs(chained_gcs, num_chained_gcs);
     free(chained_gcs);
     freeFunctionSpec(&function);
+
+    *tot_time = RDTSC - start;
+
+    state_cleanup(&state);
+    close(fd);
+    close(serverfd);
 
     return SUCCESS;
 }

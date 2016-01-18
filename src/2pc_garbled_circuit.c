@@ -35,11 +35,11 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler)
     buffer_size += sizeof(CircuitType); 
     
     if (isGarbler) {
-        buffer_size += sizeof(block)* 2 * gc->n; // inputLabels
-        buffer_size += sizeof(block) * 2 *gc->m; // outputMap
+        buffer_size += sizeof(block) * 2 * gc->n; // inputLabels
+        buffer_size += sizeof(block) * 2 *gc->m;  // outputMap
     }
 
-    buffer = malloc(buffer_size);
+    buffer = calloc(buffer_size, sizeof(char));
 
     size_t p = 0;
     memcpy(buffer+p, &(gc->n), sizeof(gc->n));
@@ -68,27 +68,21 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler)
     p += sizeof(int) * gc->m; 
 
     // save globalKey
-    memcpy(buffer + p, &(gc->globalKey), sizeof(block));
+    memcpy(buffer + p, &gc->globalKey, sizeof(block));
     p += sizeof(block);
 
     // id, type, inputLabels, outputmap
-    memcpy(buffer + p, &(chained_gc->id), sizeof(int));
+    memcpy(buffer + p, &chained_gc->id, sizeof(int));
     p += sizeof(int);
 
-    memcpy(buffer + p, &(chained_gc->type), sizeof(CircuitType));
+    memcpy(buffer + p, &chained_gc->type, sizeof(CircuitType));
     p += sizeof(CircuitType);
 
     if (isGarbler) {
         memcpy(buffer + p, chained_gc->inputLabels, sizeof(block)*2*gc->n);
         p += sizeof(block) * 2 * gc->n;
-
         memcpy(buffer + p, chained_gc->outputMap, sizeof(block)*2*gc->m);
         p += sizeof(block) * 2 * gc->m;
-    }
-
-    if (p >= buffer_size) {
-        printf("Buffer overflow error in save.\n"); 
-        return FAILURE;
     }
 
     char fileName[50];
@@ -100,9 +94,11 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler)
     }
 
     if (writeBufferToFile(buffer, buffer_size, fileName) == FAILURE) {
+        free(buffer);
         return FAILURE;
     }
 
+    free(buffer);
     return SUCCESS;
 }
 
@@ -200,11 +196,11 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
     }
 
     if (p > fs) {
-        printf("Buffer overflow error\n"); 
+        printf("Buffer overflow error\n");
+        free(buffer);
         return FAILURE;
     }
     free(buffer);
-
     return SUCCESS;
 }
 

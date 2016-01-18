@@ -99,4 +99,14 @@ int readBufferIntoInstructions(Instructions* instructions, char* buffer);
 int writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer);
 int readBufferIntoInputMapping(InputMapping* input_mapping, char* buffer);
 
+void
+newInputMapping(InputMapping *map, int size);
+void
+deleteInputMapping(InputMapping *map);
+
+size_t
+instructionBufferSize(Instructions *instructions);
+size_t
+inputMappingBufferSize(InputMapping *map);
+
 #endif

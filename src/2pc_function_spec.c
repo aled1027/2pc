@@ -431,6 +431,26 @@ json_load_instructions(json_t *root, FunctionSpec *function)
     return SUCCESS;
 }
 
+size_t
+instructionBufferSize(Instructions *instructions)
+{
+    size_t size = sizeof(int);
+    for (int i = 0; i < instructions->size; ++i) {
+        size += sizeof(InstructionType);
+        switch (instructions->instr[i].type) {
+        case CHAIN:
+            size += 4 * sizeof(int) + sizeof(block);
+            break;
+        case EVAL:
+            size += sizeof(int);
+            break;
+        default:
+            break;
+        }
+    }
+    return size;
+}
+
 int 
 writeInstructionsToBuffer(Instructions* instructions, char* buffer) 
 {
@@ -519,10 +539,18 @@ readBufferIntoInstructions(Instructions* instructions, char* buffer)
     return p;
 }
 
+size_t
+inputMappingBufferSize(InputMapping *map)
+{
+    size_t size = sizeof(int);
+    size += (3 * sizeof(int) + sizeof(Person)) * map->size;
+    return size;
+}
+
 int 
 writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer) 
 {
-    size_t p =0;
+    size_t p = 0;
 
     memcpy(buffer+p, &(input_mapping->size), sizeof(int));
     p += sizeof(int);
@@ -530,13 +558,10 @@ writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer)
     for (int i=0; i<input_mapping->size; i++) {
         memcpy(buffer+p, &(input_mapping->input_idx[i]), sizeof(int));
         p += sizeof(int);
-
         memcpy(buffer+p, &(input_mapping->gc_id[i]), sizeof(int));
         p += sizeof(int);
-
         memcpy(buffer+p, &(input_mapping->wire_id[i]), sizeof(int));
         p += sizeof(int);
-
         memcpy(buffer+p, &(input_mapping->inputter[i]), sizeof(Person));
         p += sizeof(Person);
     }
@@ -544,34 +569,44 @@ writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer)
 }
 
 int 
-readBufferIntoInputMapping(InputMapping* input_mapping, char* buffer) 
+readBufferIntoInputMapping(InputMapping *map, char *buffer) 
 {
+    int size;
     size_t p = 0;
 
-    memcpy(&(input_mapping->size), buffer+p, sizeof(int));
+    memcpy(&size, buffer+p, sizeof(int));
     p += sizeof(int);
 
-    int size = input_mapping->size;
-    input_mapping->input_idx = malloc(sizeof(int) * size);
-    input_mapping->gc_id = malloc(sizeof(int) * size);
-    input_mapping->wire_id = malloc(sizeof(int) * size);
-    input_mapping->inputter = malloc(sizeof(Person) * size);
-    assert(input_mapping->input_idx && input_mapping->gc_id && 
-            input_mapping->wire_id && input_mapping->inputter);
+    newInputMapping(map, size);
 
-    for (int i=0; i<input_mapping->size; i++) {
-        memcpy(&(input_mapping->input_idx[i]), buffer+p, sizeof(int));
+    for (int i = 0; i < map->size; i++) {
+        memcpy(&(map->input_idx[i]), buffer+p, sizeof(int));
         p += sizeof(int);
-
-        memcpy(&(input_mapping->gc_id[i]), buffer+p, sizeof(int));
+        memcpy(&(map->gc_id[i]), buffer+p, sizeof(int));
         p += sizeof(int);
-
-        memcpy(&(input_mapping->wire_id[i]), buffer+p, sizeof(int));
+        memcpy(&(map->wire_id[i]), buffer+p, sizeof(int));
         p += sizeof(int);
-
-        memcpy(&(input_mapping->inputter[i]), buffer+p, sizeof(Person));
+        memcpy(&(map->inputter[i]), buffer+p, sizeof(Person));
         p += sizeof(Person);
     }
     return p;
 }
 
+void
+newInputMapping(InputMapping *map, int size)
+{
+    map->size = size;
+    map->input_idx = malloc(sizeof(int) * size);
+    map->gc_id = malloc(sizeof(int) * size);
+    map->wire_id = malloc(sizeof(int) * size);
+    map->inputter = malloc(sizeof(Person) * size);
+}
+
+void
+deleteInputMapping(InputMapping *map)
+{
+    free(map->input_idx);
+    free(map->gc_id);
+    free(map->wire_id);
+    free(map->inputter);
+}
