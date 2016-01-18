@@ -6,7 +6,6 @@
 
 SRCDIR := src
 OBJDIR := obj
-OBJFULL := obj/*.o
 TESTDIR := test
 BINDIR := bin
 
@@ -15,10 +14,15 @@ rm = rm --f
 JUSTGARBLE = JustGarble
 SOURCES := $(wildcard $(SRCDIR)/*.c)
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
-INCLUDES := $(wildcard $(SRCDIR)/*.h)
-IDIR =include
+
+TESTSOURCES := $(wildcard $(TESTDIR)/*.c)
+TESTOBJECTS := $(TESTSOURCES:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
+
 JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
 CIRCUITSRC := $(wildcard $(JUSTGARBLE)/circuit/*.c)
+
+INCLUDES := $(wildcard $(SRCDIR)/*.h)
+IDIR =include
 
 CC=gcc
 CFLAGS= -g -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -Wno-typedef-redefinition -Wno-unused-function -maes -msse4 -march=native
@@ -31,15 +35,20 @@ CBC = 2pc_cbc
 ###############
 # COMPILATION #
 ###############
-all: AES CBC
+all: test
 
-AES: $(OBJECTS) $(TESTDIR)/$(AES).c
-	$(CC) $(JUSTGARBLESRC) $(CIRCUITSRC) $(OBJFULL) $(TESTDIR)/$(AES).c -o $(BINDIR)/$(AES) $(LIBS) $(CFLAGS) 
+test: $(OBJECTS) $(TESTOBJECTS) $(TESTDIR)/main.c
+	$(CC) $(SOURCES) $(JUSTGARBLESRC) $(CIRCUITSRC) $(TESTSOURCES) -o $(BINDIR)/test $(LIBS) $(CFLAGS) 
 
-CBC: $(OBJECTS) $(TESTDIR)/$(CBC).c
-	$(CC) $(JUSTGARBLESRC) $(CIRCUITSRC) $(OBJFULL) $(TESTDIR)/$(CBC).c -o $(BINDIR)/$(CBC) $(LIBS) $(CFLAGS) 
+# AES: $(OBJECTS) $(TESTDIR)/$(AES).c
+# 	$(CC) $(JUSTGARBLESRC) $(CIRCUITSRC) $(TESTDIR)/$(AES).c -o $(BINDIR)/$(AES) $(LIBS) $(CFLAGS) 
+
+# CBC: $(OBJECTS) $(TESTDIR)/$(CBC).c
+# 	$(CC) $(JUSTGARBLESRC) $(CIRCUITSRC) $(TESTDIR)/$(CBC).c -o $(BINDIR)/$(CBC) $(LIBS) $(CFLAGS) 
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
+	$(CC) -c $< -o $@ $(CFLAGS) 
+$(TESTOBJECTS): $(OBJDIR)/%.o : $(TESTDIR)/%.c
 	$(CC) -c $< -o $@ $(CFLAGS) 
 
 #################
@@ -111,7 +120,6 @@ aes_full_eval:
 ##########
 .PHONEY: clean
 clean:
-	@$(rm) $(OBJECTS)
-	@$(rm) $(BINDIR)/$(AES)
-	@$(rm) $(BINDIR)/$(CBC)
+	@$(rm) $(OBJDIR)/*.o
+	@$(rm) $(BINDIR)/test
 

@@ -35,8 +35,7 @@ static int getNumGates() {
         getNumFinalAESCircs() * gates_per_aes_final;
 }
 
-
-void cbc_garb_off() 
+void cbc_garb_off()
 {
     printf("Running cbc garb offline\n");
     int num_chained_gcs = getNumCircs(); 
@@ -73,7 +72,7 @@ void cbc_garb_off()
     free(chained_gcs);
 }
 
-void cbc_eval_off() 
+void cbc_eval_off()
 {
     int num_chained_gcs = getNumCircs(); 
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
@@ -100,7 +99,7 @@ void cbc_garb_on()
     printf("tot_time: %lu\n", *tot_time / num_gates);
 }
 
-void cbc_eval_on() 
+void cbc_eval_on()
 {
     printf("Running cbc eval online\n");
     int num_eval_inputs = getNumEvalInputs();
@@ -202,29 +201,29 @@ void full_cbc_eval()
     //}
 }
 
-int main(int argc, char *argv[]) {
-    // TODO add in arg.h stuff
+/* int main(int argc, char *argv[]) { */
+/*     // TODO add in arg.h stuff */
 
-    seedRandom();
+/*     seedRandom(); */
     
-    assert(argc == 2);
-    if (strcmp(argv[1], "eval_online") == 0) {
-        cbc_eval_on();
-    } else if (strcmp(argv[1], "garb_online") == 0) {
-        cbc_garb_on();
-    } else if (strcmp(argv[1], "garb_offline") == 0) {
-        cbc_garb_off();
-    } else if (strcmp(argv[1], "eval_offline") == 0) {
-        cbc_eval_off();
+/*     assert(argc == 2); */
+/*     if (strcmp(argv[1], "eval_online") == 0) { */
+/*         cbc_eval_on(); */
+/*     } else if (strcmp(argv[1], "garb_online") == 0) { */
+/*         cbc_garb_on(); */
+/*     } else if (strcmp(argv[1], "garb_offline") == 0) { */
+/*         cbc_garb_off(); */
+/*     } else if (strcmp(argv[1], "eval_offline") == 0) { */
+/*         cbc_eval_off(); */
 
-    } else if (strcmp(argv[1], "full_garb_on") == 0) {
-        full_cbc_garb();
-    } else if (strcmp(argv[1], "full_eval_on") == 0) {
-        full_cbc_eval();
+/*     } else if (strcmp(argv[1], "full_garb_on") == 0) { */
+/*         full_cbc_garb(); */
+/*     } else if (strcmp(argv[1], "full_eval_on") == 0) { */
+/*         full_cbc_eval(); */
 
-    } else {
-        printf("See test/2pc_cbc.c:main for usage\n");
-    }
+/*     } else { */
+/*         printf("See test/2pc_cbc.c:main for usage\n"); */
+/*     } */
     
-    return 0;
-} 
+/*     return 0; */
+/* }  */

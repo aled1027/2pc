@@ -18,7 +18,7 @@ int MEDIAN_IDX = 11; // NUM_TRIALS / 2 - 1
 bool is_timing = false;
 unsigned long NUM_GATES = 34000;
 
-void aes_garb_off() 
+void aes_garb_off()
 {
     printf("Running garb offline\n");
     int num_chained_gcs = NUM_GCS; // defined in 2pc_common.h
@@ -54,7 +54,7 @@ int myCompare(const void * a, const void * b)
 	return (int) (*(unsigned long*) a - *(unsigned long*) b);
 }
 
-void aes_garb_on(char* function_path, bool timing) 
+void aes_garb_on(char* function_path, bool timing)
 {
     // crude addition for timings
     if (timing) {
@@ -101,14 +101,14 @@ void aes_garb_on(char* function_path, bool timing)
     }
 }
 
-void aes_eval_off() 
+void aes_eval_off()
 {
     int num_chained_gcs = NUM_GCS; // defined in common
     ChainedGarbledCircuit* chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
     evaluator_offline(chained_gcs, 128, num_chained_gcs);
 }
 
-void aes_eval_on(bool timing) 
+void aes_eval_on(bool timing)
 {
     if (timing) {
         unsigned long *ot_time = malloc(sizeof(unsigned long) * NUM_TRIALS);
@@ -151,7 +151,7 @@ void aes_eval_on(bool timing)
     }
 }
 
-void full_aes_garb() 
+void full_aes_garb()
 {
     printf("Running full aes garb offline\n");
     GarbledCircuit gc;
@@ -199,7 +199,7 @@ void full_aes_garb()
     free(outputMap);
 }
 
-void full_aes_eval() 
+void full_aes_eval()
 {
     /* Evaluator offline phase for CBC where no components are used:
      * only a single circuit
@@ -229,29 +229,29 @@ void full_aes_eval()
 
 }
 
-int main(int argc, char *argv[]) 
-{
-    // TODO add in arg.h stuff
-    seedRandom();
-    char* function_path = "functions/aes.json";
-    if (strcmp(argv[1], "eval_online") == 0) {
-        aes_eval_on(is_timing);
-    } else if (strcmp(argv[1], "garb_online") == 0) {
-        printf("Running garb online\n");
-        aes_garb_on(function_path, is_timing);
-    } else if (strcmp(argv[1], "garb_offline") == 0) {
-        aes_garb_off();
-    } else if (strcmp(argv[1], "eval_offline") == 0) {
-        printf("Running val offline\n");
-        aes_eval_off();
+/* int main(int argc, char *argv[])  */
+/* { */
+/*     // TODO add in arg.h stuff */
+/*     seedRandom(); */
+/*     char* function_path = "functions/aes.json"; */
+/*     if (strcmp(argv[1], "eval_online") == 0) { */
+/*         aes_eval_on(is_timing); */
+/*     } else if (strcmp(argv[1], "garb_online") == 0) { */
+/*         printf("Running garb online\n"); */
+/*         aes_garb_on(function_path, is_timing); */
+/*     } else if (strcmp(argv[1], "garb_offline") == 0) { */
+/*         aes_garb_off(); */
+/*     } else if (strcmp(argv[1], "eval_offline") == 0) { */
+/*         printf("Running val offline\n"); */
+/*         aes_eval_off(); */
 
-    } else if (strcmp(argv[1], "full_garb") == 0) {
-        full_aes_garb();
-    } else if (strcmp(argv[1], "full_eval") == 0) {
-        full_aes_eval();
+/*     } else if (strcmp(argv[1], "full_garb") == 0) { */
+/*         full_aes_garb(); */
+/*     } else if (strcmp(argv[1], "full_eval") == 0) { */
+/*         full_aes_eval(); */
 
-    } else {
-        printf("Seeing test/2pc_aes.c:main for usage\n");
-    }
-    return 0;
-} 
+/*     } else { */
+/*         printf("Seeing test/2pc_aes.c:main for usage\n"); */
+/*     } */
+/*     return 0; */
+/* }  */
