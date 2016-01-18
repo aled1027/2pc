@@ -1,10 +1,9 @@
 #ifndef MPC_GARBLED_CIRCUIT_H
 #define MPC_GARBLED_CIRCUIT_H
 
-#include <stdbool.h>
-#include "justGarble.h"
-
 #include "components.h"
+
+#include <stdbool.h>
 
 typedef struct {
     /* Our abstraction/layer on top of GarbledCircuit */

@@ -12,6 +12,57 @@
 #include "2pc_common.h"
 #include "utils.h"
 
+static int
+new_choice_reader(void *choices, int idx)
+{
+    int *c = (int *) choices;
+    return c[idx];
+}
+
+static int
+new_msg_writer(void *array, int idx, void *msg, size_t msglength)
+{
+    block *a = (block *) array;
+    a[idx] = *((block *) msg);
+    return 0;
+}
+
+static void
+evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
+        Instructions* instructions, block** labels, int* circuitMapping,
+        block **computedOutputMap)
+{
+    /*  Essence of function: populate computedOutputMap
+     *
+     * only used circuitMapping when evaluating. 
+     * all other labels, outputmap are basedon the indicies of instructions.
+     * This is because instruction's circuits are id'ed 0,..,n-1
+     * whereas saved gc id'ed arbitrarily.
+     */
+    assert(computedOutputMap); // memory should already be allocated
+    int savedCircId;
+    for (int i = 0; i < instructions->size; i++) {
+        Instruction* cur = &instructions->instr[i];
+        switch(cur->type) {
+            case EVAL:
+                savedCircId = circuitMapping[cur->evCircId];
+                // printf("evaling %d on instruction %d\n", savedCircId, i);
+                evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
+                         computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
+                break;
+            case CHAIN:
+                // printf("chaining (%d,%d) -> (%d,%d)\n", cur->chFromCircId, cur->chFromWireId, cur->chToCircId, cur->chToWireId);
+                labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
+                        computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
+                        cur->chOffset);
+                break;
+            default:
+                printf("Error: Instruction %d is not of a valid type\n", i);
+                return;
+        }
+    }
+}
+
 void evaluator_classic_2pc(int *input, int *output,
         int num_garb_inputs, int num_eval_inputs,
         unsigned long *tot_time) 
@@ -319,54 +370,3 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
 
     *tot_time = RDTSC - start_time;
 }
-
-void evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
-        Instructions* instructions, block** labels, int* circuitMapping,
-        block **computedOutputMap)
-{
-    /*  Essence of function: populate computedOutputMap
-     *
-     * only used circuitMapping when evaluating. 
-     * all other labels, outputmap are basedon the indicies of instructions.
-     * This is because instruction's circuits are id'ed 0,..,n-1
-     * whereas saved gc id'ed arbitrarily.
-     */
-    assert(computedOutputMap); // memory should already be allocated
-    int savedCircId;
-    for (int i = 0; i < instructions->size; i++) {
-        Instruction* cur = &instructions->instr[i];
-        switch(cur->type) {
-            case EVAL:
-                savedCircId = circuitMapping[cur->evCircId];
-                // printf("evaling %d on instruction %d\n", savedCircId, i);
-                evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
-                         computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
-                break;
-            case CHAIN:
-                // printf("chaining (%d,%d) -> (%d,%d)\n", cur->chFromCircId, cur->chFromWireId, cur->chToCircId, cur->chToWireId);
-                labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
-                        computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
-                        cur->chOffset);
-                break;
-            default:
-                printf("Error: Instruction %d is not of a valid type\n", i);
-                return;
-        }
-    }
-}
-
-int
-new_choice_reader(void *choices, int idx)
-{
-    int *c = (int *) choices;
-    return c[idx];
-}
-
-int
-new_msg_writer(void *array, int idx, void *msg, size_t msglength)
-{
-    block *a = (block *) array;
-    a[idx] = *((block *) msg);
-    return 0;
-}
-

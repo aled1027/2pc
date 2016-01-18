@@ -1,8 +1,7 @@
 #include "2pc_function_spec.h"
+#include "utils.h"
 
 #include <assert.h>
-
-#include "utils.h"
 
 int 
 freeFunctionSpec(FunctionSpec* function) 

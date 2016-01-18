@@ -22,9 +22,6 @@ ot_malloc(size_t size);
 void
 ot_free(void *p);
 
-block *
-allocate_blocks(size_t nblocks);
-
 long 
 filesize(const char *filename);
 
