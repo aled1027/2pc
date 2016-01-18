@@ -162,11 +162,13 @@ garbler_online(char* function_path, int *inputs, int num_garb_inputs, int num_ev
 
     unsigned long tot_time_start = RDTSC; // TODO this includes waiting time for evaluator
 
-    ChainedGarbledCircuit *chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
+    size_t s = sizeof(ChainedGarbledCircuit) * num_chained_gcs;
+    printf("size s = %zu\n", s);
+    ChainedGarbledCircuit *chained_gcs = malloc(s);
     assert(chained_gcs);
+    // working where loop fewer than 6 times
     for (int i = 0; i < num_chained_gcs; i++) {
         loadChainedGC(&chained_gcs[i], i, true);
-        /*printf("loaded circuit of type: %d\n", chained_gcs[i].type);*/
     }
 
     /*load function allocates a bunch of memory for the function*/
@@ -179,8 +181,7 @@ garbler_online(char* function_path, int *inputs, int num_garb_inputs, int num_ev
     }
     assert(num_garb_inputs == function.num_garb_inputs);
 
-    int *circuitMapping = (int*) allocate_ints(function.components.numComponentTypes);
-    assert(circuitMapping);
+    int *circuitMapping = (int*) allocate_ints(function.components.totComponents);
     garbler_make_real_instructions(&function, chained_gcs, num_chained_gcs, circuitMapping);
 
     /*main function; does core of work*/

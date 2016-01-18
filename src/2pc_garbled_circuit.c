@@ -675,13 +675,13 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler)
     GarbledCircuit* gc = &chained_gc->gc;
 
     size_t p = 0;
-    memcpy(&(gc->n), buffer+p, sizeof(gc->n));
+    memcpy(&gc->n, buffer+p, sizeof(gc->n));
     p += sizeof(gc->n);
-    memcpy(&(gc->m), buffer+p, sizeof(gc->m));
+    memcpy(&gc->m, buffer+p, sizeof(gc->m));
     p += sizeof(gc->m);
-    memcpy(&(gc->q), buffer+p, sizeof(gc->q));
+    memcpy(&gc->q, buffer+p, sizeof(gc->q));
     p += sizeof(gc->q);
-    memcpy(&(gc->r), buffer+p, sizeof(gc->r));
+    memcpy(&gc->r, buffer+p, sizeof(gc->r));
     p += sizeof(gc->r);
 
     // load garbled gates
@@ -700,16 +700,16 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler)
     p += sizeof(Wire)*gc->r;
 
     // load outputs
-    gc->outputs = malloc(sizeof(int) * gc->m);
+    gc->outputs = allocate_ints(gc->m);
     memcpy(gc->outputs, buffer+p, sizeof(int) * gc->m);
     p += sizeof(int) * gc->m;
 
     // save globalKey
-    memcpy(&(gc->globalKey), buffer+p, sizeof(block));
+    memcpy(&gc->globalKey, buffer+p, sizeof(block));
     p += sizeof(block);
 
     // id
-    memcpy(&(chained_gc->id), buffer+p, sizeof(int));
+    memcpy(&chained_gc->id, buffer+p, sizeof(int));
     p += sizeof(int);
 
     // type
@@ -718,14 +718,12 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, int id, bool isGarbler)
 
     if (isGarbler) {
         // inputLabels
-        (void) posix_memalign((void **) &chained_gc->inputLabels, 128, sizeof(block) * 2 * gc->n);
-        assert(chained_gc->inputLabels);
+        chained_gc->inputLabels = allocate_blocks(2 * gc->n);
         memcpy(chained_gc->inputLabels, buffer+p, sizeof(block)*2*gc->n);
         p += sizeof(block) * 2 * gc->n;
 
         // outputMap
-        (void) posix_memalign((void **) &chained_gc->outputMap, 128, sizeof(block) * 2 * gc->m);
-        assert(chained_gc->outputMap);
+        chained_gc->outputMap = allocate_blocks(2 * gc->m);
         memcpy(chained_gc->outputMap, buffer+p, sizeof(block)*2*gc->m);
         p += sizeof(block) * 2 * gc->m;
     }

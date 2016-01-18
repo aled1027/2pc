@@ -11,12 +11,13 @@
 
 #include "arg.h"
 
-int NUM_AES_ROUNDS = 2;
-int NUM_CBC_BLOCKS = 2;
+int NUM_AES_ROUNDS = 10;
+int NUM_CBC_BLOCKS = 10;
 
 //char *FULL_FUNCTION_PATH = "functions/full_cbc.json";
-//char *COMPONENT_FUNCTION_PATH = "functions/cbc_10_10.json"; 
-char* COMPONENT_FUNCTION_PATH = "functions/cbc_2_2.json";
+char *COMPONENT_FUNCTION_PATH = "functions/cbc_10_10.json"; 
+//char *COMPONENT_FUNCTION_PATH = "functions/cbc_6_6.json"; 
+//char* COMPONENT_FUNCTION_PATH = "functions/cbc_2_2.json";
 
 static int getNumGarbInputs() { return (NUM_AES_ROUNDS * NUM_CBC_BLOCKS * 128) + 128; }
 static int getNumEvalInputs() { return NUM_CBC_BLOCKS * 128; }

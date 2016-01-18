@@ -81,22 +81,19 @@ void aes_garb_on(char* function_path, bool timing)
         printf("median time without ot: %lu\n", (tot_time[MEDIAN_IDX] - ot_time[MEDIAN_IDX]) / NUM_GATES);
     } else {
         // CHECK NUM GCS
-        int num_chained_gcs = NUM_GCS;
+        printf("Running garbler online\n");
+        //int num_chained_gcs = NUM_GCS;
+        int num_chained_gcs = 10;
         int num_garb_inputs = 128*10;
         int num_eval_inputs = 128;
-        int *inputs = malloc(sizeof(int) * num_garb_inputs);
-        assert(inputs);
+        int *inputs = allocate_ints(num_garb_inputs);
         for (int i = 0; i < num_garb_inputs; i++) {
             inputs[i] = rand() % 2; 
         }
-        unsigned long *ot_time = malloc(sizeof(unsigned long));
-        unsigned long *tot_time = malloc(sizeof(unsigned long));
+        unsigned long ot_time;
+        unsigned long tot_time;
         garbler_online(function_path, inputs, num_garb_inputs, num_eval_inputs,
-                num_chained_gcs, ot_time, tot_time);
-
-        printf("ot_time: %lu\n", *ot_time / NUM_GATES);
-        printf("tot_time: %lu\n", *tot_time / NUM_GATES);
-        printf("time without ot: %lu\n", (*tot_time - *ot_time) / NUM_GATES);
+                num_chained_gcs, &ot_time, &tot_time);
     }
 }
 
