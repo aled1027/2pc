@@ -123,7 +123,7 @@ garbler_offline(ChainedGarbledCircuit* chained_gcs, int num_eval_inputs,
     }
 
     /* pre-processing OT using random labels */
-    {
+    if (num_eval_inputs > 0) {
         block *evalLabels;
 
         char lblName[50];
@@ -268,7 +268,7 @@ garbler_go(FunctionSpec* function, ChainedGarbledCircuit* chained_gcs,
     }
 
     /* OT correction */
-    {
+    if (num_eval_inputs > 0) {
         int *corrections;
         block *randLabels;
         char lblName[50];

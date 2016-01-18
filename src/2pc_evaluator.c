@@ -16,7 +16,7 @@ void evaluator_classic_2pc(int *input, int *output,
         int num_garb_inputs, int num_eval_inputs,
         unsigned long *tot_time) 
 {
-    assert(input && output && tot_time);
+    assert(output && tot_time); /* input could be NULL if num_eval_inputs == 0 */
     *tot_time = RDTSC;
 
     int sockfd;
@@ -108,7 +108,7 @@ evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_eval_inputs,
     }
 
     /* pre-processing OT using random selection bits */
-    {
+    if (num_eval_inputs > 0) {
         int *selections;
         block *evalLabels;
 
@@ -142,7 +142,7 @@ evaluator_offline(ChainedGarbledCircuit *chained_gcs, int num_eval_inputs,
 
 void
 evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs, 
-        unsigned long *ot_time, unsigned long *tot_time)
+                 unsigned long *ot_time, unsigned long *tot_time)
 {
     // 1. I guess there is no 1 now.
 
@@ -212,7 +212,7 @@ evaluator_online(int *eval_inputs, int num_eval_inputs, int num_chained_gcs,
     }
 
     /* OT correction */
-    {
+    if (num_eval_inputs > 0) {
         int *corrections;
         block *recvLabels;
         char selName[50], lblName[50];

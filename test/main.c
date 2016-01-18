@@ -9,6 +9,7 @@
 #include "2pc_garbler.h"
 #include "2pc_evaluator.h"
 #include "justGarble.h"
+#include "2pc_and.h"
 #include "2pc_aes.h"
 #include "2pc_cbc.h"
 
@@ -60,7 +61,7 @@ static struct option opts[] =
     {0, 0, 0, 0}
 };
 
-void
+static void
 eval_off(int ninputs, int nchains)
 {
     ChainedGarbledCircuit *gcs;
@@ -70,12 +71,13 @@ eval_off(int ninputs, int nchains)
     free(gcs);
 }
 
-int myCompare(const void * a, const void * b)
+static int
+myCompare(const void * a, const void * b)
 {
 	return (int) (*(unsigned long*) a - *(unsigned long*) b);
 }
 
-void
+static void
 garb_on(char* function_path, int ninputs, int nchains, bool timing)
 {
     unsigned long *ot_time, *tot_time;
@@ -109,7 +111,7 @@ garb_on(char* function_path, int ninputs, int nchains, bool timing)
     }
 }
 
-void
+static void
 eval_on(int ninputs, int nchains, bool timing)
 {
     unsigned long *ot_time, *tot_time;
@@ -142,11 +144,24 @@ eval_on(int ninputs, int nchains, bool timing)
     }
 }
 
+typedef enum {
+    GARB_OFF_AND,
+    GARB_OFF_AES,
+    GARB_OFF_CBC,
+    GARB_OFF_NONE
+} GarbOff;
+
+struct args {
+    char *fspec;
+    GarbOff garb_type;
+};
+
 int
 main(int argc, char *argv[])
 {
     int c, idx;
     bool is_timing = false;
+    /* struct args args = { NULL, GARB_OFF_NONE, }; */
 
     seedRandom();
 
@@ -155,13 +170,24 @@ main(int argc, char *argv[])
         case 0:
             break;
         case 'a':
+            and_garb_off(128, 10, NUM_GCS);
+            exit(EXIT_SUCCESS);
         case 'A':
+            eval_off(0, NUM_GCS);
+            exit(EXIT_SUCCESS);
         case 'b':
+            garb_on("functions/and.json", 128, NUM_GCS, is_timing);
+            exit(EXIT_SUCCESS);
         case 'B':
+            eval_on(0, NUM_GCS, is_timing);
+            exit(EXIT_SUCCESS);
         case 'c':
+            and_garb_full(128, 10);
+            exit(EXIT_SUCCESS);
         case 'C':
-            assert(false);
-            exit(1);
+            and_eval_full(128);
+            exit(EXIT_SUCCESS);
+
         case 'd':
             aes_garb_off();
             exit(1);
@@ -209,5 +235,6 @@ main(int argc, char *argv[])
             abort();
         }
     }
+
     return EXIT_SUCCESS;
 }

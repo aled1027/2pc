@@ -18,6 +18,7 @@ typedef enum {
 
 void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
         int *inputWires, int *outputWires);
+void buildANDCircuit(GarbledCircuit *gc, int n, int nlayers);
 void buildCBCFullCircuit(GarbledCircuit *gc, int num_message_blocks, int num_aes_rounds, block *delta);
 void buildAdderCircuit(GarbledCircuit *gc);
 void buildAESCircuit(GarbledCircuit *gc);

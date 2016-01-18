@@ -1,8 +1,40 @@
 #include "components.h"
-#include "circuits.h"
 #include "utils.h"
 
+#include "circuits.h"
+#include "gates.h"
+
 #include <assert.h>
+
+void
+buildANDCircuit(GarbledCircuit *gc, int n, int nlayers)
+{
+    block inputLabels[2 * n];
+    block outputLabels[n];
+    GarblingContext ctxt;
+    int wire;
+    int wires[n];
+    int r = n + n / 2 * nlayers;
+    int q = n / 2 * nlayers;
+
+    printf("# gates = %d\n", q);
+
+    countToN(wires, n);
+
+    createInputLabels(inputLabels, n);
+    createEmptyGarbledCircuit(gc, n, n, q, r, inputLabels);
+    startBuilding(gc, &ctxt);
+
+    for (int i = 0; i < nlayers; ++i) {
+        for (int j = 0; j < n; j += 2) {
+            wire = getNextWire(&ctxt);
+            ANDGate(gc, &ctxt, wires[j], wires[j+1], wire);
+            wires[j] = wires[j+1] = wire;
+        }
+    }
+
+    finishBuilding(gc, &ctxt, outputLabels, wires);
+}
 
 void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
         int *inputWires, int *outputWires) 

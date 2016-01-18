@@ -10,29 +10,22 @@
 #include "2pc_evaluator.h"
 #include "components.h"
 
-#include "arg.h"
 #include "utils.h"
 
-int NUM_GCS = 10;
-int NUM_TRIALS = 20;
-int MEDIAN_IDX = 11; // NUM_TRIALS / 2 - 1
-bool is_timing = false;
-unsigned long NUM_GATES = 34000;
+/* static unsigned long NUM_GATES = 34000; */
 
-void aes_garb_off()
+void aes_garb_off(int nchains)
 {
     printf("Running garb offline\n");
-    int num_chained_gcs = NUM_GCS; // defined in 2pc_common.h
-    ChainedGarbledCircuit *chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
-    // createGarbledCircuits(chained_gcs, num_chained_gcs);
+    ChainedGarbledCircuit *chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * nchains);
 
     block delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
 
-    for (int i = 0; i < num_chained_gcs; i++) {
+    for (int i = 0; i < nchains; i++) {
         // for AES:
         GarbledCircuit* p_gc = &(chained_gcs[i].gc);
-        if (i == num_chained_gcs-1) {
+        if (i == nchains - 1) {
             buildAESRoundComponentCircuit(p_gc, true, &delta);
             chained_gcs[i].type = AES_FINAL_ROUND;
         } else {
@@ -46,7 +39,7 @@ void aes_garb_off()
         garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap,
                       GARBLE_TYPE_STANDARD);
     }
-    garbler_offline(chained_gcs, 128, num_chained_gcs);
+    garbler_offline(chained_gcs, 128, nchains);
     freeChainedGarbledCircuit(chained_gcs);
 }
 
@@ -117,5 +110,5 @@ void full_aes_eval()
     unsigned long *tot_time = malloc(sizeof(unsigned long));
     evaluator_classic_2pc(eval_inputs, output, num_garb_inputs, 
             num_eval_inputs, tot_time);
-    printf("tot_time %lu\n", *tot_time / NUM_GATES);
+    printf("tot_time %lu\n", *tot_time);
 }
