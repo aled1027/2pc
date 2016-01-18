@@ -13,26 +13,114 @@
 #include "arg.h"
 #include "gates.h"
 
-int l = 29;
+int l = 2;
+int numCircuits = 4;
+char *COMPONENT_FUNCTION_PATH = "functions/leven_2.json"; 
+
+static int getDIntSize() { return (int) floor(log2(l)) + 1; }
+static int getInputsDevotedToD() { return getDIntSize() * (l+1); }
+static int getN() { return getInputsDevotedToD() + (2*2*l); }
+static int getM() { return getDIntSize(); }
+static int getNumEvalInputs() { return 2*l; }
+static int getNumGarbInputs() { return getN() - getNumEvalInputs(); }
+static int getCoreN() { return (3 * getDIntSize()) + 4; }
+static int getCoreM() { return getDIntSize(); }
+static int getCoreQ() { return 10000; } // figure out this number
+
+static int getNumGatesPerCore() {return 10; } // figure out this number
+static int getNumCoresForL() { return l * 10; } // figure out this number
+static int getNumGates() { return getNumCoresForL() * getNumGatesPerCore(); }
+
+
 
 void leven_garb_off() 
 {
     printf("Running leven garb offline\n");
+
+    block delta = randomBlock();
+    *((uint16_t *) (&delta)) |= 1;
+
+    int coreN = getCoreN();
+    int coreM = getCoreM();
+    int coreQ = getCoreQ();
+    int coreR = coreN + coreQ;
+
+    ChainedGarbledCircuit chainedGCs[numCircuits];
+    for (int i = 0; i < numCircuits; i++) {
+        /* Initialize */
+        GarblingContext gcContext;
+        int *inputWires = allocate_ints(coreN);
+        countToN(inputWires, coreN);
+        int *outputWires = allocate_ints(coreM);
+        chainedGCs[i].inputLabels = allocate_blocks(2*coreN);
+        chainedGCs[i].outputMap = allocate_blocks(2*coreM);
+        GarbledCircuit *gc = &chainedGCs[i].gc;
+
+        /* Garble */
+        createInputLabelsWithR(chainedGCs[i].inputLabels, coreN, &delta);
+	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR, chainedGCs[i].inputLabels);
+	    startBuilding(gc, &gcContext);
+        addLevenshteinCoreCircuit(gc, &gcContext, l, inputWires, outputWires);
+        garbleCircuit(gc, chainedGCs[i].inputLabels, chainedGCs[i].outputMap);
+	    finishBuilding(gc, &gcContext, chainedGCs[i].outputMap, outputWires);
+
+        /* Declare chaining vars */
+        chainedGCs[i].id = i;
+        chainedGCs[i].type = LEVEN_CORE;
+        /* Clean up */
+        removeGarblingContext(&gcContext);
+    }
+    int numEvalInputs = getNumEvalInputs();
+    garbler_offline(chainedGCs, numEvalInputs, numCircuits);
 }
 
 void leven_eval_off() 
 {
-    printf("Running leven eval offline\n");
+    ChainedGarbledCircuit chainedGCs[numCircuits];
+    int numEvalInputs = getNumEvalInputs(); /* Total number of inputs, not per circuit */
+    evaluator_offline(chainedGCs, numEvalInputs, numCircuits);
 }
 
 void leven_garb_on() 
 {
     printf("Running leven garb online\n");
+    char *functionPath = COMPONENT_FUNCTION_PATH;
+    int DIntSize = getDIntSize();
+    int inputsDevotedToD = getInputsDevotedToD();
+    int n = getN();
+    int numEvalInputs = getNumEvalInputs();
+    int numGarbInputs = getNumGarbInputs();
+    int m = getM();
+
+    /* Set Inputs */
+    int *garbInputs = allocate_ints(numGarbInputs);
+
+    /* The first inputsDevotedToD inputs are 0 to l+1 in binary */
+    for (int i = 0; i < l + 1; i++) 
+        convertToBinary(i, garbInputs + (DIntSize) * i, DIntSize);
+
+    for (int i = inputsDevotedToD; i < numGarbInputs; i++) {
+        garbInputs[i] = rand() % 2;
+        printf("%d", garbInputs[i]);
+    }
+    printf("\n");
+
+    unsigned long tot_time;
+    garbler_online(functionPath, garbInputs, numGarbInputs, numEvalInputs, numCircuits, NULL, &tot_time);
 }
 
 void leven_eval_on() 
 {
     printf("Running leven eval online\n");
+
+    printf("Running cbc eval online\n");
+    int numEvalInputs = getNumEvalInputs();
+    int *evalInputs = allocate_ints(numEvalInputs);
+    for (int i = 0; i < numEvalInputs; i++)
+        evalInputs[i] = rand() % 2;
+
+    unsigned long tot_time;
+    evaluator_online(evalInputs, numEvalInputs, numCircuits, NULL, &tot_time);
 }
 
 void full_leven_garb()
