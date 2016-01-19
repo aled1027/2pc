@@ -5,7 +5,7 @@ import argparse
 import math
 
 def initializeComponents(ret_dict):
-    l = ret_dict['meta_data']['l']
+    l = ret_dict['metadata']['l']
     r = OrderedDict()
     r['type'] = 'LEVEN_CORE'
     r['num'] = l*l
@@ -17,11 +17,11 @@ def printD(D):
         pprint(r)
 
 def fillD(ret_dict, D):
-
-    l = ret_dict['meta_data']['l']
-    D_int_size = ret_dict['meta_data']['D_int_size']
-    core_n = ret_dict['meta_data']['core_n']
-    inputs_devoted_to_D = ret_dict['meta_data']['inputs_devoted_to_D']
+    # CHANGE THIS
+    l = ret_dict['metadata']['l']
+    D_int_size = ret_dict['metadata']['D_int_size']
+    core_n = ret_dict['metadata']['core_n']
+    inputs_devoted_to_D = ret_dict['metadata']['inputs_devoted_to_D']
 
     D = [[None] * (l+1) for _ in range(l+1)]
 
@@ -55,7 +55,7 @@ def fillD(ret_dict, D):
                 r["gc_id"] = this_gc_id
                 r["start_wire_idx"] = 0
                 r["end_wire_idx"] = D_int_size - 1
-                ret_dict['InputMapping'].append(r)
+                ret_dict['input_mapping'].append(r)
             else:
                 # use chaining
                 r = OrderedDict()
@@ -77,7 +77,7 @@ def fillD(ret_dict, D):
                 r["gc_id"] = this_gc_id
                 r["start_wire_idx"] = D_int_size
                 r["end_wire_idx"] = (2*D_int_size) - 1
-                ret_dict['InputMapping'].append(r)
+                ret_dict['input_mapping'].append(r)
             else:
                 # use chaining
                 r = OrderedDict()
@@ -98,7 +98,7 @@ def fillD(ret_dict, D):
                 r["gc_id"] = this_gc_id
                 r["start_wire_idx"] = 2*D_int_size
                 r["end_wire_idx"] = (3*D_int_size) - 1
-                ret_dict['InputMapping'].append(r)
+                ret_dict['input_mapping'].append(r)
             else:
                 # use chaining
                 r = OrderedDict()
@@ -119,10 +119,10 @@ def fillD(ret_dict, D):
             r["gc_id"] = this_gc_id
             r["start_wire_idx"] = 3*D_int_size
             r["end_wire_idx"] = (3*D_int_size) + 1
-            ret_dict['InputMapping'].append(r)
+            ret_dict['input_mapping'].append(r)
 
             # symbol1
-            start_symbol1 = inputs_devoted_to_D + (2*l) + ((x-1) * 2)
+            start_symbol1 = (x-1) * 2
             r = OrderedDict()
             r["inputter"] = "evaluator"
             r["start_input_idx"] = start_symbol1
@@ -130,7 +130,7 @@ def fillD(ret_dict, D):
             r["gc_id"] = this_gc_id
             r["start_wire_idx"] = 3*D_int_size + 2
             r["end_wire_idx"] = (3*D_int_size) + 3
-            ret_dict['InputMapping'].append(r)
+            ret_dict['input_mapping'].append(r)
 
             # evaluate this circuit
             r = {}
@@ -142,17 +142,17 @@ def addOutput(ret_dict):
     r = OrderedDict()
     r['gc_id'] = ret_dict['gcs_used']-1
     r['start_wire_idx'] = 0
-    r['end_wire_idx'] = ret_dict['m'] - 1 # minus 1 because inclusive
-    ret_dict['Output'].append(r)
+    r['end_wire_idx'] = ret_dict['metadata']['m'] - 1 # minus 1 because inclusive
+    ret_dict['output'].append(r)
 
-def processTotRawInputs(ret_dict):
+def processInputMappingSize(ret_dict):
     num_raw_inputs = 0
-    for i, inp in enumerate(ret_dict['InputMapping']):
+    for i, inp in enumerate(ret_dict['input_mapping']):
         num_raw_inputs += (inp['end_wire_idx'] - inp['start_wire_idx'] + 1)
-    print("num raw inputs", num_raw_inputs)
-    ret_dict['tot_raw_inputs'] = num_raw_inputs
+    ret_dict['metadata']['input_mapping_size'] = num_raw_inputs
 
-def processTotRawInstructions(ret_dict):
+
+def processInstructionsSize(ret_dict):
     num_raw_instrs = 0
     for i,instruction in enumerate(ret_dict['instructions']):
         if instruction['type'] == 'EVAL':
@@ -161,49 +161,49 @@ def processTotRawInstructions(ret_dict):
             num_raw_instrs += (instruction['to_wire_id_end'] - instruction['to_wire_id_start'] + 1)
         else:
             raise RuntimeError("instruction type not detected")
-    ret_dict['tot_raw_instructions'] = num_raw_instrs
+    ret_dict['metadata']['instructions_size'] = num_raw_instrs
 
-ret_dict = OrderedDict()
-# mesage bits input + key bits input + iv
-l = 2
-assert(l > 1) # 1 is a bit of a special case
-D_int_size = int(math.floor(math.log2(l)) + 1)
-inputs_devoted_to_D = D_int_size * (l+1)
-n = inputs_devoted_to_D + (2*2*l)
-m = D_int_size
-num_eval_inputs = 2*l
-num_garb_inputs = n - num_eval_inputs
-core_n = (3*D_int_size) + 4
+def generateLevenJSON(l):
+    ret_dict = OrderedDict()
+    # mesage bits input + key bits input + iv
+    assert(l > 1) # 1 is a bit of a special case
+    D_int_size = int(math.floor(math.log2(l)) + 1)
+    inputs_devoted_to_D = D_int_size * (l+1)
+    n = inputs_devoted_to_D + (2*2*l)
+    m = D_int_size
+    num_eval_inputs = 2*l
+    num_garb_inputs = n - num_eval_inputs
+    core_n = (3*D_int_size) + 4
 
-ret_dict['meta_data'] = OrderedDict({
-    "l": l,
-    "D_int_size": D_int_size,
-    "core_n": core_n,
-    "core_m": D_int_size,
-    "inputs_devoted_to_D": inputs_devoted_to_D})
+    ret_dict['metadata'] = OrderedDict({
+        "l": l,
+        "D_int_size": D_int_size,
+        "core_n": core_n,
+        "core_m": D_int_size,
+        "inputs_devoted_to_D": inputs_devoted_to_D,
+        "n": n,
+        "m": m,
+        "num_garb_inputs": num_garb_inputs,
+        "num_eval_inputs": num_eval_inputs})
 
+    ret_dict['input_mapping'] = []
+    ret_dict['output'] = []
+    ret_dict['instructions'] = []
+    ret_dict['components'] = []
+    ret_dict['gcs_used'] = 0
 
-ret_dict['garbler_input_idx'] = num_garb_inputs
-ret_dict['evaluator_input_idx'] = num_eval_inputs
-ret_dict['n'] = n
-ret_dict['m'] = m
-ret_dict['InputMapping'] = []
-ret_dict['Output'] = []
-ret_dict['instructions'] = []
-ret_dict['components'] = []
-ret_dict['gcs_used'] = 0
-ret_dict['tot_raw_instructions'] = 0
-ret_dict['tot_raw_inputs'] = 0
+    D = []
+    initializeComponents(ret_dict)
+    fillD(ret_dict, D)
+    addOutput(ret_dict)
+    processInstructionsSize(ret_dict)
+    processInputMappingSize(ret_dict)
 
-D = []
-initializeComponents(ret_dict)
-fillD(ret_dict, D)
-addOutput(ret_dict)
-processTotRawInstructions(ret_dict)
-processTotRawInputs(ret_dict)
+    del ret_dict['gcs_used']
+    s = json.dumps(ret_dict)
+    print(s)
 
-del ret_dict['gcs_used']
-s = json.dumps(ret_dict)
-print(s)
-
+if __name__=='__main__':
+    l = 2
+    generateLevenJSON(l)
 
