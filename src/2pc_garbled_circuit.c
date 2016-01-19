@@ -3,10 +3,12 @@
 #include <malloc.h>
 #include <assert.h>
 #include <stdint.h>
+#include <math.h>  /* log2 */
 
 #include "utils.h"
 #include "2pc_common.h"
 #include "circuits.h"
+#include "gates.h"
 
 int 
 freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc) 

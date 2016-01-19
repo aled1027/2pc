@@ -90,14 +90,18 @@ garbler_classic_2pc(GarbledCircuit *gc, block *input_labels,
             exit(EXIT_FAILURE);
         }
     }
+    assert(garb_p == num_garb_inputs);
+    assert(eval_p = 2*num_eval_inputs);
 
     /* Send garb_labels */
     if (num_garb_inputs > 0)
         net_send(fd, garb_labels, sizeof(block) * num_garb_inputs, 0);
 
     /* Send eval_label via OT */
-    ot_np_send(&state, fd, eval_labels, sizeof(block), num_eval_inputs, 2,
-               new_msg_reader, new_item_reader);
+    if (num_eval_inputs > 0) {
+        ot_np_send(&state, fd, eval_labels, sizeof(block), num_eval_inputs, 2,
+                   new_msg_reader, new_item_reader);
+    }
 
     /* Send output_map to evaluator */
     net_send(fd, output_map, sizeof(block) * 2 * gc->m, 0);
@@ -172,7 +176,6 @@ garbler_go(int fd, FunctionSpec* function, char *dir,
     block *evalLabels = allocate_blocks(2 * num_eval_inputs);
     block *garbLabels = allocate_blocks(num_garb_inputs);
 
-    // TODO could probably figure out a way to avoid copying, but easiest and fast enough for now.
     int eval_p = 0, garb_p = 0; // counters for looping over garbler and evaluator's structures
     for (int i = 0; i < imap.size; i++) {
         if (imap.inputter[i] == PERSON_GARBLER) {

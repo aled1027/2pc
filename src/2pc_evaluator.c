@@ -127,6 +127,7 @@ void evaluator_classic_2pc(int *input, int *output,
         }
     }
 
+
     /* Receive output_map */
     output_map = allocate_blocks(2 * gc.m);
     net_recv(sockfd, output_map, sizeof(block) * 2 * gc.m, 0);

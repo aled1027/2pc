@@ -1,0 +1,189 @@
+./state.c:32:        (void) fprintf(stderr, "Error opening %s\n", RANDFILE);
+./state.c:36:            (void) fprintf(stderr, "Error reading from %s\n", RANDFILE);
+./state.c:42:        fprintf(stderr, "Seed = %lu\n", seed);
+./2pc_evaluator.c:21:    printf("eval_inputs: %d %d\n", input[0], input[1]);
+./2pc_evaluator.c:122:        (void) sprintf(selName, "%s/%s", EVALUATOR_DIR, "sel");
+./2pc_evaluator.c:123:        (void) sprintf(lblName, "%s/%s", EVALUATOR_DIR, "lbl");
+./2pc_evaluator.c:224:        (void) sprintf(selName, "%s/%s", EVALUATOR_DIR, "sel");
+./2pc_evaluator.c:225:        (void) sprintf(lblName, "%s/%s", EVALUATOR_DIR, "lbl");
+./2pc_evaluator.c:254:            //printf("(gc_id: %d, wire: %d) grabbing garb input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], garb_p);
+./2pc_evaluator.c:258:            //printf("(gc_id: %d, wire: %d) grabbing eval input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], eval_p);
+./2pc_evaluator.c:310:    printf("Output: ");
+./2pc_evaluator.c:312:        printf("%d", output[i]);
+./2pc_evaluator.c:314:    printf("\n");
+./2pc_evaluator.c:345:                // printf("evaling %d on instruction %d\n", savedCircId, i);
+./2pc_evaluator.c:350:                // printf("chaining (%d,%d) -> (%d,%d)\n", cur->chFromCircId, cur->chFromWireId, cur->chToCircId, cur->chToWireId);
+./2pc_evaluator.c:356:                printf("Error: Instruction %d is not of a valid type\n", i);
+./2pc_function_spec.c:27:print_function(FunctionSpec* function) 
+./2pc_function_spec.c:29:    print_components(function->components, function->num_component_types);
+./2pc_function_spec.c:30:    print_input_mapping(&(function->input_mapping));
+./2pc_function_spec.c:31:    print_instructions(&(function->instructions));
+./2pc_function_spec.c:32:    printf("not printing output\n");
+./2pc_function_spec.c:44:    //printf("loading %s\n", path);
+./2pc_function_spec.c:48:        printf("Write: Error in opening file.\n");
+./2pc_function_spec.c:60:        fprintf(stderr, "error load json on line %d: %s\n", error.line, error.text);
+./2pc_function_spec.c:80:        fprintf(stderr, "error loading json components");
+./2pc_function_spec.c:85:        fprintf(stderr, "error loading json components");
+./2pc_function_spec.c:90:        fprintf(stderr, "error loading json instructions");
+./2pc_function_spec.c:95:        fprintf(stderr, "error loading json output");
+./2pc_function_spec.c:100:    //print_function(function);
+./2pc_function_spec.c:183:        printf("Output not matching number of outputs indicated by function->m\n");
+./2pc_function_spec.c:184:        printf("m = %d, sum = %d\n", function->m, sum);
+./2pc_function_spec.c:191:print_components(FunctionComponent* components, int num_component_types) 
+./2pc_function_spec.c:193:    printf("print_components not yet implemented\n");
+./2pc_function_spec.c:197:print_input_mapping(InputMapping* inputMapping) 
+./2pc_function_spec.c:199:    printf("InputMapping size: %d\n", inputMapping->size);
+./2pc_function_spec.c:205:        printf("%d -> (%d, %d), inputter: %s\n", inputMapping->input_idx[i], inputMapping->gc_id[i], 
+./2pc_function_spec.c:211:print_instructions(Instructions* instr) 
+./2pc_function_spec.c:213:    printf("Instructions:\n");
+./2pc_function_spec.c:217:                printf("EVAL %d\n", instr->instr[i].evCircId);
+./2pc_function_spec.c:220:                printf("CHAIN (%d, %d) -> (%d, %d) with offset (%llu, %llu)\n", 
+./2pc_function_spec.c:230:                printf("Not printing command\n");
+./2pc_function_spec.c:332:        fprintf(stderr, "circuit type error when loading json: can't detect %s\n", type);
+./2pc_function_spec.c:429:                fprintf(stderr, "Instruction %d was invalid: %s\n", i, sType);
+./2pc_function_spec.c:435:        fprintf(stderr, "tot_raw_instructions %d does not match number of instructions %d", num_instructions, idx);
+./2pc_function_spec.c:522:                printf("instruction type not detected while readBufferIntoInstructons. \n");
+./2pc_garbler.c:135:        (void) sprintf(lblName, "%s/%s", GARBLER_DIR, "lbl");
+./2pc_garbler.c:169:        /*printf("loaded circuit of type: %d\n", chained_gcs[i].type);*/
+./2pc_garbler.c:176:        fprintf(stderr, "Could not load function %s\n", function_path);
+./2pc_garbler.c:280:        (void) sprintf(lblName, "%s/%s", GARBLER_DIR, "lbl");
+./2pc_garbler.c:399:            fprintf(stderr, "Not enough circuits of type %d available\n", needed_type);
+./net.c:72:        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+./net.c:96:        fprintf(stderr, "server: failed to bind\n");
+./net.c:107:    fprintf(stderr, "server: waiting for connections...\n");
+./net.c:133:        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+./net.c:151:        fprintf(stderr, "client: failed to connect\n");
+./net.c:157:    printf("client: connecting to %s\n", s);
+./utils.c:82:        printf("Write: Error in opening file.\n");
+./utils.c:99:        printf("Write: Error in opening file.\n");
+./utils.c:110:    fprintf(stderr, "DEBUG: %s\n", s);
+./2pc_garbled_circuit.c:40:    printf("outputWires %d %d\n",
+./2pc_garbled_circuit.c:100:                //printf("Giving D[0][%d] inputWires: %d\n", j, D[0][j][0]);
+./2pc_garbled_circuit.c:103:                //printf("Giving D[%d][0] inputWires: %d\n", i, D[i][0][0]);
+./2pc_garbled_circuit.c:113:    //printf("a got: %d %d\n", a[0], a[1]);
+./2pc_garbled_circuit.c:114:    //printf("b got: %d %d\n", b[0], b[1]);
+./2pc_garbled_circuit.c:135:            //printf("i,j: %d,%d\n", i,j);
+./2pc_garbled_circuit.c:136:            //printf("coreInputWires: (%d) (%d) (%d) (%d %d) (%d %d)\n",
+./2pc_garbled_circuit.c:145:            //printf("coreOutputWires: (%d)\n", coreOutputWires[0]);
+./2pc_garbled_circuit.c:156:    printf("outputWires %d %d %d %d\n",
+./2pc_garbled_circuit.c:195:    //printf("D_minus_minus %d\n", D_minus_minus[0]);
+./2pc_garbled_circuit.c:196:    //printf("D_minus_same %d\n", D_minus_same[0]);
+./2pc_garbled_circuit.c:197:    //printf("D_same_minus %d\n", D_same_minus[0]);
+./2pc_garbled_circuit.c:198:    //printf("symbol0 %d %d\n", symbol0[0], symbol0[1]);
+./2pc_garbled_circuit.c:199:    //printf("symbol1 %d %d\n", symbol1[0], symbol1[1]);
+./2pc_garbled_circuit.c:208:    printf("2 * DIntSize = %d\n", val);
+./2pc_garbled_circuit.c:211:    printf("val: %d\n", val);
+./2pc_garbled_circuit.c:212:    printf("min_inputs[0]: %d\n", min_inputs[0]);
+./2pc_garbled_circuit.c:213:    printf("min_inputs[1]: %d\n", min_inputs[1]);
+./2pc_garbled_circuit.c:214:    printf("min_outputs: %d\n", min_outputs[0]);
+./2pc_garbled_circuit.c:473:        printf("%d\n", outs[i]);
+./2pc_garbled_circuit.c:660:        printf("Buffer overflow error in save.\n"); 
+./2pc_garbled_circuit.c:667:        sprintf(fileName, GARBLER_GC_PATH, chained_gc->id);
+./2pc_garbled_circuit.c:669:        sprintf(fileName, EVALUATOR_GC_PATH, chained_gc->id);
+./2pc_garbled_circuit.c:701:        sprintf(fileName, GARBLER_GC_PATH, id);
+./2pc_garbled_circuit.c:703:        sprintf(fileName, EVALUATOR_GC_PATH, id);
+./2pc_garbled_circuit.c:772:        printf("Buffer overflow error\n"); 
+./2pc_garbled_circuit.c:781:print_block(block blk)
+./2pc_garbled_circuit.c:784:    printf("%016lx%016lx", val[1], val[0]);
+./2pc_garbled_circuit.c:788:print_garbled_gate(GarbledGate *gg)
+./2pc_garbled_circuit.c:790:    printf("%ld %ld %ld %d %d\n", gg->input0, gg->input1, gg->output, gg->id,
+./2pc_garbled_circuit.c:795:print_garbled_table(GarbledTable *gt)
+./2pc_garbled_circuit.c:797:    print_block(gt->table[0]);
+./2pc_garbled_circuit.c:798:    printf(" ");
+./2pc_garbled_circuit.c:799:    print_block(gt->table[1]);
+./2pc_garbled_circuit.c:800:    printf(" ");
+./2pc_garbled_circuit.c:801:    print_block(gt->table[2]);
+./2pc_garbled_circuit.c:802:    printf(" ");
+./2pc_garbled_circuit.c:803:    print_block(gt->table[3]);
+./2pc_garbled_circuit.c:804:    printf("\n");
+./2pc_garbled_circuit.c:808:print_wire(Wire *w)
+./2pc_garbled_circuit.c:810:    printf("%ld ", w->id);
+./2pc_garbled_circuit.c:811:    print_block(w->label0);
+./2pc_garbled_circuit.c:812:    printf(" ");
+./2pc_garbled_circuit.c:813:    print_block(w->label1);
+./2pc_garbled_circuit.c:814:    printf("\n");
+./2pc_garbled_circuit.c:818:print_gc(GarbledCircuit *gc)
+./2pc_garbled_circuit.c:820:    printf("n = %d\n", gc->n);
+./2pc_garbled_circuit.c:821:    printf("m = %d\n", gc->m);
+./2pc_garbled_circuit.c:822:    printf("q = %d\n", gc->q);
+./2pc_garbled_circuit.c:823:    printf("r = %d\n", gc->r);
+./2pc_garbled_circuit.c:825:        printf("garbled gate %d: ", i);
+./2pc_garbled_circuit.c:826:        print_garbled_gate(&gc->garbledGates[i]);
+./2pc_garbled_circuit.c:827:        printf("garbled table %d: ", i);
+./2pc_garbled_circuit.c:828:        print_garbled_table(&gc->garbledTable[i]);
+./2pc_garbled_circuit.c:831:        printf("wire %d: ", i);
+./2pc_garbled_circuit.c:832:        print_wire(&gc->wires[i]);
+./2pc_garbled_circuit.c:835:        printf("%d\n", gc->outputs[i]);
+./2pc_garbled_circuit.c:840:print_blocks(const char *str, block *blks, int length)
+./2pc_garbled_circuit.c:843:        printf("%s ", str);
+./2pc_garbled_circuit.c:844:        print_block(blks[i]);
+./2pc_garbled_circuit.c:845:        printf("\n");
+./main.c:76:/*     printf("Running 2pcrun_local()\n"); */
+./main.c:107:/*     printf("Output: "); */
+./main.c:109:/*         printf("%d", outputVals[i]); */
+./main.c:111:/*     printf("\n"); */
+./main.c:120:/*     printf("Running test\n"); */
+./main.c:177:/*     printf("output: "); */
+./main.c:179:/*         printf("%d", output[j]); */
+./main.c:181:/*     printf("\n"); */
+./tests.c:27://    printf("------------------\n");
+./tests.c:28://    printf("Running all tests\n");
+./tests.c:29://    printf("------------------\n");
+./tests.c:32://        printf("---test2() failed\n");
+./tests.c:37://        printf("---simple_test() failed\n");
+./tests.c:42://        printf("---json_test() failed\n");
+./tests.c:47://    //    printf("---test_saving_reading() failed\n");
+./tests.c:52://        printf("--- function_spec_test() failed\n");
+./tests.c:57://        printf("--- input_mapping_serialize_test() failed\n");
+./tests.c:60://        printf("--- input_mapping_serialize_test() passed\n");
+./tests.c:64://        printf("----------------\n");
+./tests.c:65://        printf("At least one test failed\n");
+./tests.c:66://        printf("----------------\n");
+./tests.c:69://        printf("----------------\n");
+./tests.c:70://        printf("All tests passed\n");
+./tests.c:71://        printf("----------------\n");
+./tests.c:99://        printf("metadata failed in test_saving_reading\n");
+./tests.c:103://        printf("garbledGates failed in test_saving_reading\n");
+./tests.c:108://        printf("garbledTables failed in test_saving_reading\n");
+./tests.c:113://        printf("wires failed in test_saving_reading\n");
+./tests.c:174://    printf("free xor turned on\n");
+./tests.c:176://    printf("free xor turned off\n");
+./tests.c:180://    printf("row reduction turned on\n");
+./tests.c:182://    printf("row reduction turned off\n"):
+./tests.c:186://    printf("DKC2 turned on\n");
+./tests.c:188://    printf("DKC2 turned off\n");
+./tests.c:190://    printf("\n");
+./tests.c:313://    //print_function(&function);
+./tests.c:339://        printf("Instructions are of different size\n");
+./tests.c:345://            printf("An instruction is of incorrect type\n");
+./tests.c:372://        printf("InputMappings are of a different size\n");
+./tests.c:376://    printf("break here\n");
+./tests.c:379://        printf("InputMappings have a different wire id at index %d\n", i);
+./ot_np.c:49:    //fprintf(stderr, "OT-NP: Using AESNI\n");
+./ot_np.c:52:    //fprintf(stderr, "OT-NP: Using SHA-1\n");
+./ot_np.c:93:    //fprintf(stderr, "Initialization: %f\n", end - start);
+./ot_np.c:101:    //fprintf(stderr, "Send g^r to receiver: %f\n", end - start);
+./ot_np.c:111:    //fprintf(stderr, "Send Cs to receiver: %f\n", end - start);
+./ot_np.c:119:    //fprintf(stderr, "Compute C_i^r: %f\n", end - start);
+./ot_np.c:129:    //fprintf(stderr, "Get pk0 from receiver: %f\n", end - start);
+./ot_np.c:169:    //fprintf(stderr, "Send hashes to receiver: %f\n", end - start);
+./ot_np.c:208:    //fprintf(stderr, "OT-NP: Using AESNI\n");
+./ot_np.c:211:    //fprintf(stderr, "OT-NP: Using SHA-1\n");
+./ot_np.c:246:    //fprintf(stderr, "Get g^r from sender: %f\n", end - start);
+./ot_np.c:256:    //fprintf(stderr, "Get Cs from sender: %f\n", end - start);
+./ot_np.c:281:    //fprintf(stderr, "Send pk0s to sender: %f\n", end - start);
+./ot_np.c:318:    //fprintf(stderr, "Receive hashes from sender: %f\n", end - start);
+./log.c:19:        fprintf(stderr, "[%s]: %s\n", tag, msg);
+./log.c:28:        gmp_fprintf(stderr, "[%s]: %s%Zx\n", tag, msg, z);
+./old_main.c:23://print_block(block blk)
+./old_main.c:26://    printf("%016lx%016lx", val[1], val[0]);
+./old_main.c:156:    printf("broken since not changing R\n");
+./old_main.c:163:    printf("Send GC: %ld\n", end - start);
+./old_main.c:212:        fprintf(stderr, "mapOutputs failed!\n");
+./old_main.c:215:    printf("Output: ");
+./old_main.c:217:        printf("%d", outputVals[i]);
+./old_main.c:219:    printf("\n");
+./old_main.c:255:            /*     fprintf(stderr, "Option -%c requires an argument.\n", optopt); */
+./old_main.c:256:            if (isprint (optopt))
+./old_main.c:257:                fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+./old_main.c:259:                fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);

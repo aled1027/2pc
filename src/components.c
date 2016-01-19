@@ -5,6 +5,260 @@
 #include "gates.h"
 
 #include <assert.h>
+#include <math.h>
+
+void
+buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap,
+                        int *outputWires, int l, int m)
+{
+    /* The goal of the levenshtein algorithm is
+     * populate the l+1 by l+1 D matrix. 
+     * D[i][j] points to an integer address. 
+     * At that address is an DIntSize-bit number representing the distance between
+     * a[0:i] and b[0:j] (python syntax)
+     *
+     * If l = 2
+     * e.g. D[1][2] = 0x6212e0
+     * *0x6212e0 = {0,1} = the wire indices
+     *
+     * For a concrete understanding of the algorithm implemented, 
+     * see extra_scripts/leven.py
+     */
+
+    /* get number of bits needed to represent our numbers.
+     * The input strings can be at most l distance apart,
+     * since they are of length l, so we need floor(log_2(l)+1) bits
+     * to express the number
+     */
+    int DIntSize = (int) floor(log2(l)) + 1;
+    int inputsDevotedToD = DIntSize * (l+1);
+
+    int n = inputsDevotedToD + 2*2*l;
+    int core_n = (3 * DIntSize) + 4;
+    int q = 100000; /* number of gates */ 
+    if (l > 20)
+        q = 5000000;
+    int r = n + q; /* number of wires */
+
+    block delta = randomBlock();
+    *((uint16_t *) (&delta)) |= 1;
+    createInputLabelsWithR(inputLabels, n, delta);
+
+    GarblingContext gcContext;
+	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
+	startBuilding(gc, &gcContext);
+
+    int *inputWires = allocate_ints(n);
+    countToN(inputWires, n);
+
+    ///* Populate D's 0th row and column with wire indices from inputs*/
+    int *D[l+1][l+1];
+    for (int i = 0; i < l+1; i++) {
+        for (int j = 0; j < l+1; j++) {
+            D[i][j] = allocate_ints(l);
+            if (i == 0) {
+                memcpy(D[0][j], inputWires + (j*DIntSize), sizeof(int) * DIntSize);
+                //printf("Giving D[0][%d] inputWires: %d\n", j, D[0][j][0]);
+            } else if (j == 0) {
+                memcpy(D[i][0], inputWires + (i*DIntSize), sizeof(int) * DIntSize);
+                //printf("Giving D[%d][0] inputWires: %d\n", i, D[i][0][0]);
+            }
+        }
+    }
+
+    /* Populate a and b (the input strings) wire indices */
+    int a[l*2];
+    int b[l*2];
+    memcpy(a, inputWires + inputsDevotedToD, sizeof(int)*l*2);
+    memcpy(b, inputWires + inputsDevotedToD + l*2, sizeof(int)*l*2);
+
+    ///* add the core circuits */
+    int *coreInputWires = allocate_ints(core_n);
+    int *coreOutputWires = allocate_ints(DIntSize);
+    for (int i = 1; i < l + 1; i++) {
+        for (int j = 1; j < l + 1; j++) {
+            /* Set inputs for levenshtein core */
+            int p = 0;
+            memcpy(coreInputWires + p, D[i-1][j-1], sizeof(int) * DIntSize);
+            p += DIntSize;
+            memcpy(coreInputWires + p, D[i][j-1], sizeof(int) * DIntSize);
+            p += DIntSize;
+            memcpy(coreInputWires + p, D[i-1][j], sizeof(int) * DIntSize);
+            p += DIntSize;
+            memcpy(coreInputWires + p, &a[(i-1)*2], sizeof(int) * 2);
+            p += 2;
+            memcpy(coreInputWires + p, &b[(j-1)*2], sizeof(int) * 2);
+            p += 2;
+            assert(p == core_n);
+
+            addLevenshteinCoreCircuit(gc, &gcContext, l, coreInputWires, coreOutputWires);
+            /*printf("coreInputWires: (i=%d,j=%d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) -> (%d %d)\n",*/
+                    /*i,*/
+                    /*j,*/
+                    /*coreInputWires[0],*/
+                    /*coreInputWires[1],*/
+                    /*coreInputWires[2],*/
+                    /*coreInputWires[3],*/
+                    /*coreInputWires[4],*/
+                    /*coreInputWires[5],*/
+                    /*coreInputWires[6],*/
+                    /*coreInputWires[7],*/
+                    /*coreInputWires[8],*/
+                    /*coreInputWires[9],*/
+                    /*coreOutputWires[0],*/
+                    /*coreOutputWires[1]);*/
+
+            /* Save coreOutputWires to D[i][j] */
+            memcpy(D[i][j], coreOutputWires, sizeof(int) * DIntSize);
+        }
+    }
+    memcpy(outputWires, D[l][l], sizeof(int) * DIntSize);
+    finishBuilding(gc, &gcContext, outputMap, outputWires);
+    for (int i = 0; i < l+1; i++)
+        for (int j = 0; j < l+1; j++)
+            free(D[i][j]);
+    free(inputWires);
+    free(coreInputWires);
+    free(coreOutputWires);
+    /* removeGarblingContext(&gcContext); */
+}
+
+void
+addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext, 
+        int l, int *inputWires, int *outputWires) 
+{
+    /* Makes a "LevenshteinCore" circuit as defined in 
+     * Faster Secure Two-Party Computation Using Garbled Circuits
+     * Page 9, figure 5c. 
+     *
+     * Note: they use a two-bit alphabet, they call the size of the alphabet sigma,
+     * because there are four possible nucleobases. Here sigma is hardcoded as 2
+     *
+     * Input = D[i-1][j-1] ||D[i-1][j] || D[i][j-1] || a[i] || b[j] 
+     * |Input| = l-bits || l-bits || l-bits || 2-bits || 2-bits
+     *
+     * Wires are ordered such that 1s digit is first, 2s digit second, and so forth.
+     * This is way in which JustGarble oriented their adders.
+     */
+
+    /* input wires indices for the 5 input objects */
+
+    int DIntSize = (int) floor(log2(l)) + 1;
+    int *D_minus_minus = allocate_ints(DIntSize); /*D[i-1][j-1] */
+    int *D_minus_same = allocate_ints(DIntSize); /* D[1-1][j] */
+    int *D_same_minus = allocate_ints(DIntSize); /* D[i][j-1] */
+    int symbol0[2];
+    int symbol1[2];
+
+    /* arrayPopulateRange is inclusive on start and exclusive on end */
+    memcpy(D_minus_minus, inputWires, sizeof(int) * DIntSize);
+    memcpy(D_minus_same, inputWires + DIntSize, sizeof(int) * DIntSize);
+    memcpy(D_same_minus, inputWires + 2*DIntSize, sizeof(int) * DIntSize);
+    memcpy(symbol0, inputWires + (3*DIntSize), sizeof(int) * 2);
+    memcpy(symbol1, inputWires + (3*DIntSize) + 2, sizeof(int) * 2);
+
+    /* First MIN circuit 
+     * D_minus_same, D_same_minus MIN circuit */
+    int *min_inputs = allocate_ints(2*DIntSize);
+    // Switching the order of these changes the output of min1
+    memcpy(min_inputs + 0, D_minus_same, sizeof(int) * DIntSize);
+    memcpy(min_inputs + DIntSize, D_same_minus, sizeof(int) * DIntSize);
+
+    int *min_outputs = allocate_ints(DIntSize+1); /* will be filled by MINCircuit */
+    MINCircuit(gc, gcContext, 2*DIntSize, min_inputs, min_outputs);
+
+    /* Second MIN Circuit 
+     * Uses input from first min cricuit and D_minus_minus */
+    memcpy(min_inputs, D_minus_minus, sizeof(int) * DIntSize);
+    memcpy(min_inputs + DIntSize, min_outputs, sizeof(int) * DIntSize);
+
+    int *min_outputs2 = allocate_ints(DIntSize+1); /* will be filled by MINCircuit */
+    MINCircuitWithLEQOutput(gc, gcContext, 2*DIntSize, min_inputs, min_outputs2); 
+
+    /* T */
+    int xor_output[2];
+    xor_output[0] = getNextWire(gcContext);
+    xor_output[1] = getNextWire(gcContext);
+    int T_output = getNextWire(gcContext);
+    XORGate(gc, gcContext, symbol0[0], symbol1[0], xor_output[0]);
+    XORGate(gc, gcContext, symbol0[1], symbol1[1], xor_output[1]);
+    ORGate(gc, gcContext, xor_output[0], xor_output[1], T_output);
+
+    /* 2-1 MUX */
+    int mux_switch = getNextWire(gcContext);
+    NOTGate(gc, gcContext, min_outputs2[DIntSize], mux_switch);
+    int mux_input[2];
+    mux_input[1] = T_output;
+    int fixed_one_wire = fixedOneWire(gc, gcContext);
+    mux_input[0] = fixed_one_wire;
+    int mux_output;
+    MUX21Circuit(gc, gcContext, mux_switch, mux_input[0], mux_input[1], &mux_output);
+
+    /* AddOneBit AKA Inc*/
+    (void) fixedZeroWire(gc, gcContext);
+    int *add_inputs = allocate_ints(DIntSize);
+    int *add_outputs = allocate_ints(DIntSize);
+    memcpy(add_inputs, min_outputs2, sizeof(int) * DIntSize);
+    INCCircuit(gc, gcContext, DIntSize, add_inputs, add_outputs);
+
+    /* Final MUX (not in paper) */
+    /* Final Mux between INCed value and orig value, with switch 
+     * from the mux_output */
+    int *final = allocate_ints(DIntSize);
+    for (int i = 0; i < DIntSize; i++) {
+        /* Do a 2-1 mux for each wire */
+        int theSwitch = mux_output;
+        int theMuxInput[2];
+        theMuxInput[1] = min_outputs2[i];
+        theMuxInput[0] = add_outputs[i];
+
+        int theAndOutput[2];
+        theAndOutput[0] = getNextWire(gcContext);
+        theAndOutput[1] = getNextWire(gcContext);
+        ANDGate(gc, gcContext, theMuxInput[0], theSwitch, theAndOutput[0]);
+
+        int theNotSwitch = getNextWire(gcContext);
+        NOTGate(gc, gcContext, theSwitch, theNotSwitch);
+        ANDGate(gc, gcContext, theMuxInput[1], theNotSwitch, theAndOutput[1]);
+
+        int theMuxOutput = getNextWire(gcContext);
+        ORGate(gc, gcContext, theAndOutput[0], theAndOutput[1], theMuxOutput);
+        final[i] = theMuxOutput;
+    }
+
+    memcpy(outputWires, final, sizeof(int) * DIntSize);
+    
+    /* free a ton of pointers */
+    free(D_minus_minus);
+    free(D_minus_same);
+    free(D_same_minus);
+    free(min_inputs);
+    free(min_outputs);
+    free(min_outputs2);
+    free(add_inputs);
+    free(add_outputs);
+    free(final);
+}
+
+int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext, int n,
+		int* inputs, int* outputs) {
+    /* Essentially copied from JustGarble/src/circuits.c.
+     * Different from their MIN circuit because it has output size equal to n/2 + 1
+     * where that last bit indicates the output of the LEQ circuit,
+     * e.g. outputs[2/n + 1] = 1 iff input0 <= input1
+     */
+    int i;
+	int lesOutput;
+	int notOutput = getNextWire(garblingContext);
+	LESCircuit(gc, garblingContext, n, inputs, &lesOutput);
+	NOTGate(gc, garblingContext, lesOutput, notOutput);
+    int split = n / 2;
+	for (i = 0; i < split; i++)
+        MUX21Circuit(gc, garblingContext, lesOutput, inputs[i], inputs[split + i], outputs+i);
+
+    outputs[split] = lesOutput;
+	return 0;
+}
 
 void
 buildANDCircuit(GarbledCircuit *gc, int n, int nlayers)

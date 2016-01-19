@@ -9,58 +9,52 @@
 #include "2pc_garbler.h"
 #include "2pc_evaluator.h"
 #include "justGarble.h"
-#include "2pc_and.h"
+/* #include "2pc_and.h" */
 #include "2pc_aes.h"
 #include "2pc_cbc.h"
+#include "2pc_leven.h"
 
-static int NUM_GCS = 10;
 static int NUM_TRIALS = 20;
-
-/* Stuff for CBC */
-static int NUM_AES_ROUNDS = 10;
-static int NUM_CBC_BLOCKS = 10;
-static int getNumGarbInputs() { return (NUM_AES_ROUNDS * NUM_CBC_BLOCKS * 128) + 128; }
-static int getNumEvalInputs() { return NUM_CBC_BLOCKS * 128; }
-static int getNumXORCircs() { return NUM_CBC_BLOCKS; }
-static int getNumAESCircs() { return (NUM_AES_ROUNDS-1) * NUM_CBC_BLOCKS; }
-static int getNumFinalAESCircs() { return NUM_CBC_BLOCKS; }
-static int getNumCircs() { return getNumXORCircs() + getNumAESCircs() + getNumFinalAESCircs();}
-static int getM() { return NUM_CBC_BLOCKS * 128; }
 
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
+typedef enum { AND, AES, CBC, LEVEN } experiment;
 
-/* XXX: not great, but OK for now */
+struct args {
+    bool garb_off;
+    bool eval_off;
+    bool garb_on;
+    bool eval_on;
+    bool garb_full;
+    bool eval_full;
+    experiment type;
+    int ntrials;
+};
+
+static void
+args_init(struct args *args)
+{
+    args->garb_off = 0;
+    args->eval_off = 0;
+    args->garb_on = 0;
+    args->eval_on = 0;
+    args->garb_full = 0;
+    args->eval_full = 0;
+    args->type = AES;
+    args->ntrials = 1;
+}
 
 static struct option opts[] =
 {
-    {"and_garb_off", no_argument, 0, 'a'},
-    {"and_eval_off", no_argument, 0, 'A'},
-    {"and_garb_on", no_argument, 0, 'b'},
-    {"and_eval_on", no_argument, 0, 'B'},
-    {"and_garb_full", no_argument, 0, 'c'},
-    {"and_eval_full", no_argument, 0, 'C'},
-
-    {"aes_garb_off", no_argument, 0, 'd'},
-    {"aes_eval_off", no_argument, 0, 'D'},
-    {"aes_garb_on", no_argument, 0, 'e'},
-    {"aes_eval_on", no_argument, 0, 'E'},
-    {"aes_garb_full", no_argument, 0, 'f'},
-    {"aes_eval_full", no_argument, 0, 'F'},
-
-    {"cbc_garb_off", no_argument, 0, 'g'},
-    {"cbc_eval_off", no_argument, 0, 'G'},
-    {"cbc_garb_on", no_argument, 0, 'i'},
-    {"cbc_eval_on", no_argument, 0, 'I'},
-    {"cbc_garb_full", no_argument, 0, 'j'},
-    {"cbc_eval_full", no_argument, 0, 'J'},
-
-    {"garb_on", no_argument, 0, 'g'},
-    {"eval_on", no_argument, 0, 'e'},
-
-    {"time", no_argument, 0, 't'},
-
+    {"garb-off", no_argument, 0, 'g'},
+    {"eval-off", no_argument, 0, 'e'},
+    {"garb-on", no_argument, 0, 'G'},
+    {"eval-on", no_argument, 0, 'E'},
+    {"garb-full", no_argument, 0, 'f'},
+    {"eval-full", no_argument, 0, 'F'},
+    {"type", required_argument, 0, 't'},
+    {"time", no_argument, 0, 'T'},
     {0, 0, 0, 0}
 };
 
@@ -177,7 +171,6 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
     }
 
     deleteInputMapping(&imap);
-    removeGarbledCircuit(gc);
 
     free(inputLabels);
     free(outputMap);
@@ -209,99 +202,163 @@ eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
     free(tot_time);
 }
 
-typedef enum {
-    GARB_OFF_AND,
-    GARB_OFF_AES,
-    GARB_OFF_CBC,
-    GARB_OFF_NONE
-} GarbOff;
+static int
+go(struct args *args)
+{
+    int n_garb_inputs, n_eval_inputs, noutputs, ncircs;
+    char *fn, *type;
 
-struct args {
-    char *fspec;
-    GarbOff garb_type;
-};
+    switch (args->type) {
+    case AES:
+        n_garb_inputs = aesNumGarbInputs();
+        n_eval_inputs = aesNumEvalInputs();
+        ncircs = aesNumCircs();
+        noutputs = aesNumOutputs();
+        fn = "functions/aes.json";
+        type = "AES";
+        break;
+    case CBC:
+        n_garb_inputs = cbcNumGarbInputs();
+        n_eval_inputs = cbcNumEvalInputs();
+        ncircs = cbcNumCircs();
+        noutputs = cbcNumOutputs();
+        fn = "functions/cbc_10_10.json";
+        type = "CBC";
+        break;
+    case LEVEN:
+        n_garb_inputs = levenNumGarbInputs();
+        n_eval_inputs = levenNumEvalInputs();
+        ncircs = levenNumCircs();
+        noutputs = levenNumOutputs();
+        fn = "functions/leven_2.json";
+        type = "CBC";
+        break;
+    default:
+        fprintf(stderr, "No type specified\n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Running %s with (%d, %d) inputs, %d outputs, %d chains, %d trials\n",
+           type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, args->ntrials);
+
+    if (args->garb_off) {
+        printf("Offline garbling\n");
+        switch (args->type) {
+        case AES:
+            aes_garb_off(GARBLER_DIR, 10);
+            break;
+        case CBC:
+            cbc_garb_off(GARBLER_DIR);
+            break;
+        case LEVEN:
+            leven_garb_off();
+            break;
+        default:
+            assert(false);
+            break;
+        }
+    } else if (args->eval_off) {
+        printf("Offline evaluating\n");
+        eval_off(n_eval_inputs, ncircs);
+    } else if (args->garb_on) {
+        printf("Online garbling\n");
+        if (args->type == LEVEN) {
+            leven_garb_on();
+        } else {
+            garb_on(fn, n_garb_inputs, ncircs, args->ntrials);
+        }
+    } else if (args->eval_on) {
+        printf("Online evaluating\n");
+        eval_on(n_eval_inputs, ncircs, args->ntrials);
+    } else if (args->garb_full) {
+        printf("Full garbling\n");
+        GarbledCircuit gc;
+        switch (args->type) {
+        case AES:
+            buildAESCircuit(&gc);
+            break;
+        case CBC:
+        {
+            block delta = randomBlock();
+            *((uint16_t *) (&delta)) |= 1;
+            buildCBCFullCircuit(&gc, NUM_CBC_BLOCKS, NUM_AES_ROUNDS, &delta);
+            break;
+        }
+        case LEVEN:
+            break;
+        default:
+            assert(false);
+            break;
+        }
+        if (args->type == LEVEN) {
+            full_leven_garb();
+        } else {
+            garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials);
+            removeGarbledCircuit(&gc);
+        }
+    } else if (args->eval_full) {
+        printf("Full evaluating\n");
+        if (args->type == LEVEN) {
+            full_leven_eval();
+        } else {
+            eval_full(n_garb_inputs, n_eval_inputs, noutputs, args->ntrials);
+        }
+    } else {
+        fprintf(stderr, "No role specified\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return EXIT_SUCCESS;
+}
 
 int
 main(int argc, char *argv[])
 {
     int c, idx;
-    int ntrials = 1;
-    block delta;
-    GarbledCircuit gc;
-    /* struct args args = { NULL, GARB_OFF_NONE, }; */
+    struct args args;
 
     seedRandom();
 
-    delta = randomBlock();
-    *((uint16_t *) (&delta)) |= 1;
+    args_init(&args);
 
     while ((c = getopt_long(argc, argv, "", opts, &idx)) != -1) {
         switch (c) {
         case 0:
             break;
-        case 'a':
-            and_garb_off(GARBLER_DIR, 128, 10, NUM_GCS);
-            exit(EXIT_SUCCESS);
-        case 'A':
-            eval_off(0, NUM_GCS);
-            exit(EXIT_SUCCESS);
-        case 'b':
-            garb_on("functions/and.json", 128, NUM_GCS, ntrials);
-            exit(EXIT_SUCCESS);
-        case 'B':
-            eval_on(0, NUM_GCS, ntrials);
-            exit(EXIT_SUCCESS);
-        case 'c':
-            and_garb_full(128, 10);
-            exit(EXIT_SUCCESS);
-        case 'C':
-            and_eval_full(128);
-            exit(EXIT_SUCCESS);
-
-            /* AES */
-        case 'd':
-            aes_garb_off(GARBLER_DIR, NUM_GCS);
-            exit(EXIT_SUCCESS);
-        case 'D':
-            eval_off(128, NUM_GCS);
-            exit(EXIT_SUCCESS);
-        case 'e':
-            garb_on("functions/aes.json", 1280, NUM_GCS, ntrials);
-            exit(EXIT_SUCCESS);
-        case 'E':
-            eval_on(128, NUM_GCS, ntrials);
-            exit(EXIT_SUCCESS);
-        case 'f':
-            buildAESCircuit(&gc);
-            garb_full(&gc, 1280, 128, ntrials);
-            exit(EXIT_SUCCESS);
-        case 'F':
-            eval_full(1280, 128, 128, ntrials);
-            exit(EXIT_SUCCESS);
-
-            /* CBC */
         case 'g':
-            cbc_garb_off(GARBLER_DIR);
-            exit(EXIT_SUCCESS);
+            args.garb_off = true;
+            break;
+        case 'e':
+            args.eval_off = true;
+            break;
         case 'G':
-            eval_off(getNumEvalInputs(), getNumCircs());
-            exit(EXIT_SUCCESS);
-        case 'i':
-            garb_on("functions/cbc_10_10.json", getNumGarbInputs(),
-                    getNumCircs(), ntrials);
-            exit(EXIT_SUCCESS);
-        case 'I':
-            eval_on(getNumEvalInputs(), getNumCircs(), ntrials);
-            exit(EXIT_SUCCESS);
-        case 'j':
-            buildCBCFullCircuit(&gc, NUM_CBC_BLOCKS, NUM_AES_ROUNDS, &delta);
-            garb_full(&gc, getNumGarbInputs(), getNumEvalInputs(), ntrials);
-            exit(EXIT_SUCCESS);
-        case 'J':
-            eval_full(getNumGarbInputs(), getNumEvalInputs(), getM(), ntrials);
-            exit(EXIT_SUCCESS);
+            args.garb_on = true;
+            break;
+        case 'E':
+            args.eval_on = true;
+            break;
+        case 'f':
+            args.garb_full = true;
+            break;
+        case 'F':
+            args.eval_full = true;
+            break;
         case 't':
-            ntrials = NUM_TRIALS;
+            if (strcmp(optarg, "AND") == 0) {
+                args.type = AND;
+            } else if (strcmp(optarg, "AES") == 0) {
+                args.type = AES;
+            } else if (strcmp(optarg, "CBC") == 0) {
+                args.type = CBC;
+            } else if (strcmp(optarg, "LEVEN") == 0) {
+                args.type = LEVEN;
+            } else {
+                fprintf(stderr, "Unknown type\n");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case 'T':
+            args.ntrials = NUM_TRIALS;
             break;
         case '?':
             break;
@@ -310,6 +367,5 @@ main(int argc, char *argv[])
             abort();
         }
     }
-
-    return EXIT_SUCCESS;
+    return go(&args);
 }

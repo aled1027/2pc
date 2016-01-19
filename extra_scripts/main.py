@@ -200,7 +200,7 @@ def computeNumGates(ret_dict):
             num_gates += component['num'] * aes_final_gates_per_circuit
         else:
             raise RuntimeError("type {} not detected".format(component['type']))
-        return num_gates
+    return num_gates
 
 def cbc(num_message_blocks, num_rounds):
     assert(num_message_blocks > 0)

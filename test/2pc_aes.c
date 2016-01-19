@@ -11,6 +11,10 @@
 
 #include "utils.h"
 
+int aesNumGarbInputs() { return 1280; }
+int aesNumEvalInputs() { return 128; }
+int aesNumCircs() { return 10; }
+int aesNumOutputs() { return 128; }
 /* static unsigned long NUM_GATES = 34000; */
 
 void

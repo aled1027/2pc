@@ -13,8 +13,20 @@ typedef enum {
     AES_FINAL_ROUND = 5,
     XOR = 6,
     FULL_CBC = 7,
+    LEVEN_CORE = 8,
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
+
+void buildMinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap,
+                     int *outputWires);
+void buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels,
+                             block *outputMap, int *outputWires, int l, int m);
+
+void addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext, 
+        int l, int *inputWires, int *outputWires);
+
+int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext, int n,
+		int* inputs, int* outputs);
 
 void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
         int *inputWires, int *outputWires);

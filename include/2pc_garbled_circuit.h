@@ -30,16 +30,13 @@ int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
 int saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler);
 int loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
                   bool isGarbler);
+
 void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num);
 
-int
-saveOTLabels(char *fname, block *labels, int n, bool isSender);
-block *
-loadOTLabels(char *fname);
-int
-saveOTSelections(char *fname, int *selections, int n);
-int *
-loadOTSelections(char *fname);
+int saveOTLabels(char *fname, block *labels, int n, bool isSender);
+block *loadOTLabels(char *fname);
+int saveOTSelections(char *fname, int *selections, int n);
+int *loadOTSelections(char *fname);
 
 void print_block(block blk);
 void print_garbled_gate(GarbledGate *gg);

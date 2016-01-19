@@ -196,8 +196,13 @@ void
 print_input_mapping(InputMapping* inputMapping) 
 {
     printf("InputMapping size: %d\n", inputMapping->size);
+        
     for (int i = 0; i < inputMapping->size; i++) {
-        printf("%d -> (%d, %d)\n", inputMapping->input_idx[i], inputMapping->gc_id[i], inputMapping->wire_id[i]);
+        char person[40] = "Garbler";
+        if (inputMapping->inputter[i] == PERSON_EVALUATOR) 
+            strcpy(person, "Evaluator");
+        printf("%d -> (%d, %d), inputter: %s\n", inputMapping->input_idx[i], inputMapping->gc_id[i], 
+                inputMapping->wire_id[i], person);
     }
 }
 

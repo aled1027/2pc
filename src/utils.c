@@ -8,6 +8,29 @@
 
 #include "state.h"
 
+void convertToBinary(int x, int *arr, int narr)
+{
+    int i = 0;
+    while (x > 0) {
+        arr[i] = (x % 2);
+        x >>= 1;
+        i++;
+    }
+    for (int j = i; j < narr; j++)
+        arr[j] = 0;
+}
+
+void
+reverse_array(int *arr, size_t nints) 
+{
+    int *temp = allocate_ints(nints);
+    for (int i = 0; i < nints; i++) {
+        temp[i] = arr[nints-i-1];
+    }
+    memcpy(arr, temp, sizeof(int) * nints);
+    free(temp);
+}
+
 double
 current_time(void)
 {
@@ -28,8 +51,31 @@ ot_free(void *p)
     return _mm_free(p);
 }
 
+
+void
+arrayPopulateRange(int *arr, int start, int end) 
+{
+    /* exclusive on end */
+    int i = 0;
+    for (int j = start; j < end; i++, j++) {
+        arr[i] = j;
+    }
+}
+
+int *
+allocate_ints(size_t nints)
+{
+    int *ret = malloc(sizeof(int) * nints);
+    if (ret == NULL) {
+        perror("allocate_ints");
+        exit(EXIT_FAILURE);
+    }
+    return ret;
+}
+
 long 
-filesize(const char *filename) {
+filesize(const char *filename) 
+{
     /* returns size of file in bytes */
 	struct stat st;
 
@@ -54,7 +100,8 @@ writeBufferToFile(char* buffer, size_t buf_size, char* fileName)
 }
 
 int
-readFileIntoBuffer(char* buffer, char* fileName) {
+readFileIntoBuffer(char* buffer, char* fileName) 
+{
     /* assume buffer is already malloced */
     assert(buffer);
     FILE *f = fopen(fileName, "r");
@@ -75,3 +122,4 @@ debug(char *s)
     fprintf(stderr, "DEBUG: %s\n", s);
     fflush(stderr);
 }
+
