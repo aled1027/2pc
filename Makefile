@@ -25,7 +25,7 @@ INCLUDES := $(wildcard $(SRCDIR)/*.h)
 IDIR =include
 
 CC=gcc
-CFLAGS= -g -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -Wno-typedef-redefinition -Wno-unused-function -maes -msse4 -march=native
+CFLAGS= -g -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -Wno-typedef-redefinition -Wno-unused-function -maes -msse4 -march=native -std=gnu11
 LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson
 
 AES = 2pc_aes
@@ -56,75 +56,47 @@ $(TESTOBJECTS): $(OBJDIR)/%.o : $(TESTDIR)/%.c
 #################
 # COMPONENT CBC #
 #################
-
 cbc_garb_off:
-	./$(BINDIR)/$(CBC) garb_offline
+	gdb --args ./$(BINDIR)/test --garb-off --type CBC
 
 cbc_eval_off:
-	./$(BINDIR)/$(CBC) eval_offline
+	gdb --args ./$(BINDIR)/test --eval-off --type CBC
 
 cbc_garb_on:
-	./$(BINDIR)/$(CBC) garb_online
+	gdb --args ./$(BINDIR)/test --garb-on --type CBC
 
 cbc_eval_on:
-	./$(BINDIR)/$(CBC) eval_online
-
-cbc_gdb_garb:
-	gdb --args $(BINDIR)/$(CBC) garb_online
-
-cbc_gdb_eval:
-	gdb --args $(BINDIR)/$(CBC) eval_online
-
-############
-# FULL CBC #
-############
-full_cbc_garb_off:
-	gdb --args $(BINDIR)/$(CBC) full_garb_off
-
-full_cbc_garb_on:
-	gdb --args $(BINDIR)/$(CBC) full_garb_on
-
-full_cbc_eval_off:
-	gdb --args $(BINDIR)/$(CBC) full_eval_off
-
-full_cbc_eval_on:
-	gdb --args $(BINDIR)/$(CBC) full_eval_on
+	gdb --args ./$(BINDIR)/test --eval-on --type CBC
 
 #################
 # COMPONENT AES #
 #################
 aes_garb_off:
-	./$(BINDIR)/$(AES) garb_offline
+	gdb --args ./$(BINDIR)/test --garb-off --type AES
 
 aes_eval_off:
-	./$(BINDIR)/$(AES) eval_offline
+	gdb --args ./$(BINDIR)/test --eval-off --type AES
 
 aes_garb_on:
-	./$(BINDIR)/$(AES) garb_online
+	gdb --args ./$(BINDIR)/test --garb-on --type AES
 
 aes_eval_on:
-	./$(BINDIR)/$(AES) eval_online
-
-aes_gdb_garb:
-	gdb --args $(BINDIR)/$(AES) garb_online
-
-aes_gdb_eval:
-	gdb --args $(BINDIR)/$(AES) eval_online
-
-aes_full_garb:
-	gdb --args $(BINDIR)/$(AES) full_garb
-
-aes_full_eval:
-	gdb --args $(BINDIR)/$(AES) full_eval
+	gdb --args ./$(BINDIR)/test --eval-on --type AES
 
 #########
 # LEVEN #
 #########
-leven_full_garb:
-	gdb --args $(BINDIR)/$(LEVEN) full_garb
+leven_garb_off:
+	gdb --args $(BINDIR)/test --garb-off --type LEVEN
 
-leven_full_eval:
-	gdb --args $(BINDIR)/$(LEVEN) full_eval
+leven_eval_off:
+	gdb --args $(BINDIR)/test --eval-off --type LEVEN
+
+leven_garb_on:
+	gdb --args $(BINDIR)/test --garb-on --type LEVEN
+
+leven_eval_on:
+	gdb --args $(BINDIR)/test --eval-on --type LEVEN
 
 ##############
 # MISC TESTS #
@@ -132,8 +104,15 @@ leven_full_eval:
 valg:
 	valgrind --leak-check=full ./$(BINDIR)/$(MISC_TESTS)
 
-all_tests:
+clean_gcs:
+	rm -r files/garbler_gcs
+	rm -r files/evaluator_gcs
+	mkdir files/garbler_gcs
+	mkdir files/evaluator_gcs
+
+all_test:
 	./$(BINDIR)/$(MISC_TESTS)
+
 
 ##########
 # EXTRAS #

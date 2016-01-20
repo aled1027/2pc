@@ -9,15 +9,18 @@
 typedef enum {EVAL, CHAIN, INSTR_ERR} InstructionType;
 typedef enum {PERSON_GARBLER = 0, PERSON_EVALUATOR = 1, PERSON_ERR = -1} Person;
 
+
 typedef struct {
     /* not actually a single component, but a component type 
      * with num components of the type, and ids circuit_ids
      */
-    CircuitType circuit_type;
-    int num;
-    int* circuit_ids; // e.g if circuit ids 4,5,9 correspond to 22adder, this would be {4,5,9}.
-} 
-FunctionComponent;
+    int numComponentTypes;
+    int totComponents;
+    CircuitType *circuitType;
+    int *nCircuits;
+    int **circuitIds; 
+    // so circuit_type[i] has circuitIds[i], which is an integer array of size nCircuits[i]
+} FunctionComponent;
 
 typedef struct {
     int size;
@@ -67,8 +70,9 @@ typedef struct {
      */
     char* name; // make 128
     char* description; // make 128
-    int n, m, num_component_types, num_components, num_garbler_inputs;
-    FunctionComponent* components;
+    int n, m;
+    int num_garb_inputs, num_eval_inputs;
+    FunctionComponent components;
     InputMapping input_mapping;
     Instructions instructions;
     Output output;
@@ -83,30 +87,28 @@ void print_function(FunctionSpec* function);
 int freeFunctionSpec(FunctionSpec* function);
 
 // private interface - below this should be static:
+int json_load_metadata(json_t *root, FunctionSpec *function);
 int json_load_components(json_t *root, FunctionSpec* function);
 int json_load_input_mapping(json_t *root, FunctionSpec* function);
 int json_load_instructions(json_t* root, FunctionSpec* function);
 int json_load_output(json_t *root, FunctionSpec *function);
 InstructionType get_instruction_type_from_string(const char* type);
 CircuitType get_circuit_type_from_string(const char* type);
-void print_components(FunctionComponent* components, int num_component_types);
+void print_metadata(FunctionSpec *function);
+void print_components(FunctionComponent* components);
 void print_input_mapping(InputMapping* inputMapping);
 void print_instructions(Instructions* instr);
+void print_output(Output *output);
 
 int writeInstructionsToBuffer(Instructions* instructions, char* buffer);
 int readBufferIntoInstructions(Instructions* instructions, char* buffer);
-
 int writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer);
 int readBufferIntoInputMapping(InputMapping* input_mapping, char* buffer);
 
-void
-newInputMapping(InputMapping *map, int size);
-void
-deleteInputMapping(InputMapping *map);
+void newInputMapping(InputMapping *map, int size);
+void deleteInputMapping(InputMapping *map);
 
-size_t
-instructionBufferSize(Instructions *instructions);
-size_t
-inputMappingBufferSize(InputMapping *map);
+size_t instructionBufferSize(Instructions *instructions);
+size_t inputMappingBufferSize(InputMapping *map);
 
 #endif

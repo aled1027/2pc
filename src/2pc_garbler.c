@@ -151,45 +151,35 @@ garbler_go(int fd, FunctionSpec* function, char *dir,
     send_instructions_and_input_mapping(function, fd);
 
     // 3. send circuitMapping
-    net_send(fd, &function->num_components, sizeof(int), 0);
-    net_send(fd, circuitMapping, sizeof(int) * function->num_components, 0);
+    net_send(fd, &function->components.totComponents, sizeof(int), 0);
+    net_send(fd, circuitMapping, sizeof(int) * function->components.totComponents, 0);
 
     // 4. send labels
-    // upper bounding memory with n
-    InputMapping imap = function->input_mapping;
-
     /* calculate input lengths */
-    int num_eval_inputs = 0, num_garb_inputs = 0;
-    for (int i = 0; i < imap.size; ++i) {
-        switch (imap.inputter[i]) {
-        case PERSON_GARBLER:
-            num_garb_inputs++;
-            break;
-        case PERSON_EVALUATOR:
-            num_eval_inputs++;
-            break;
-        default:
-            assert(false);
-            exit(EXIT_FAILURE);
-        }
-    }
+    int num_garb_inputs = function->num_garb_inputs;
+    int num_eval_inputs = function->num_eval_inputs;
     block *evalLabels = allocate_blocks(2 * num_eval_inputs);
     block *garbLabels = allocate_blocks(num_garb_inputs);
 
-    int eval_p = 0, garb_p = 0; // counters for looping over garbler and evaluator's structures
-    for (int i = 0; i < imap.size; i++) {
-        if (imap.inputter[i] == PERSON_GARBLER) {
-            assert(inputs[garb_p] == 0 || inputs[garb_p] == 1);
-            // copy into garbLabels from the circuit's inputLabels
-            memcpy(&garbLabels[garb_p], 
-                    &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i] + inputs[garb_p]], 
-                    sizeof(block));
-            garb_p++;
-        } else if (imap.inputter[i] == PERSON_EVALUATOR) {
-            memcpy(&evalLabels[eval_p], 
-                    &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]], 
-                    sizeof(block)*2);
-            eval_p+=2;
+    InputMapping *imap = &function->input_mapping;
+    for (int i = 0; i < imap->size; i++) {
+        int input_idx = imap->input_idx[i];
+        switch(imap->inputter[i]) {
+            case PERSON_GARBLER:
+                assert(inputs[input_idx] == 0 || inputs[input_idx] == 1);
+                /*TODO avoid redundancy by checking if garbLabels[input_idx] is empty */
+                memcpy(&garbLabels[input_idx], 
+                        &chained_gcs[circuitMapping[imap->gc_id[i]]].inputLabels[2*imap->wire_id[i] + inputs[input_idx]], 
+                        sizeof(block));
+                break;
+            case PERSON_EVALUATOR:
+                memcpy(&evalLabels[2*input_idx], 
+                        &chained_gcs[circuitMapping[imap->gc_id[i]]].inputLabels[2*imap->wire_id[i]], 
+                        sizeof(block)*2);
+                break;
+            default:
+                printf("Person not detected while processing input_mapping.\n");
+                break;
         } 
     }
 
@@ -199,6 +189,7 @@ garbler_go(int fd, FunctionSpec* function, char *dir,
         net_send(fd, garbLabels, sizeof(block) * num_garb_inputs, 0);
     }
 
+    /* Send evaluator's labels via OT correct */
     /* OT correction */
     if (num_eval_inputs > 0) {
         int *corrections;
@@ -301,13 +292,13 @@ garbler_make_real_instructions(FunctionSpec *function,
 
     assert(is_circuit_used);
     memset(is_circuit_used, 0, sizeof(bool) * num_chained_gcs);
-    num_component_types = function->num_component_types;
+    num_component_types = function->components.numComponentTypes;
 
     // loop over type of circuit
     for (int i = 0; i < num_component_types; i++) {
-        CircuitType needed_type = function->components[i].circuit_type;
-        int num_needed = function->components[i].num;
-        int* circuit_ids = function->components[i].circuit_ids; // = {0,1,2};
+        CircuitType needed_type = function->components.circuitType[i];
+        int num_needed = function->components.nCircuits[i];
+        int* circuit_ids = function->components.circuitIds[i]; // = {0,1,2};
         
         // j indexes circuit_ids, k indexes is_circuit_used and saved_gcs
         int j = 0;
@@ -437,9 +428,9 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
         free(chained_gcs);
         return FAILURE;
     }
-    assert(num_garb_inputs == function.num_garbler_inputs);
+    assert(num_garb_inputs == function.num_garb_inputs);
 
-    int *circuitMapping = (int*) malloc(sizeof(int) * function.num_components);
+    int *circuitMapping = (int*) malloc(sizeof(int) * function.components.totComponents);
     assert(circuitMapping);
     garbler_make_real_instructions(&function, chained_gcs, num_chained_gcs, circuitMapping);
 

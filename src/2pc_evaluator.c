@@ -319,18 +319,26 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 
     // 8. process eval_labels and garb_labels into labels
     InputMapping* input_mapping = &function.input_mapping;
-    int garb_p = 0, eval_p = 0;
+    int circ = 0;
+    int wire = 0;
     for (int i = 0; i < input_mapping->size; i++) {
-        if (input_mapping->inputter[i] == PERSON_GARBLER) {
-            //printf("(gc_id: %d, wire: %d) grabbing garb input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], garb_p);
-            labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = garb_labels[garb_p]; 
-            garb_p++;
-        } else if (input_mapping->inputter[i] == PERSON_EVALUATOR) {
-            //printf("(gc_id: %d, wire: %d) grabbing eval input: %d\n", input_mapping->gc_id[i], input_mapping->wire_id[i], eval_p);
-            labels[input_mapping->gc_id[i]][input_mapping->wire_id[i]] = eval_labels[eval_p]; 
-            eval_p++;
+        int input_idx = input_mapping->input_idx[i];
+        switch(input_mapping->inputter[i]) {
+            case PERSON_GARBLER:
+                circ = input_mapping->gc_id[i];
+                wire = input_mapping->wire_id[i];
+                labels[circ][wire] = garb_labels[input_idx]; 
+                break;
+            case PERSON_EVALUATOR:
+                circ = input_mapping->gc_id[i];
+                wire = input_mapping->wire_id[i];
+                labels[circ][wire] = eval_labels[input_idx]; 
+                break;
+            default:
+                printf("Person not detected while processing input_mapping.\n");
+                break;
         }
-    }
+    } 
 
     // 9a receive "output" 
     //  output is from the json, and tells which components/wires are used for outputs
@@ -351,11 +359,9 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     // 9b receive outputmap
     int output_size;
     block *outputmap;
-    int *output;
     net_recv(sockfd, &output_size, sizeof(int), 0);
     outputmap = allocate_blocks(2 * output_size);
     net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0);
-    output = malloc(sizeof(int) * output_size);
 
     // 10. Close state and network
     close(sockfd);
@@ -371,15 +377,18 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 
     // 11b. use computedOutputMap and outputMap to get actual outputs
 
+    int *output = calloc(sizeof(int), output_size);
     {
         int p_output = 0;
         for (int i = 0; i < output_arr_size; i++) {
-            int dist = end_wire_idx[i] - start_wire_idx[i] + 1;
-            // gc_idx is not based on circuitMapping because computedOutputMap 
-            // populated based on indices in functionSpec
+            int start = start_wire_idx[i];
+            int end = end_wire_idx[i];
+            int dist = end - start + 1;
             int gc_idx = output_gc_id[i]; 
-            mapOutputs(&outputmap[p_output*2], &computedOutputMap[gc_idx][start_wire_idx[i]],
-                       &output[p_output], dist);
+
+            mapOutputs(&outputmap[p_output*2], &computedOutputMap[gc_idx][start],
+                    &output[p_output], dist);
+
             p_output += dist;
         }
         assert(output_size == p_output);

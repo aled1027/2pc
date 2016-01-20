@@ -80,9 +80,13 @@ garb_on(char* function_path, int ninputs, int nchains, int ntrials)
     tot_time = malloc(sizeof(unsigned long) * ntrials);
 
     for (int i = 0; i < ntrials; i++) {
+
+        printf("inputs: ");
         for (int j = 0; j < ninputs; j++) {
             inputs[j] = rand() % 2; 
+            printf("%d", inputs[j]);
         }
+        printf("\n");
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i]);
         printf("%lu\n", tot_time[i]);
@@ -231,7 +235,7 @@ go(struct args *args)
         ncircs = levenNumCircs();
         noutputs = levenNumOutputs();
         fn = "functions/leven_2.json";
-        type = "CBC";
+        type = "LEVEN";
         break;
     default:
         fprintf(stderr, "No type specified\n");

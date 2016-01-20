@@ -1,34 +1,44 @@
 #include "2pc_function_spec.h"
-#include "utils.h"
 
 #include <assert.h>
+
+#include "utils.h"
 
 int 
 freeFunctionSpec(FunctionSpec* function) 
 {
-    for (int i = 0; i < function->num_component_types; i++) {
-        free(function->components[i].circuit_ids);
-    }
-    free(function->components);
-
+    /* Free components */
+    for (int i = 0; i < function->components.numComponentTypes; i++)
+        free(function->components.circuitIds[i]);
+    free(function->components.circuitType);
+    free(function->components.nCircuits);
+    free(function->components.circuitIds);
+    
+    /* Free input_mapping */
     free(function->input_mapping.input_idx);
     free(function->input_mapping.gc_id);
     free(function->input_mapping.wire_id);
     free(function->input_mapping.inputter);
+
+    /* Free instructions */
     free(function->instructions.instr);
+
+    /* Free output */
     free(function->output.gc_id);
     free(function->output.start_wire_idx);
     free(function->output.end_wire_idx);
+
     return SUCCESS;
 }
 
 void
 print_function(FunctionSpec* function) 
 {
-    print_components(function->components, function->num_component_types);
-    print_input_mapping(&(function->input_mapping));
-    print_instructions(&(function->instructions));
-    printf("not printing output\n");
+    print_metadata(function);
+    print_components(&function->components);
+    print_input_mapping(&function->input_mapping);
+    print_instructions(&function->instructions);
+    print_output(&function->output);
 }
 
 int 
@@ -44,7 +54,7 @@ load_function_via_json(char* path, FunctionSpec* function)
     long fs = filesize(path); 
     FILE *f = fopen(path, "r"); 
     if (f == NULL) {
-        printf("Write: Error in opening file.\n");
+        printf("Error in opening file %s.\n", path);
         return -1;
     }   
     char *buffer = malloc(fs); 
@@ -52,7 +62,7 @@ load_function_via_json(char* path, FunctionSpec* function)
     fread(buffer, sizeof(char), fs, f);
     buffer[fs-1] = '\0';
 
-    json_t *jRoot, *jN, *jM, *jPtr;
+    json_t *jRoot;
     json_error_t error; 
     jRoot = json_loads(buffer, 0, &error);
     if (!jRoot) {
@@ -62,19 +72,13 @@ load_function_via_json(char* path, FunctionSpec* function)
     fclose(f);
     free(buffer);
 
-    jN = json_object_get(jRoot, "n");
-    assert(json_is_integer(jN));
-    function->n = json_integer_value(jN);
-
-    jM = json_object_get(jRoot, "m");
-    assert(json_is_integer(jM));
-    function->m = json_integer_value(jM);
-
-    jPtr = json_object_get(jRoot, "garbler_input_idx");
-    assert(json_is_integer(jPtr));
-    function->num_garbler_inputs = json_integer_value(jPtr);
 
     // Grab things from the json_t object
+    if (json_load_metadata(jRoot, function) == FAILURE) {
+        fprintf(stderr, "error loading metadata");
+        return FAILURE;
+    }
+
     if (json_load_components(jRoot, function) == FAILURE) {
         fprintf(stderr, "error loading json components");
         return FAILURE;
@@ -96,48 +100,74 @@ load_function_via_json(char* path, FunctionSpec* function)
     }
 
     json_decref(jRoot); // frees all of the other json_t* objects, everywhere.
-    //print_function(function);
+    return SUCCESS;
+}
+
+int 
+json_load_metadata(json_t *root, FunctionSpec *function)
+{
+    json_t *j_metadata, *j_ptr;
+    j_metadata = json_object_get(root, "metadata");
+
+    j_ptr = json_object_get(j_metadata, "n");
+    assert(json_is_integer(j_ptr));
+    function->n = json_integer_value(j_ptr);
+
+    j_ptr = json_object_get(j_metadata, "m");
+    assert(json_is_integer(j_ptr));
+    function->m = json_integer_value(j_ptr);
+
+    j_ptr = json_object_get(j_metadata, "num_garb_inputs");
+    assert(json_is_integer(j_ptr));
+    function->num_garb_inputs = json_integer_value(j_ptr);
+
+    j_ptr = json_object_get(j_metadata, "num_eval_inputs");
+    assert(json_is_integer(j_ptr));
+    function->num_eval_inputs = json_integer_value(j_ptr);
+
     return SUCCESS;
 }
 
 int 
 json_load_components(json_t *root, FunctionSpec *function) 
 {
-    const char* type;
-    int size, num;
-    json_t *jComponents, *jComponent, *jType, *jNum, *jCircuit_ids, *jId;
+    json_t *jComponents, *jComponent, *jPtr, *jCircuitIds;
+
+    FunctionComponent *components = &function->components;
 
     jComponents = json_object_get(root, "components");
-    size = json_array_size(jComponents);
-    function->num_components = 0;
-    function->num_component_types = size;
-    function->components = malloc(sizeof(FunctionComponent) * size);
+    
+    int size = json_array_size(jComponents);
+    components->circuitType = (CircuitType*) malloc(sizeof(CircuitType) * size);
+    components->circuitIds = (int**) malloc(sizeof(int*) * size);
+    components->nCircuits = (int*) allocate_ints(size);
+    components->numComponentTypes = size;
+    components->totComponents = 0;
 
     for (int i = 0; i < size; i++) {
         jComponent = json_array_get(jComponents, i);
         assert(json_is_object(jComponent));
 
-        // get type
-        jType = json_object_get(jComponent, "type");
-        assert(json_is_string(jType));
-        type = json_string_value(jType);
-        function->components[i].circuit_type = get_circuit_type_from_string(type);
+        /*get type*/
+        jPtr = json_object_get(jComponent, "type");
+        assert(json_is_string(jPtr));
+        const char* type = json_string_value(jPtr);
+        components->circuitType[i] = get_circuit_type_from_string(type);
 
-        // get number of circuits of type needed
-        jNum = json_object_get(jComponent, "num");
-        assert (json_is_integer(jNum));
-        num = json_integer_value(jNum);
-        function->components[i].num = num;
-        function->num_components += num;
+        /*get number of circuits of type needed*/
+        jPtr = json_object_get(jComponent, "num");
+        assert (json_is_integer(jPtr));
+        components->nCircuits[i] = json_integer_value(jPtr);
+        components->totComponents += components->nCircuits[i];
 
-        // get circuit ids
-        function->components[i].circuit_ids = malloc(sizeof(int) * num);
-        jCircuit_ids = json_object_get(jComponent, "circuit_ids");
-        assert (json_is_array(jCircuit_ids));
+        /*get circuit ids*/
+        jCircuitIds = json_object_get(jComponent, "circuit_ids");
+        assert(json_is_array(jCircuitIds));
 
-        for (int k = 0; k < num; k++) {
-            jId = json_array_get(jCircuit_ids, k);
-            function->components[i].circuit_ids[k] = json_integer_value(jId);
+        components->circuitIds[i] = allocate_ints(components->nCircuits[i]);
+        for (int j = 0; j < components->nCircuits[i]; j++) {
+            jPtr = json_array_get(jCircuitIds, j);
+            components->circuitIds[i][j] = json_integer_value(jPtr);
         }
     }
     return SUCCESS;
@@ -149,7 +179,7 @@ json_load_output(json_t *root, FunctionSpec *function)
     json_t *jOutputs, *jOutput, *jPtr;
     Output *p_output = &function->output;
 
-    jOutputs = json_object_get(root, "Output");
+    jOutputs = json_object_get(root, "output");
     assert(json_is_array(jOutputs));
     p_output->size = json_array_size(jOutputs);
 
@@ -186,23 +216,41 @@ json_load_output(json_t *root, FunctionSpec *function)
     return SUCCESS;
 }
 
-void
-print_components(FunctionComponent* components, int num_component_types) 
+void 
+print_metadata(FunctionSpec *function)
 {
-    printf("print_components not yet implemented\n");
+    printf("n: %d\n", function->n);
+    printf("m: %d\n", function->m);
+    printf("num_garb_inputs: %d\n", function->num_garb_inputs);
+    printf("num_eval_inputs: %d\n", function->num_eval_inputs);
+}
+
+void
+print_components(FunctionComponent* components) 
+{
+    printf("numComponentsTypes: %d\n", components->numComponentTypes);
+    printf("totComponents: %d\n", components->totComponents);
+    for (int i = 0; i < components->numComponentTypes; i++) {
+        printf("component type: %d\t", components->circuitType[i]);
+        printf("nCircuits: %d\t", components->nCircuits[i]);
+        printf("circuitIds: ");
+        for (int j = 0; j < components->nCircuits[i]; j++) {
+            printf("%d, ", components->circuitIds[i][j]);
+        }
+        printf("\n");
+    }
 }
 
 void 
 print_input_mapping(InputMapping* inputMapping) 
 {
     printf("InputMapping size: %d\n", inputMapping->size);
-        
     for (int i = 0; i < inputMapping->size; i++) {
-        char person[40] = "Garbler";
+        char person[40] = "Garbler  ";
         if (inputMapping->inputter[i] == PERSON_EVALUATOR) 
             strcpy(person, "Evaluator");
-        printf("%d -> (%d, %d), inputter: %s\n", inputMapping->input_idx[i], inputMapping->gc_id[i], 
-                inputMapping->wire_id[i], person);
+        printf("%s input %d -> (gc %d, wire %d)\n", person, inputMapping->input_idx[i], inputMapping->gc_id[i], 
+                inputMapping->wire_id[i]);
     }
 }
 
@@ -231,6 +279,18 @@ print_instructions(Instructions* instr)
     }
 }
 
+void
+print_output(Output *output)
+{
+    printf("Output object size: %d\n", output->size);
+    for (int i = 0; i < output->size; i++) {
+        printf("Output (gc_id: %d, start_wire: %d, end_wire: %d)\n", 
+                output->gc_id[i],
+                output->start_wire_idx[i],
+                output->end_wire_idx[i]);
+    }
+}
+
 int 
 json_load_input_mapping(json_t *root, FunctionSpec* function) 
 {
@@ -243,25 +303,28 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
      * 
      */
     InputMapping* inputMapping = &(function->input_mapping);
-    json_t *jInputMapping, *jMap, *jGcId, *jWireIdx, *jInputter, *jInputIdx, *jN;
+    json_t *jInputMapping, *jMap, *jGcId, *jWireIdx, *jInputter, *jInputIdx, *jPtr, *jMetadata;
 
-    jN = json_object_get(root, "n");
-    int n = json_integer_value(jN); // aka tot num inputs
+    jMetadata = json_object_get(root, "metadata");
+    jPtr = json_object_get(jMetadata, "input_mapping_size");
+    assert(json_is_integer(jPtr));
+    int size = json_integer_value(jPtr);
+    inputMapping->size = size;
 
-    jInputMapping = json_object_get(root, "InputMapping");
+    jInputMapping = json_object_get(root, "input_mapping");
     assert(json_is_array(jInputMapping));
-    int loop_size = json_array_size(jInputMapping); 
+    int loopSize = json_array_size(jInputMapping); 
 
     // input_idx[l] maps to (gc_id[l], wire_id[l])
-    inputMapping->input_idx = malloc(sizeof(int) * n);
-    inputMapping->gc_id = malloc(sizeof(int) * n);
-    inputMapping->wire_id = malloc(sizeof(int) * n);
-    inputMapping->inputter = malloc(sizeof(Person) * n);
+    inputMapping->input_idx = malloc(sizeof(int) * size);
+    inputMapping->gc_id = malloc(sizeof(int) * size);
+    inputMapping->wire_id = malloc(sizeof(int) * size);
+    inputMapping->inputter = malloc(sizeof(Person) * size);
     assert(inputMapping->input_idx && inputMapping->gc_id && inputMapping->wire_id);
 
     int l = 0;
-    inputMapping->size = n;
-    for (int i = 0; i < loop_size; i++) {
+    for (int i = 0; i < loopSize; i++) {
+
         // Get info from the json pointers
         jMap = json_array_get(jInputMapping, i);
         assert(json_is_object(jMap));
@@ -308,7 +371,7 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
             inputMapping->gc_id[l] = gc_id;
         }
     }
-    assert(n == l);
+    assert(size == l);
     return SUCCESS;
 }
 
@@ -327,6 +390,8 @@ get_circuit_type_from_string(const char* type)
         return XOR;
     } else if (strcmp(type, "FULL_CBC") == 0) {
         return FULL_CBC;
+    } else if (strcmp(type, "LEVEN_CORE") == 0) {
+        return LEVEN_CORE;
     } else {
         fprintf(stderr, "circuit type error when loading json: can't detect %s\n", type);
         return CIRCUIT_TYPE_ERR;
@@ -349,14 +414,14 @@ int
 json_load_instructions(json_t *root, FunctionSpec *function) 
 {
     Instructions* instructions = &(function->instructions);
-    json_t *jInstructions, *jInstr, *jPtr;
+    json_t *jInstructions, *jInstr, *jPtr, *jMetadata;
     const char* sType;
 
-    jPtr = json_object_get(root, "tot_raw_instructions");
+    jMetadata = json_object_get(root, "metadata");
+    jPtr = json_object_get(jMetadata, "instructions_size");
     assert(json_is_integer(jPtr));
     int num_instructions = json_integer_value(jPtr);
     instructions->size = num_instructions;
-    assert(instructions->size > 0);
 
     instructions->instr = malloc(sizeof(Instruction)*num_instructions);
     assert(instructions->instr);
@@ -555,7 +620,7 @@ inputMappingBufferSize(InputMapping *map)
 int 
 writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer) 
 {
-    size_t p = 0;
+    size_t p =0;
 
     memcpy(buffer+p, &(input_mapping->size), sizeof(int));
     p += sizeof(int);
@@ -563,10 +628,13 @@ writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer)
     for (int i=0; i<input_mapping->size; i++) {
         memcpy(buffer+p, &(input_mapping->input_idx[i]), sizeof(int));
         p += sizeof(int);
+
         memcpy(buffer+p, &(input_mapping->gc_id[i]), sizeof(int));
         p += sizeof(int);
+
         memcpy(buffer+p, &(input_mapping->wire_id[i]), sizeof(int));
         p += sizeof(int);
+
         memcpy(buffer+p, &(input_mapping->inputter[i]), sizeof(Person));
         p += sizeof(Person);
     }
@@ -574,24 +642,32 @@ writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer)
 }
 
 int 
-readBufferIntoInputMapping(InputMapping *map, char *buffer) 
+readBufferIntoInputMapping(InputMapping* input_mapping, char* buffer) 
 {
-    int size;
     size_t p = 0;
 
-    memcpy(&size, buffer+p, sizeof(int));
+    memcpy(&(input_mapping->size), buffer+p, sizeof(int));
     p += sizeof(int);
 
-    newInputMapping(map, size);
+    int size = input_mapping->size;
+    input_mapping->input_idx = malloc(sizeof(int) * size);
+    input_mapping->gc_id = malloc(sizeof(int) * size);
+    input_mapping->wire_id = malloc(sizeof(int) * size);
+    input_mapping->inputter = malloc(sizeof(Person) * size);
+    assert(input_mapping->input_idx && input_mapping->gc_id && 
+            input_mapping->wire_id && input_mapping->inputter);
 
-    for (int i = 0; i < map->size; i++) {
-        memcpy(&(map->input_idx[i]), buffer+p, sizeof(int));
+    for (int i=0; i<input_mapping->size; i++) {
+        memcpy(&(input_mapping->input_idx[i]), buffer+p, sizeof(int));
         p += sizeof(int);
-        memcpy(&(map->gc_id[i]), buffer+p, sizeof(int));
+
+        memcpy(&(input_mapping->gc_id[i]), buffer+p, sizeof(int));
         p += sizeof(int);
-        memcpy(&(map->wire_id[i]), buffer+p, sizeof(int));
+
+        memcpy(&(input_mapping->wire_id[i]), buffer+p, sizeof(int));
         p += sizeof(int);
-        memcpy(&(map->inputter[i]), buffer+p, sizeof(Person));
+
+        memcpy(&(input_mapping->inputter[i]), buffer+p, sizeof(Person));
         p += sizeof(Person);
     }
     return p;
