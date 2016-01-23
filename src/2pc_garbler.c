@@ -401,7 +401,6 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
     /* pre-processing OT using random labels */
     if (num_eval_inputs > 0) {
         block *evalLabels;
-
         char lblName[50];
 
         (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
@@ -433,7 +432,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
      */
     int serverfd, fd;
     struct state state;
-    unsigned long start, end;
+    unsigned long start, end, _start, _end;
     ChainedGarbledCircuit *chained_gcs;
     FunctionSpec function;
     int *circuitMapping;
@@ -451,25 +450,43 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     /* start timing after socket connection */
     start = RDTSC;
 
-    chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
+    _start = RDTSC;
+    chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
     for (int i = 0; i < num_chained_gcs; ++i) {
         loadChainedGC(&chained_gcs[i], dir, i, true);
     }
+    _end = RDTSC;
+    fprintf(stderr, "load gcs: %lu\n", _end - _start);
 
     /*load function allocates a bunch of memory for the function*/
     /*this is later freed by freeFunctionSpec*/
+    _start = RDTSC;
     if (load_function_via_json(function_path, &function) == FAILURE) {
         fprintf(stderr, "Could not load function %s\n", function_path);
         abort();
     }
-    /* assert(num_garb_inputs == function.num_garbler_inputs); */
+    _end = RDTSC;
+    fprintf(stderr, "load function: %lu\n", _end - _start);
 
-    circuitMapping = malloc(sizeof(int) * function.num_components);
-    garbler_make_real_instructions(&function, chained_gcs, num_chained_gcs, circuitMapping);
+    _start = RDTSC;
+    {
+        int res;
+        circuitMapping = malloc(sizeof(int) * function.num_components);
+        res = garbler_make_real_instructions(&function, chained_gcs,
+                                             num_chained_gcs, circuitMapping);
+        if (res == FAILURE) {
+            return FAILURE;
+        }
+    }
+    _end = RDTSC;
+    fprintf(stderr, "make inst: %lu\n", _end - _start);
 
     /*main function; does core of work*/
+    _start = RDTSC;
     garbler_go(fd, &function, dir, chained_gcs, num_chained_gcs, circuitMapping,
                inputs);
+    _end = RDTSC;
+    fprintf(stderr, "garbler_go: %lu\n", _end - _start);
 
     free(circuitMapping);
     for (int i = 0; i < num_chained_gcs; ++i) {

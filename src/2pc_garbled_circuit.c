@@ -20,96 +20,49 @@ freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc)
         free(chained_gc->outputMap);
 }
 
-int 
+int
 saveChainedGC(ChainedGarbledCircuit* chained_gc, const char *dir, bool isGarbler)
 {
-    char* buffer;
-    size_t p, buffer_size = 0;
-    char fileName[50];
-    int res;
+    char fname[50];
+    FILE *f;
+    GarbledCircuit *gc = &chained_gc->gc;
 
-    GarbledCircuit* gc = &chained_gc->gc;
-
-    buffer_size = garbledCircuitSize(gc);
-    /* Add in ChainedGC info */
-    buffer_size += sizeof(int);
-    buffer_size += sizeof(CircuitType); 
-    if (isGarbler) {
-        buffer_size += sizeof(block) * 2 * gc->n;
-        buffer_size += sizeof(block) * 2 * gc->m;
+    sprintf(fname, "%s/chained_gc_%d", dir, chained_gc->id); /* XXX: Security hole */
+    if ((f = fopen(fname, "w")) == NULL) {
+        return FAILURE;
     }
-
-    buffer = calloc(buffer_size, sizeof(char));
-
-    p = copyGarbledCircuitToBuffer(gc, buffer);
-    
-    // id, type, inputLabels, outputmap
-    memcpy(buffer + p, &chained_gc->id, sizeof(int));
-    p += sizeof(int);
-    memcpy(buffer + p, &chained_gc->type, sizeof(CircuitType));
-    p += sizeof(CircuitType);
+    saveGarbledCircuit(&chained_gc->gc, f);
+    fwrite(&chained_gc->id, sizeof(int), 1, f);
+    fwrite(&chained_gc->type, sizeof(CircuitType), 1, f);
     if (isGarbler) {
-        memcpy(buffer + p, chained_gc->inputLabels, sizeof(block)*2*gc->n);
-        p += sizeof(block) * 2 * gc->n;
-        memcpy(buffer + p, chained_gc->outputMap, sizeof(block)*2*gc->m);
-        p += sizeof(block) * 2 * gc->m;
+        fwrite(chained_gc->inputLabels, sizeof(block), 2 * gc->n, f);
+        fwrite(chained_gc->outputMap, sizeof(block), 2 * gc->m, f);
     }
-
-    if (isGarbler) {
-        sprintf(fileName, "%s/chained_gc_%d", dir, chained_gc->id); /* XXX: Security hole */
-    } else {
-        sprintf(fileName, "%s/chained_gc_%d", dir, chained_gc->id); /* XXX: Security hole */
-    }
-
-    res = writeBufferToFile(buffer, buffer_size, fileName);
-    free(buffer);
-    return res;
+    return SUCCESS;
 }
 
-int 
+int
 loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
-              bool isGarbler) 
+              bool isGarbler)
 {
-    char* buffer, fileName[50];
-    long fs;
-    size_t p;
+    char fname[50];
+    FILE *f;
+    GarbledCircuit *gc = &chained_gc->gc;
 
-    if (isGarbler) {
-        sprintf(fileName, "%s/chained_gc_%d", dir, id);
-    } else { 
-        sprintf(fileName, "%s/chained_gc_%d", dir, id);
-    }
-
-    fs = filesize(fileName);
-    buffer = malloc(fs);
-
-    if (readFileIntoBuffer(buffer, fileName) == FAILURE) {
+    sprintf(fname, "%s/chained_gc_%d", dir, id); /* XXX: security hole */
+    if ((f = fopen(fname, "r")) == NULL) {
+        perror("fopen");
         return FAILURE;
     }
-
-    GarbledCircuit* gc = &chained_gc->gc;
-
-    p = copyGarbledCircuitFromBuffer(gc, buffer, isGarbler);
-    memcpy(&(chained_gc->id), buffer+p, sizeof(int));
-    p += sizeof(int);
-    memcpy(&(chained_gc->type), buffer+p, sizeof(CircuitType));
-    p += sizeof(CircuitType);
+    loadGarbledCircuit(gc, f, isGarbler);
+    fread(&chained_gc->id, sizeof(int), 1, f);
+    fread(&chained_gc->type, sizeof(CircuitType), 1, f);
     if (isGarbler) {
         chained_gc->inputLabels = allocate_blocks(2 * gc->n);
-        memcpy(chained_gc->inputLabels, buffer+p, sizeof(block)*2*gc->n);
-        p += sizeof(block) * 2 * gc->n;
-
         chained_gc->outputMap = allocate_blocks(2 * gc->m);
-        memcpy(chained_gc->outputMap, buffer+p, sizeof(block)*2*gc->m);
-        p += sizeof(block) * 2 * gc->m;
+        fread(chained_gc->inputLabels, sizeof(block), 2 * gc->n, f);
+        fread(chained_gc->outputMap, sizeof(block), 2 * gc->m, f);
     }
-
-    if (p > fs) {
-        printf("Buffer overflow error\n");
-        free(buffer);
-        return FAILURE;
-    }
-    free(buffer);
     return SUCCESS;
 }
 
