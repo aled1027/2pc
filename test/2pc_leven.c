@@ -11,7 +11,6 @@
 #include "utils.h"
 #include <math.h>
 
-#include "arg.h"
 #include "gates.h"
 
 /* XXX: l < 35 */
@@ -62,9 +61,8 @@ void leven_garb_off()
 	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR, chainedGCs[i].inputLabels);
 	    startBuilding(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, inputWires, outputWires);
-        garbleCircuit(gc, chainedGCs[i].inputLabels, chainedGCs[i].outputMap,
-                      GARBLE_TYPE_STANDARD);
 	    finishBuilding(gc, &gcContext, chainedGCs[i].outputMap, outputWires);
+        garbleCircuit(gc, chainedGCs[i].outputMap, GARBLE_TYPE_STANDARD);
 
         /* Declare chaining vars */
         chainedGCs[i].id = i;
@@ -133,7 +131,7 @@ void full_leven_garb()
     block *inputLabels = allocate_blocks(2*n);
     block *outputMap = allocate_blocks(2*m);
     buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, m);
-    garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
+    garbleCircuit(&gc, outputMap, GARBLE_TYPE_STANDARD);
     
     /* Set input mapping */
     InputMapping imap; 
@@ -159,8 +157,8 @@ void full_leven_garb()
 
     /* Online work */
     unsigned long tot_time;
-    garbler_classic_2pc(&gc, inputLabels, &imap, outputMap,
-        numGarbInputs, numEvalInputs, inputs, &tot_time);
+    garbler_classic_2pc(&gc, &imap, outputMap, numGarbInputs, numEvalInputs,
+                        inputs, &tot_time);
 
     /* Results */
     removeGarbledCircuit(&gc);

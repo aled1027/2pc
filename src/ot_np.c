@@ -9,7 +9,6 @@
 #include "ot_np.h"
 
 #include "crypto.h"
-#include "log.h"
 #include "net.h"
 #include "state.h"
 #include "utils.h"

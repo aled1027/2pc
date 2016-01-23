@@ -11,10 +11,12 @@ gc_comm_send(int sock, GarbledCircuit *gc)
     net_send(sock, &gc->m, sizeof gc->m, 0);
     net_send(sock, &gc->q, sizeof gc->q, 0);
     net_send(sock, &gc->r, sizeof gc->r, 0);
+    net_send(sock, &gc->nFixedWires, sizeof gc->nFixedWires, 0);
+
     net_send(sock, gc->garbledGates, sizeof(GarbledGate) * gc->q, 0);
     net_send(sock, gc->garbledTable, sizeof(GarbledTable) * gc->q, 0);
-    net_send(sock, gc->wires, sizeof(Wire) * gc->r, 0);
     net_send(sock, gc->outputs, sizeof(int) * gc->m, 0);
+    net_send(sock, gc->fixedWires, sizeof(FixedWire) * gc->nFixedWires, 0);
     net_send(sock, &gc->globalKey, sizeof(block), 0);
 
     return 0;
@@ -27,15 +29,20 @@ gc_comm_recv(int sock, GarbledCircuit *gc)
     net_recv(sock, &gc->m, sizeof gc->m, 0);
     net_recv(sock, &gc->q, sizeof gc->q, 0);
     net_recv(sock, &gc->r, sizeof gc->r, 0);
-    (void) posix_memalign((void **) &gc->garbledGates, 128, sizeof(GarbledGate) * gc->q);
-    (void) posix_memalign((void **) &gc->garbledTable, 128, sizeof(GarbledTable) * gc->q);
-    (void) posix_memalign((void **) &gc->wires, 128, sizeof(Wire) * gc->r);
-    (void) posix_memalign((void **) &gc->outputs, 128, sizeof(int) * gc->m);
+    net_recv(sock, &gc->nFixedWires, sizeof gc->nFixedWires, 0);
+
+    gc->garbledGates = calloc(gc->q, sizeof(GarbledGate));
+    gc->garbledTable = calloc(gc->q, sizeof(GarbledTable));
+    gc->outputs = calloc(gc->m, sizeof(int));
+    gc->fixedWires = calloc(gc->nFixedWires, sizeof(FixedWire));
+
     net_recv(sock, gc->garbledGates, sizeof(GarbledGate) * gc->q, 0);
     net_recv(sock, gc->garbledTable, sizeof(GarbledTable) * gc->q, 0);
-    net_recv(sock, gc->wires, sizeof(Wire) * gc->r, 0);
     net_recv(sock, gc->outputs, sizeof(int) * gc->m, 0);
+    net_recv(sock, gc->fixedWires, sizeof(FixedWire) * gc->nFixedWires, 0);
     net_recv(sock, &gc->globalKey, sizeof(block), 0);
+
+    gc->wires = NULL;
 
     return 0;
 }
@@ -53,6 +60,7 @@ int
 chained_gc_comm_recv(int sock, ChainedGarbledCircuit *chained_gc) 
 {
     gc_comm_recv(sock, &chained_gc->gc);
+    chained_gc->gc.wires = NULL;
     net_recv(sock, &chained_gc->id, sizeof(chained_gc->id), 0);
     net_recv(sock, &chained_gc->type, sizeof(chained_gc->type), 0);
     return 0;

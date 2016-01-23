@@ -5,13 +5,13 @@
 
 #include <stdbool.h>
 
+/* Our abstraction/layer on top of GarbledCircuit */
 typedef struct {
-    /* Our abstraction/layer on top of GarbledCircuit */
     GarbledCircuit gc;
     int id;
     CircuitType type;
-    block* inputLabels;
-    block* outputMap;
+    block *inputLabels;
+    block *outputMap;
 } ChainedGarbledCircuit; 
 
 /* typedef struct {  */
@@ -25,9 +25,11 @@ typedef struct {
 /*     char** gc_paths;  */
 /* } GCsMetadata; */
 
-int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
+void
+freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
 
-int saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler);
+int
+saveChainedGC(ChainedGarbledCircuit* chained_gc, const char *dir, bool isGarbler);
 int loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
                   bool isGarbler);
 
@@ -38,11 +40,9 @@ block *loadOTLabels(char *fname);
 int saveOTSelections(char *fname, int *selections, int n);
 int *loadOTSelections(char *fname);
 
-void print_block(block blk);
 void print_garbled_gate(GarbledGate *gg);
 void print_garbled_table(GarbledTable *gt);
 void print_wire(Wire *w);
 void print_gc(GarbledCircuit *gc);
-void print_blocks(const char *str, block *blks, int length);
 
 #endif

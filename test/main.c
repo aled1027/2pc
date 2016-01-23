@@ -127,10 +127,9 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
           int ntrials)
 {
     InputMapping imap;
-    block *inputLabels = allocate_blocks(2 * gc->n);
     block *outputMap = allocate_blocks(2 * gc->m);
 
-    garbleCircuit(gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
+    garbleCircuit(gc, outputMap, GARBLE_TYPE_STANDARD);
 
     newInputMapping(&imap, num_eval_inputs + num_garb_inputs);
 
@@ -156,9 +155,8 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
             for (int i = 0; i < num_garb_inputs; i++) {
                 garb_inputs[i] = rand() % 2; 
             }
-            garbler_classic_2pc(gc, inputLabels, &imap, outputMap,
-                                num_garb_inputs, num_eval_inputs, garb_inputs,
-                                &tot_time[i]);
+            garbler_classic_2pc(gc, &imap, outputMap, num_garb_inputs,
+                                num_eval_inputs, garb_inputs, &tot_time[i]);
             printf("%lu\n", tot_time[i]);
         }
 
@@ -172,7 +170,6 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
 
     deleteInputMapping(&imap);
 
-    free(inputLabels);
     free(outputMap);
 }
 
@@ -317,7 +314,7 @@ main(int argc, char *argv[])
     int c, idx;
     struct args args;
 
-    seedRandom();
+    (void) seedRandom(NULL);
 
     args_init(&args);
 

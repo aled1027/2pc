@@ -10,8 +10,6 @@
 #include "components.h"
 #include "utils.h"
 
-#include "arg.h"
-
 int NUM_AES_ROUNDS = 10;
 int NUM_CBC_BLOCKS = 10;
 
@@ -62,8 +60,7 @@ void cbc_garb_off(char *dir)
         (void) posix_memalign((void **) &chained_gcs[i].inputLabels, 128, sizeof(block) * 2 * chained_gcs[i].gc.n);
         (void) posix_memalign((void **) &chained_gcs[i].outputMap, 128, sizeof(block) * 2 * chained_gcs[i].gc.m);
         assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
-        garbleCircuit(p_gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap,
-                      GARBLE_TYPE_STANDARD);
+        garbleCircuit(p_gc, chained_gcs[i].outputMap, GARBLE_TYPE_STANDARD);
     }
     int num_eval_inputs = cbcNumEvalInputs();
     garbler_offline(dir, chained_gcs, num_eval_inputs, num_chained_gcs);

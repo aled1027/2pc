@@ -114,7 +114,7 @@ void notGateTest()
 	finishBuilding(&gc, &gcContext, outputMap, outputWires);
 
     /* Garble */
-    garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
+    garbleCircuit(&gc, outputMap, GARBLE_TYPE_STANDARD);
 
     /* Evaluate */
     block *extractedLabels = allocate_blocks(2*n);
@@ -178,7 +178,7 @@ void minTest()
 	finishBuilding(&gc, &gcContext, outputMap, outputWires);
 
     /* Garble */
-    garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
+    garbleCircuit(&gc, outputMap, GARBLE_TYPE_STANDARD);
 
     /* Evaluate */
     block *extractedLabels = allocate_blocks(n);
@@ -248,7 +248,7 @@ void MUXTest()
 	finishBuilding(&gc, &gcContext, outputMap, outputWires);
 
     /* Garble */
-    garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
+    garbleCircuit(&gc, outputMap, GARBLE_TYPE_STANDARD);
 
     /* Evaluate */
     block *extractedLabels = allocate_blocks(n);
@@ -316,7 +316,7 @@ void LESTest(int n)
 	finishBuilding(&gc, &gcContext, outputMap, outputWires);
 
     /* Garble */
-    garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
+    garbleCircuit(&gc, outputMap, GARBLE_TYPE_STANDARD);
 
     /* Evaluate */
     block *extractedLabels = allocate_blocks(n);
@@ -361,7 +361,7 @@ void levenTest(int l)
     block *inputLabels = allocate_blocks(2*n);
     block *outputMap = allocate_blocks(2*m);
     buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, m);
-    garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
+    garbleCircuit(&gc, outputMap, GARBLE_TYPE_STANDARD);
 
     /* Set Inputs */
     int *inputs = allocate_ints(n);
