@@ -9,7 +9,7 @@ def initializeComponents(ret_dict):
     r = OrderedDict()
     r['type'] = 'LEVEN_CORE'
     r['num'] = l*l
-    r['circuit_ids'] = list(range(l*l))
+    r['circuit_ids'] = list(range(1, l*l + 1))
     ret_dict['components'].append(r)
 
 def printD(D):
@@ -190,7 +190,7 @@ def generateLevenJSON(l):
     ret_dict['output'] = []
     ret_dict['instructions'] = []
     ret_dict['components'] = []
-    ret_dict['gcs_used'] = 0
+    ret_dict['gcs_used'] = 1
 
     D = []
     initializeComponents(ret_dict)

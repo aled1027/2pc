@@ -83,9 +83,7 @@ garb_on(char* function_path, int ninputs, int nchains, int ntrials)
 
         printf("inputs: ");
         for (int j = 0; j < ninputs; j++) {
-            // TODO undo
-            //inputs[j] = rand() % 2; 
-            inputs[j] = 0;
+            inputs[j] = rand() % 2; 
             printf("%d", inputs[j]);
         }
         printf("\n");
@@ -113,9 +111,12 @@ eval_on(int ninputs, int nchains, int ntrials)
 
     for (int i = 0; i < ntrials; i++) {
         sleep(1); // uncomment this if getting hung up
+        printf("inputs: ");
         for (int j = 0; j < ninputs; j++) {
             inputs[j] = rand() % 2;
+            printf("%d", inputs[j]);
         }
+        printf("\n");
         evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i]);
         printf("%lu\n", tot_time[i]);
         sum += tot_time[i];
@@ -232,13 +233,9 @@ go(struct args *args)
         type = "CBC";
         break;
     case LEVEN:
-        //n_garb_inputs = levenNumGarbInputs();
-        //n_eval_inputs = levenNumEvalInputs();
-        //ncircs = levenNumCircs();
-        // TOOD undo
-        n_garb_inputs = 6;
-        n_eval_inputs = 2;
-        ncircs = 1;
+        n_garb_inputs = levenNumGarbInputs();
+        n_eval_inputs = levenNumEvalInputs();
+        ncircs = levenNumCircs();
         noutputs = levenNumOutputs();
         fn = "functions/leven_2.json";
         type = "LEVEN";

@@ -392,8 +392,8 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     free(end_wire_idx);
     for (int i = 0; i < num_chained_gcs; ++i) {
         freeChainedGarbledCircuit(&chained_gcs[i]);
-        free(labels[0]);
-        free(computedOutputMap[0]);
+        free(labels[i]);
+        free(computedOutputMap[i]);
     }
     free(labels[num_chained_gcs]);
     free(computedOutputMap[num_chained_gcs]);
