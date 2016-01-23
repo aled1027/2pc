@@ -239,12 +239,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 
     // 4. allocate some memory
 
-    labels = malloc(sizeof(block*) * num_chained_gcs);
-    for (int i = 0; i < num_chained_gcs; i++) {
-        labels[i] = allocate_blocks(chained_gcs[i].gc.n);
-    }
-
-    // 5. receive input_mapping, instructions
+        // 5. receive input_mapping, instructions
     // popualtes instructions and input_mapping field of function
     // allocates memory for them as needed.
     {
@@ -318,27 +313,33 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 
 
     // 8. process eval_labels and garb_labels into labels
-    InputMapping* input_mapping = &function.input_mapping;
-    int circ = 0;
-    int wire = 0;
-    for (int i = 0; i < input_mapping->size; i++) {
-        int input_idx = input_mapping->input_idx[i];
-        switch(input_mapping->inputter[i]) {
-            case PERSON_GARBLER:
-                circ = input_mapping->gc_id[i];
-                wire = input_mapping->wire_id[i];
-                labels[circ][wire] = garb_labels[input_idx]; 
-                break;
-            case PERSON_EVALUATOR:
-                circ = input_mapping->gc_id[i];
-                wire = input_mapping->wire_id[i];
-                labels[circ][wire] = eval_labels[input_idx]; 
-                break;
-            default:
-                printf("Person not detected while processing input_mapping.\n");
-                break;
-        }
-    } 
+    //InputMapping* input_mapping = &function.input_mapping;
+    //for (int i = 0; i < input_mapping->size; i++) {
+    //    int input_idx = input_mapping->input_idx[i];
+    //    int circ = input_mapping->gc_id[i];
+    //    int wire = input_mapping->wire_id[i];
+    //    switch(input_mapping->inputter[i]) {
+    //        case PERSON_GARBLER:
+    //            labels[circ][wire] = garb_labels[input_idx]; 
+    //            break;
+    //        case PERSON_EVALUATOR:
+    //            labels[circ][wire] = eval_labels[input_idx]; 
+    //            break;
+    //        default:
+    //            printf("Person not detected while processing input_mapping.\n");
+    //            break;
+    //    }
+    //} 
+    
+    labels = (block**) malloc(sizeof(block*) * num_chained_gcs + 1);
+    labels[0] = (block*) allocate_blocks(num_garb_inputs + num_eval_inputs);
+    for (int i = 1; i < num_chained_gcs + 1; i++) {
+        labels[i] = (block*) allocate_blocks(chained_gcs[i-1].gc.n);
+    }
+
+
+    memcpy(labels[0], garb_labels, sizeof(block) * num_garb_inputs);
+    memcpy(&labels[0][num_garb_inputs], eval_labels, sizeof(block) * num_eval_inputs);
 
     // 9a receive "output" 
     //  output is from the json, and tells which components/wires are used for outputs
@@ -368,9 +369,11 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     state_cleanup(&state);
 
     // 11a. evaluate: follow instructions and evaluate components
-    block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
-    for (int i = 0; i < num_chained_gcs; i++) {
-        computedOutputMap[i] = allocate_blocks(chained_gcs[i].gc.m);
+    block** computedOutputMap = malloc(sizeof(block*) * (num_chained_gcs + 1));
+    computedOutputMap[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
+    memcpy(computedOutputMap[0], labels[0], sizeof(block) * (num_garb_inputs + num_eval_inputs));
+    for (int i = 1; i < num_chained_gcs + 1; i++) {
+        computedOutputMap[i] = allocate_blocks(chained_gcs[i-1].gc.m);
     }
     evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
                        labels, circuitMapping, computedOutputMap);

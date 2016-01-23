@@ -20,7 +20,8 @@ typedef struct {
     int *nCircuits;
     int **circuitIds; 
     // so circuit_type[i] has circuitIds[i], which is an integer array of size nCircuits[i]
-} FunctionComponent;
+} 
+FunctionComponent;
 
 typedef struct {
     int size;

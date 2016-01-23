@@ -123,7 +123,10 @@ send_instructions_and_input_mapping(FunctionSpec *function, int fd)
     char *buffer1, *buffer2;
     size_t buf_size1, buf_size2;
 
-    buffer1 = malloc(instructionBufferSize(&function->instructions));
+    size_t s = instructionBufferSize(&function->instructions);
+    printf("s = %zu\n", s);
+
+    buffer1 = malloc(s);
     buffer2 = malloc(inputMappingBufferSize(&function->input_mapping));
 
     buf_size1 = writeInstructionsToBuffer(&function->instructions, buffer1);
@@ -151,8 +154,9 @@ garbler_go(int fd, FunctionSpec* function, char *dir,
     send_instructions_and_input_mapping(function, fd);
 
     // 3. send circuitMapping
-    net_send(fd, &function->components.totComponents, sizeof(int), 0);
-    net_send(fd, circuitMapping, sizeof(int) * function->components.totComponents, 0);
+    int circuitMappingSize = function->components.totComponents + 1;
+    net_send(fd, &circuitMappingSize, sizeof(int), 0);
+    net_send(fd, circuitMapping, sizeof(int) * circuitMappingSize, 0);
 
     // 4. send labels
     /* calculate input lengths */
@@ -293,6 +297,7 @@ garbler_make_real_instructions(FunctionSpec *function,
     assert(is_circuit_used);
     memset(is_circuit_used, 0, sizeof(bool) * num_chained_gcs);
     num_component_types = function->components.numComponentTypes;
+    circuitMapping[0] = 0;
 
     // loop over type of circuit
     for (int i = 0; i < num_component_types; i++) {
@@ -321,16 +326,42 @@ garbler_make_real_instructions(FunctionSpec *function,
     
     // set the chaining offsets.
     int num_instructions = function->instructions.size;
+
+    // size of n
+    /* Did not know what to name these arrays. They are used for filling
+     * in the offsets for InputComponent */
+    int *imapCirc = allocate_ints(function->n);
+    int *imapWire = allocate_ints(function->n);
+    for (int i = 0; i < function->n; ++i)
+        imapCirc[i] = -1;
+
     Instruction *cur;
-    for (int i = 0; i < num_instructions; i++) {
+    for (int i = 0; i < num_instructions; ++i) {
         cur = &(function->instructions.instr[i]);
         if (cur->type == CHAIN) {
-            cur->chOffset = xorBlocks(
-                chained_gcs[circuitMapping[cur->chFromCircId]].outputMap[2*cur->chFromWireId],
-                chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
+            if (cur->chFromCircId == 0) {
+                int idx = cur->chFromWireId;
+
+                if (imapCirc[idx] == -1) {
+                    /* this input has not been used */
+                    imapCirc[idx] = cur->chToCircId;
+                    imapWire[idx] = cur->chToWireId;
+                    cur->chOffset = zero_block();
+                } else {
+                    cur->chOffset = xorBlocks(
+                        chained_gcs[circuitMapping[imapCirc[idx]]].outputMap[2*imapWire[idx]],
+                        chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
+                }
+            } else {
+                cur->chOffset = xorBlocks(
+                    chained_gcs[circuitMapping[cur->chFromCircId]].outputMap[2*cur->chFromWireId],
+                    chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
+            }
         }
     }
     free(is_circuit_used);
+    free(imapCirc);
+    free(imapWire);
     return SUCCESS;
 }
 
@@ -430,7 +461,8 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     }
     assert(num_garb_inputs == function.num_garb_inputs);
 
-    int *circuitMapping = (int*) malloc(sizeof(int) * function.components.totComponents);
+    // + 1 because 0th component is inputComponent
+    int *circuitMapping = (int*) malloc(sizeof(int) * (function.components.totComponents + 1));
     assert(circuitMapping);
     garbler_make_real_instructions(&function, chained_gcs, num_chained_gcs, circuitMapping);
 

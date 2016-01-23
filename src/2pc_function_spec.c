@@ -430,8 +430,22 @@ json_load_instructions(json_t *root, FunctionSpec *function)
     assert(json_is_array(jInstructions));
     int loop_size = json_array_size(jInstructions); 
 
-    int idx = 0;
-    for (int i=0; i<loop_size; i++) {
+    /* Add chaining for "InputComponent" as specified by InputMapping,
+     * which shold be already loaded from the json file */
+    InputMapping *imap = &function->input_mapping;
+    for (int i = 0; i < imap->size; ++i) {
+        instructions->instr[i].type = CHAIN;
+        instructions->instr[i].chFromCircId = 0;
+        instructions->instr[i].chFromWireId = (imap->inputter[i] == PERSON_GARBLER) ? 
+                            imap->input_idx[i] : imap->input_idx[i] + function->num_garb_inputs;
+        instructions->instr[i].chToCircId = imap->gc_id[i];
+        instructions->instr[i].chToWireId = imap->wire_id[i];
+        /*printf("chaining from circId 0 wire_id %d\n", instructions->instr[i].chFromWireId);*/
+    }
+
+    /* Add normal chaining and evaluating instructions as specified by json */
+    int idx = imap->size;
+    for (int i = 0; i < loop_size; ++i) {
         jInstr = json_array_get(jInstructions, i);
         assert(json_is_object(jInstr));
 
@@ -451,8 +465,6 @@ json_load_instructions(json_t *root, FunctionSpec *function)
                 // We have a map (from_gc_id, [from_wire_id_start : from_wire_id_end])
                 //          ---> (to_gc_id, [to_wire_id_start : to_wire_id_end])
                 
-                // WORK FROM HERE: add for loop for all of these things.
-                // Each chain still needs to be a separate instruction.
                 jPtr = json_object_get(jInstr, "from_gc_id");
                 assert(json_is_integer(jPtr));
                 int from_gc_id = json_integer_value(jPtr);
@@ -498,6 +510,7 @@ json_load_instructions(json_t *root, FunctionSpec *function)
     if (num_instructions != idx) {
         fprintf(stderr, "tot_raw_instructions %d does not match number of instructions %d", num_instructions, idx);
     }
+    //print_instructions(instructions);
     return SUCCESS;
 }
 
