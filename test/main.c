@@ -14,8 +14,6 @@
 #include "2pc_cbc.h"
 #include "2pc_leven.h"
 
-static int NUM_TRIALS = 20;
-
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
@@ -54,7 +52,7 @@ static struct option opts[] =
     {"garb-full", no_argument, 0, 'f'},
     {"eval-full", no_argument, 0, 'F'},
     {"type", required_argument, 0, 't'},
-    {"time", no_argument, 0, 'T'},
+    {"times", required_argument, 0, 'T'},
     {0, 0, 0, 0}
 };
 
@@ -355,7 +353,7 @@ main(int argc, char *argv[])
             }
             break;
         case 'T':
-            args.ntrials = NUM_TRIALS;
+            args.ntrials = atoi(optarg);
             break;
         case '?':
             break;
