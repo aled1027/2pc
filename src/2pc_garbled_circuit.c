@@ -133,6 +133,7 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
     }
 
     fs = filesize(fileName);
+    assert (fs >= 0);
     buffer=malloc(fs);
 
     if (readFileIntoBuffer(buffer, fileName) == FAILURE) {

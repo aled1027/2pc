@@ -45,6 +45,7 @@ void leven_garb_off()
     int coreM = getCoreM();
     int coreQ = getCoreQ();
     int coreR = coreN + coreQ;
+    numCircuits = 1;
 
     ChainedGarbledCircuit chainedGCs[numCircuits];
     for (int i = 0; i < numCircuits; i++) {
@@ -62,15 +63,17 @@ void leven_garb_off()
 	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR, chainedGCs[i].inputLabels);
 	    startBuilding(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, inputWires, outputWires);
+	    finishBuilding(gc, &gcContext, chainedGCs[i].outputMap, outputWires);
         garbleCircuit(gc, chainedGCs[i].inputLabels, chainedGCs[i].outputMap,
                       GARBLE_TYPE_STANDARD);
-	    finishBuilding(gc, &gcContext, chainedGCs[i].outputMap, outputWires);
 
         /* Declare chaining vars */
         chainedGCs[i].id = i;
         chainedGCs[i].type = LEVEN_CORE;
     }
     int numEvalInputs = levenNumEvalInputs();
+    // TODO undo overwrite
+    numEvalInputs = 2;
     garbler_offline("files/garbler_gcs", chainedGCs, numEvalInputs, numCircuits);
 }
 
@@ -80,7 +83,9 @@ void leven_garb_on()
     char *functionPath = COMPONENT_FUNCTION_PATH;
     int DIntSize = getDIntSize();
     int inputsDevotedToD = getInputsDevotedToD();
-    int numGarbInputs = levenNumGarbInputs();
+    // TODO UNDO
+    //int numGarbInputs = levenNumGarbInputs();
+    int numGarbInputs = 6;
 
     /* Set Inputs */
     int *garbInputs = allocate_ints(numGarbInputs);
@@ -96,6 +101,7 @@ void leven_garb_on()
     printf("\n");
 
     unsigned long tot_time;
+    numCircuits = 1;
     garbler_online(functionPath, "files/garbler_gcs", garbInputs, numGarbInputs, numCircuits, &tot_time);
 }
 

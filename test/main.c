@@ -83,7 +83,9 @@ garb_on(char* function_path, int ninputs, int nchains, int ntrials)
 
         printf("inputs: ");
         for (int j = 0; j < ninputs; j++) {
-            inputs[j] = rand() % 2; 
+            // TODO undo
+            //inputs[j] = rand() % 2; 
+            inputs[j] = 0;
             printf("%d", inputs[j]);
         }
         printf("\n");
@@ -230,9 +232,13 @@ go(struct args *args)
         type = "CBC";
         break;
     case LEVEN:
-        n_garb_inputs = levenNumGarbInputs();
-        n_eval_inputs = levenNumEvalInputs();
-        ncircs = levenNumCircs();
+        //n_garb_inputs = levenNumGarbInputs();
+        //n_eval_inputs = levenNumEvalInputs();
+        //ncircs = levenNumCircs();
+        // TOOD undo
+        n_garb_inputs = 6;
+        n_eval_inputs = 2;
+        ncircs = 1;
         noutputs = levenNumOutputs();
         fn = "functions/leven_2.json";
         type = "LEVEN";

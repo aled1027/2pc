@@ -51,7 +51,6 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                          computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
                 break;
             case CHAIN:
-                // printf("chaining (%d,%d) -> (%d,%d)\n", cur->chFromCircId, cur->chFromWireId, cur->chToCircId, cur->chToWireId);
                 labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
                         computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
                         cur->chOffset);
@@ -312,25 +311,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     }
 
 
-    // 8. process eval_labels and garb_labels into labels
-    //InputMapping* input_mapping = &function.input_mapping;
-    //for (int i = 0; i < input_mapping->size; i++) {
-    //    int input_idx = input_mapping->input_idx[i];
-    //    int circ = input_mapping->gc_id[i];
-    //    int wire = input_mapping->wire_id[i];
-    //    switch(input_mapping->inputter[i]) {
-    //        case PERSON_GARBLER:
-    //            labels[circ][wire] = garb_labels[input_idx]; 
-    //            break;
-    //        case PERSON_EVALUATOR:
-    //            labels[circ][wire] = eval_labels[input_idx]; 
-    //            break;
-    //        default:
-    //            printf("Person not detected while processing input_mapping.\n");
-    //            break;
-    //    }
-    //} 
-    
+    // 8. put garb_labels and eval_labels into labels[0]
     labels = (block**) malloc(sizeof(block*) * num_chained_gcs + 1);
     labels[0] = (block*) allocate_blocks(num_garb_inputs + num_eval_inputs);
     for (int i = 1; i < num_chained_gcs + 1; i++) {
@@ -338,6 +319,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     }
 
 
+    printf("num_garb_inputs: %d\n", num_garb_inputs);
     memcpy(labels[0], garb_labels, sizeof(block) * num_garb_inputs);
     memcpy(&labels[0][num_garb_inputs], eval_labels, sizeof(block) * num_eval_inputs);
 
@@ -370,8 +352,9 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 
     // 11a. evaluate: follow instructions and evaluate components
     block** computedOutputMap = malloc(sizeof(block*) * (num_chained_gcs + 1));
-    computedOutputMap[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
+    computedOutputMap[0] = (block*) allocate_blocks(num_garb_inputs + num_eval_inputs);
     memcpy(computedOutputMap[0], labels[0], sizeof(block) * (num_garb_inputs + num_eval_inputs));
+
     for (int i = 1; i < num_chained_gcs + 1; i++) {
         computedOutputMap[i] = allocate_blocks(chained_gcs[i-1].gc.m);
     }
@@ -379,7 +362,6 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
                        labels, circuitMapping, computedOutputMap);
 
     // 11b. use computedOutputMap and outputMap to get actual outputs
-
     int *output = calloc(sizeof(int), output_size);
     {
         int p_output = 0;
@@ -408,11 +390,13 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     free(output_gc_id);
     free(start_wire_idx);
     free(end_wire_idx);
-    for (int i = 0; i < num_chained_gcs; i++) {
+    for (int i = 0; i < num_chained_gcs; ++i) {
         freeChainedGarbledCircuit(&chained_gcs[i]);
-        free(labels[i]);
-        free(computedOutputMap[i]);
+        free(labels[0]);
+        free(computedOutputMap[0]);
     }
+    free(labels[num_chained_gcs]);
+    free(computedOutputMap[num_chained_gcs]);
     free(chained_gcs);
     free(labels);
     free(computedOutputMap);

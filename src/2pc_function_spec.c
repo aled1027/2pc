@@ -414,6 +414,8 @@ int
 json_load_instructions(json_t *root, FunctionSpec *function) 
 {
     Instructions* instructions = &(function->instructions);
+    InputMapping *imap = &function->input_mapping;
+
     json_t *jInstructions, *jInstr, *jPtr, *jMetadata;
     const char* sType;
 
@@ -421,9 +423,9 @@ json_load_instructions(json_t *root, FunctionSpec *function)
     jPtr = json_object_get(jMetadata, "instructions_size");
     assert(json_is_integer(jPtr));
     int num_instructions = json_integer_value(jPtr);
-    instructions->size = num_instructions;
+    instructions->size = num_instructions + imap->size;
 
-    instructions->instr = malloc(sizeof(Instruction)*num_instructions);
+    instructions->instr = malloc(sizeof(Instruction)*instructions->size);
     assert(instructions->instr);
 
     jInstructions = json_object_get(root, "instructions");
@@ -432,7 +434,6 @@ json_load_instructions(json_t *root, FunctionSpec *function)
 
     /* Add chaining for "InputComponent" as specified by InputMapping,
      * which shold be already loaded from the json file */
-    InputMapping *imap = &function->input_mapping;
     for (int i = 0; i < imap->size; ++i) {
         instructions->instr[i].type = CHAIN;
         instructions->instr[i].chFromCircId = 0;
@@ -506,10 +507,7 @@ json_load_instructions(json_t *root, FunctionSpec *function)
                 return FAILURE;
         }
     }
-    assert(idx == num_instructions);
-    if (num_instructions != idx) {
-        fprintf(stderr, "tot_raw_instructions %d does not match number of instructions %d", num_instructions, idx);
-    }
+    assert(idx == instructions->size);
     //print_instructions(instructions);
     return SUCCESS;
 }
