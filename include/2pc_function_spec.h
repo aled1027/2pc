@@ -101,7 +101,7 @@ void print_input_mapping(InputMapping* inputMapping);
 void print_instructions(Instructions* instr);
 void print_output(Output *output);
 
-int writeInstructionsToBuffer(Instructions* instructions, char* buffer);
+int writeInstructionsToBuffer(const Instructions* instructions, char* buffer);
 int readBufferIntoInstructions(Instructions* instructions, char* buffer);
 int writeInputMappingToBuffer(InputMapping* input_mapping, char* buffer);
 int readBufferIntoInputMapping(InputMapping* input_mapping, char* buffer);
@@ -109,7 +109,7 @@ int readBufferIntoInputMapping(InputMapping* input_mapping, char* buffer);
 void newInputMapping(InputMapping *map, int size);
 void deleteInputMapping(InputMapping *map);
 
-size_t instructionBufferSize(Instructions *instructions);
+size_t instructionBufferSize(const Instructions *instructions);
 size_t inputMappingBufferSize(InputMapping *map);
 
 #endif

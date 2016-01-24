@@ -32,7 +32,9 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         Instructions* instructions, block** labels, int* circuitMapping,
         block **computedOutputMap)
 {
-    /*  Essence of function: populate computedOutputMap
+    /* Essence of function: populate computedOutputMap
+     * computedOutputMap[0] should already be populated garb and eval input labels
+     * These inputs are then chained appropriately to where they need to go.
      *
      * only used circuitMapping when evaluating. 
      * all other labels, outputmap are basedon the indicies of instructions.
@@ -46,7 +48,6 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         switch(cur->type) {
             case EVAL:
                 savedCircId = circuitMapping[cur->evCircId];
-                // printf("evaling %d on instruction %d\n", savedCircId, i);
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                          computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
                 break;
@@ -238,26 +239,20 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 
     // 4. allocate some memory
 
-        // 5. receive input_mapping, instructions
+        // 5. receive instructions
     // popualtes instructions and input_mapping field of function
     // allocates memory for them as needed.
     {
-        char *buffer1, *buffer2;
-        size_t buf_size1, buf_size2;
+        char *buffer;
+        size_t buf_size;
 
-        net_recv(sockfd, &buf_size1, sizeof(size_t), 0);
-        net_recv(sockfd, &buf_size2, sizeof(size_t), 0);
+        net_recv(sockfd, &buf_size, sizeof(size_t), 0);
 
-        buffer1 = malloc(buf_size1);
-        buffer2 = malloc(buf_size2);
+        buffer = malloc(buf_size);
+        net_recv(sockfd, buffer, buf_size, 0);
 
-        net_recv(sockfd, buffer1, buf_size1, 0);
-        net_recv(sockfd, buffer2, buf_size2, 0);
-
-        readBufferIntoInstructions(&function.instructions, buffer1);
-        readBufferIntoInputMapping(&function.input_mapping, buffer2);
-        free(buffer1);
-        free(buffer2);
+        readBufferIntoInstructions(&function.instructions, buffer);
+        free(buffer);
     }
 
     // 6. receive circuitMapping
@@ -312,14 +307,11 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 
 
     // 8. put garb_labels and eval_labels into labels[0]
-    labels = (block**) malloc(sizeof(block*) * num_chained_gcs + 1);
+    labels = (block**) malloc(sizeof(block*) * (num_chained_gcs + 1));
     labels[0] = (block*) allocate_blocks(num_garb_inputs + num_eval_inputs);
     for (int i = 1; i < num_chained_gcs + 1; i++) {
         labels[i] = (block*) allocate_blocks(chained_gcs[i-1].gc.n);
     }
-
-
-    printf("num_garb_inputs: %d\n", num_garb_inputs);
     memcpy(labels[0], garb_labels, sizeof(block) * num_garb_inputs);
     memcpy(&labels[0][num_garb_inputs], eval_labels, sizeof(block) * num_eval_inputs);
 
@@ -391,7 +383,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     free(start_wire_idx);
     free(end_wire_idx);
     for (int i = 0; i < num_chained_gcs; ++i) {
-        freeChainedGarbledCircuit(&chained_gcs[i]);
+        freeChainedGarbledCircuit(&chained_gcs[i], false);
         free(labels[i]);
         free(computedOutputMap[i]);
     }
@@ -404,7 +396,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     free(output);
     free(garb_labels);
     free(eval_labels);
-    deleteInputMapping(&function.input_mapping);
+    //deleteInputMapping(&function.input_mapping);
     free(function.instructions.instr);
 
     *tot_time = RDTSC - start_time;

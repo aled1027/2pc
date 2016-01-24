@@ -118,24 +118,19 @@ garbler_classic_2pc(GarbledCircuit *gc, block *input_labels,
 }
 
 static void
-send_instructions_and_input_mapping(FunctionSpec *function, int fd)
+sendInstructions(const Instructions* instructions, int fd)
 {
-    char *buffer1, *buffer2;
-    size_t buf_size1, buf_size2;
+    char *buffer;
+    size_t buf_size;
 
-    buffer1 = malloc(instructionBufferSize(&function->instructions));
-    buffer2 = malloc(inputMappingBufferSize(&function->input_mapping));
+    buffer = malloc(instructionBufferSize(instructions));
 
-    buf_size1 = writeInstructionsToBuffer(&function->instructions, buffer1);
-    buf_size2 = writeInputMappingToBuffer(&function->input_mapping, buffer2);
+    buf_size = writeInstructionsToBuffer(instructions, buffer);
 
-    net_send(fd, &buf_size1, sizeof(buf_size1), 0);
-    net_send(fd, &buf_size2, sizeof(buf_size2), 0);
-    net_send(fd, buffer1, buf_size1, 0);
-    net_send(fd, buffer2, buf_size2, 0);
+    net_send(fd, &buf_size, sizeof(buf_size), 0);
+    net_send(fd, buffer, buf_size, 0);
 
-    free(buffer1);
-    free(buffer2);
+    free(buffer);
 }
 
 static void
@@ -148,7 +143,7 @@ garbler_go(int fd, FunctionSpec* function, char *dir,
     // 1. setup connection
 
     // 2. send instructions, input_mapping
-    send_instructions_and_input_mapping(function, fd);
+    sendInstructions(&function->instructions, fd);
 
     // 3. send circuitMapping
     int circuitMappingSize = function->components.totComponents + 1;
@@ -195,7 +190,6 @@ garbler_go(int fd, FunctionSpec* function, char *dir,
     free(usedEvalInputIdx);
 
     /* send garbler's wire labels */
-    printf("num_garb_inputs: %d\n", num_garb_inputs);
     net_send(fd, &num_garb_inputs, sizeof(int), 0);
     if (num_garb_inputs > 0) {
         net_send(fd, garbLabels, sizeof(block) * num_garb_inputs, 0);

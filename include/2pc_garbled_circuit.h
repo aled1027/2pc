@@ -25,7 +25,7 @@ typedef struct {
 /*     char** gc_paths;  */
 /* } GCsMetadata; */
 
-int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
+int freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb);
 
 int saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler);
 int loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,

@@ -513,7 +513,7 @@ json_load_instructions(json_t *root, FunctionSpec *function)
 }
 
 size_t
-instructionBufferSize(Instructions *instructions)
+instructionBufferSize(const Instructions *instructions)
 {
     size_t size = sizeof(int);
     for (int i = 0; i < instructions->size; ++i) {
@@ -533,7 +533,7 @@ instructionBufferSize(Instructions *instructions)
 }
 
 int 
-writeInstructionsToBuffer(Instructions* instructions, char* buffer) 
+writeInstructionsToBuffer(const Instructions* instructions, char* buffer) 
 {
     size_t p = 0;
     memcpy(buffer+p, &(instructions->size), sizeof(int));

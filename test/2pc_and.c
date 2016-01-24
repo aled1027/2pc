@@ -35,7 +35,7 @@ and_garb_off(char *dir, int ninputs, int nlayers, int nchains)
     for (int i = 0; i < nchains; ++i) {
         removeGarbledCircuit(&gcs[i].gc);
     }
-    freeChainedGarbledCircuit(gcs);
+    freeChainedGarbledCircuit(gcs, true);
 }
 
 void
