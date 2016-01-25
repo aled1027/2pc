@@ -272,7 +272,7 @@ buildANDCircuit(GarbledCircuit *gc, int n, int nlayers)
     int r = n + n / 2 * nlayers;
     int q = n / 2 * nlayers;
 
-    printf("# gates = %d\n", q);
+    /* printf("# gates = %d\n", q); */
 
     countToN(wires, n);
 
@@ -450,9 +450,6 @@ buildXORCircuit(GarbledCircuit *gc, block *delta) {
 	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
 	startBuilding(gc, &garblingContext);
     XORCircuit(gc, &garblingContext, 256, inp, outs);
-    for (int i=0; i<10; i++) {
-        printf("%d\n", outs[i]);
-    }
 	finishBuilding(gc, &garblingContext, outputMap, outs);
 }
 

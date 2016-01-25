@@ -43,26 +43,30 @@ void cbc_garb_off(char *dir)
     *((uint16_t *) (&delta)) |= 1;
 
     for (int i = 0; i < num_chained_gcs; i++) {
-        GarbledCircuit* p_gc = &(chained_gcs[i].gc);
+        GarbledCircuit* gc = &(chained_gcs[i].gc);
         if (i < num_xor_circs) {
-            buildXORCircuit(p_gc, &delta);
+            buildXORCircuit(gc, &delta);
             chained_gcs[i].type = XOR;
         } else if (i < num_xor_circs + num_aes_circs) {
-            buildAESRoundComponentCircuit(p_gc, false, &delta);
+            buildAESRoundComponentCircuit(gc, false, &delta);
             chained_gcs[i].type = AES_ROUND;
         } else {
-            buildAESRoundComponentCircuit(p_gc, true, &delta);
+            buildAESRoundComponentCircuit(gc, true, &delta);
             chained_gcs[i].type = AES_FINAL_ROUND;
 
         }
         chained_gcs[i].id = i;
-
-        (void) posix_memalign((void **) &chained_gcs[i].inputLabels, 128, sizeof(block) * 2 * chained_gcs[i].gc.n);
-        (void) posix_memalign((void **) &chained_gcs[i].outputMap, 128, sizeof(block) * 2 * chained_gcs[i].gc.m);
-        assert(chained_gcs[i].inputLabels != NULL && chained_gcs[i].outputMap != NULL);
-        garbleCircuit(p_gc, chained_gcs[i].outputMap, GARBLE_TYPE_STANDARD);
+        chained_gcs[i].inputLabels = allocate_blocks(2 * gc->n);
+        chained_gcs[i].outputMap = allocate_blocks(2 * gc->m);
+        garbleCircuit(gc, chained_gcs[i].outputMap, GARBLE_TYPE_STANDARD);
+        for (int j = 0; j < gc->n; ++j) {
+            chained_gcs[i].inputLabels[2 * j] = gc->wires[j].label0;
+            chained_gcs[i].inputLabels[2 * j + 1] = gc->wires[j].label1;
+        }
     }
-    int num_eval_inputs = cbcNumEvalInputs();
-    garbler_offline(dir, chained_gcs, num_eval_inputs, num_chained_gcs);
+    garbler_offline(dir, chained_gcs, cbcNumEvalInputs(), num_chained_gcs);
+    for (int i = 0; i < num_chained_gcs; ++i) {
+        freeChainedGarbledCircuit(&chained_gcs[i]);
+    }
     free(chained_gcs);
 }

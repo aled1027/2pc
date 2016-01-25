@@ -26,7 +26,7 @@ IDIR =include
 
 CC=gcc
 CFLAGS= -g -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -Wno-typedef-redefinition -Wno-unused-function -maes -msse4 -march=native
-LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson
+LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson
 
 AES = 2pc_aes
 CBC = 2pc_cbc
