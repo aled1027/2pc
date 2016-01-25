@@ -1,4 +1,3 @@
-
 #include <assert.h>
 #include <ctype.h>
 #include <getopt.h>
@@ -13,6 +12,11 @@
 #include "2pc_aes.h"
 #include "2pc_cbc.h"
 #include "2pc_leven.h"
+#include "2pc_tests.h"
+
+#include "justGarble.h"
+#include "garble.h"
+#include "circuits.h"
 
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
@@ -51,6 +55,7 @@ static struct option opts[] =
     {"eval-on", no_argument, 0, 'E'},
     {"garb-full", no_argument, 0, 'f'},
     {"eval-full", no_argument, 0, 'F'},
+    {"test", no_argument, 0, 'p'},
     {"type", required_argument, 0, 't'},
     {"times", required_argument, 0, 'T'},
     {0, 0, 0, 0}
@@ -78,9 +83,13 @@ garb_on(char* function_path, int ninputs, int nchains, int ntrials)
     tot_time = malloc(sizeof(unsigned long) * ntrials);
 
     for (int i = 0; i < ntrials; i++) {
+
+        printf("inputs: ");
         for (int j = 0; j < ninputs; j++) {
             inputs[j] = rand() % 2; 
+            printf("%d", inputs[j]);
         }
+        printf("\n");
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i]);
         printf("%lu\n", tot_time[i]);
@@ -95,8 +104,7 @@ garb_on(char* function_path, int ninputs, int nchains, int ntrials)
 }
 
 static void
-eval_on(int ninputs, int nchains, int ntrials)
-{
+eval_on(int ninputs, int nlabels, int nchains, int ntrials) {
     unsigned long sum = 0, *tot_time;
     int *inputs;
 
@@ -105,10 +113,14 @@ eval_on(int ninputs, int nchains, int ntrials)
 
     for (int i = 0; i < ntrials; i++) {
         sleep(1); // uncomment this if getting hung up
+        /* printf("Inputs: "); */
+        /* TODO ninputs and nlabels being conflated */
         for (int j = 0; j < ninputs; j++) {
             inputs[j] = rand() % 2;
+            /* printf("%d", inputs[j]); */
         }
-        evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i]);
+        /* printf("\n"); */
+        evaluator_online(EVALUATOR_DIR, inputs, nlabels, nchains, &tot_time[i]);
         printf("%lu\n", tot_time[i]);
         sum += tot_time[i];
     }
@@ -200,13 +212,14 @@ eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
 static int
 go(struct args *args)
 {
-    int n_garb_inputs, n_eval_inputs, noutputs, ncircs;
+    int n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs;
     char *fn, *type;
 
     switch (args->type) {
     case AES:
         n_garb_inputs = aesNumGarbInputs();
         n_eval_inputs = aesNumEvalInputs();
+        n_eval_labels = n_eval_inputs;
         ncircs = aesNumCircs();
         noutputs = aesNumOutputs();
         fn = "functions/aes.json";
@@ -215,6 +228,7 @@ go(struct args *args)
     case CBC:
         n_garb_inputs = cbcNumGarbInputs();
         n_eval_inputs = cbcNumEvalInputs();
+        n_eval_labels = n_eval_inputs;
         ncircs = cbcNumCircs();
         noutputs = cbcNumOutputs();
         fn = "functions/cbc_10_10.json";
@@ -223,10 +237,11 @@ go(struct args *args)
     case LEVEN:
         n_garb_inputs = levenNumGarbInputs();
         n_eval_inputs = levenNumEvalInputs();
+        n_eval_labels = levenNumEvalLabels();
         ncircs = levenNumCircs();
         noutputs = levenNumOutputs();
         fn = "functions/leven_2.json";
-        type = "CBC";
+        type = "LEVEN";
         break;
     default:
         fprintf(stderr, "No type specified\n");
@@ -254,7 +269,7 @@ go(struct args *args)
         }
     } else if (args->eval_off) {
         printf("Offline evaluating\n");
-        eval_off(n_eval_inputs, ncircs);
+        eval_off(n_eval_labels, ncircs);
     } else if (args->garb_on) {
         printf("Online garbling\n");
         if (args->type == LEVEN) {
@@ -264,7 +279,7 @@ go(struct args *args)
         }
     } else if (args->eval_on) {
         printf("Online evaluating\n");
-        eval_on(n_eval_inputs, ncircs, args->ntrials);
+        eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials);
     } else if (args->garb_full) {
         printf("Full garbling\n");
         GarbledCircuit gc;
@@ -316,6 +331,7 @@ main(int argc, char *argv[])
 
     args_init(&args);
 
+
     while ((c = getopt_long(argc, argv, "", opts, &idx)) != -1) {
         switch (c) {
         case 0:
@@ -354,6 +370,11 @@ main(int argc, char *argv[])
             break;
         case 'T':
             args.ntrials = atoi(optarg);
+            break;
+        case 'p':
+            printf("Running tests\n");
+            runAllTests();
+            return 0;
             break;
         case '?':
             break;

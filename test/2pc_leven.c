@@ -23,6 +23,7 @@ static int getInputsDevotedToD() { return getDIntSize() * (l+1); }
 static int getN() { return getInputsDevotedToD() + (2*2*l); }
 int levenNumOutputs() { return getDIntSize(); }
 int levenNumEvalInputs() { return 2*l; }
+int levenNumEvalLabels() { return 2*(l*l); }
 int levenNumGarbInputs() { return getN() - levenNumEvalInputs(); }
 int levenNumCircs() { return numCircuits; }
 static int getCoreN() { return (3 * getDIntSize()) + 4; }
@@ -49,9 +50,8 @@ void leven_garb_off()
     for (int i = 0; i < numCircuits; i++) {
         /* Initialize */
         GarblingContext gcContext;
-        int *inputWires = allocate_ints(coreN);
+        int inputWires[coreN], outputWires[coreM];
         countToN(inputWires, coreN);
-        int *outputWires = allocate_ints(coreM);
         chainedGCs[i].inputLabels = allocate_blocks(2*coreN);
         chainedGCs[i].outputMap = allocate_blocks(2*coreM);
         GarbledCircuit *gc = &chainedGCs[i].gc;
@@ -72,8 +72,8 @@ void leven_garb_off()
         chainedGCs[i].id = i;
         chainedGCs[i].type = LEVEN_CORE;
     }
-    int numEvalInputs = levenNumEvalInputs();
-    garbler_offline("files/garbler_gcs", chainedGCs, numEvalInputs, numCircuits);
+    int numEvalLabels = levenNumEvalLabels();
+    garbler_offline("files/garbler_gcs", chainedGCs, numEvalLabels, numCircuits);
 }
 
 void leven_garb_on()
@@ -84,7 +84,7 @@ void leven_garb_on()
     int inputsDevotedToD = getInputsDevotedToD();
     int numGarbInputs = levenNumGarbInputs();
 
-    /* Set Inputs */
+    /* Set inputs */
     int *garbInputs = allocate_ints(numGarbInputs);
 
     /* The first inputsDevotedToD inputs are 0 to l+1 in binary */
@@ -99,6 +99,7 @@ void leven_garb_on()
 
     unsigned long tot_time;
     garbler_online(functionPath, "files/garbler_gcs", garbInputs, numGarbInputs, numCircuits, &tot_time);
+    free(garbInputs);
 }
 
 void full_leven_garb()

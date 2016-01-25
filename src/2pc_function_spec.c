@@ -1,7 +1,8 @@
 #include "2pc_function_spec.h"
-#include "utils.h"
 
 #include <assert.h>
+
+#include "utils.h"
 
 int 
 freeFunctionSpec(FunctionSpec* function) 
@@ -619,7 +620,7 @@ inputMappingBufferSize(const InputMapping *map)
 int 
 writeInputMappingToBuffer(const InputMapping* map, char* buffer)
 {
-    size_t p = 0;
+    size_t p =0;
 
     memcpy(buffer+p, &map->size, sizeof(int));
     p += sizeof(int);
@@ -638,24 +639,32 @@ writeInputMappingToBuffer(const InputMapping* map, char* buffer)
 }
 
 int 
-readBufferIntoInputMapping(InputMapping *map, const char *buffer) 
+readBufferIntoInputMapping(InputMapping *input_mapping, const char *buffer) 
 {
-    int size;
     size_t p = 0;
 
-    memcpy(&size, buffer+p, sizeof(int));
+    memcpy(&(input_mapping->size), buffer+p, sizeof(int));
     p += sizeof(int);
 
-    newInputMapping(map, size);
+    int size = input_mapping->size;
+    input_mapping->input_idx = malloc(sizeof(int) * size);
+    input_mapping->gc_id = malloc(sizeof(int) * size);
+    input_mapping->wire_id = malloc(sizeof(int) * size);
+    input_mapping->inputter = malloc(sizeof(Person) * size);
+    assert(input_mapping->input_idx && input_mapping->gc_id && 
+            input_mapping->wire_id && input_mapping->inputter);
 
-    for (int i = 0; i < map->size; i++) {
-        memcpy(&(map->input_idx[i]), buffer+p, sizeof(int));
+    for (int i=0; i<input_mapping->size; i++) {
+        memcpy(&(input_mapping->input_idx[i]), buffer+p, sizeof(int));
         p += sizeof(int);
-        memcpy(&(map->gc_id[i]), buffer+p, sizeof(int));
+
+        memcpy(&(input_mapping->gc_id[i]), buffer+p, sizeof(int));
         p += sizeof(int);
-        memcpy(&(map->wire_id[i]), buffer+p, sizeof(int));
+
+        memcpy(&(input_mapping->wire_id[i]), buffer+p, sizeof(int));
         p += sizeof(int);
-        memcpy(&(map->inputter[i]), buffer+p, sizeof(Person));
+
+        memcpy(&(input_mapping->inputter[i]), buffer+p, sizeof(Person));
         p += sizeof(Person);
     }
     return p;

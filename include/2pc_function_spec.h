@@ -9,6 +9,7 @@
 typedef enum {EVAL, CHAIN, INSTR_ERR} InstructionType;
 typedef enum {PERSON_GARBLER = 0, PERSON_EVALUATOR = 1, PERSON_ERR = -1} Person;
 
+
 typedef struct {
     /* not actually a single component, but a component type 
      * with num components of the type, and ids circuit_ids
@@ -19,8 +20,7 @@ typedef struct {
     int *nCircuits;
     int **circuitIds; 
     // so circuit_type[i] has circuitIds[i], which is an integer array of size nCircuits[i]
-} 
-FunctionComponent;
+} FunctionComponent;
 
 typedef struct {
     int size;
@@ -68,9 +68,10 @@ typedef struct {
      * That is, the components, instructions for evaluating and chaining components,
      * and everything else necessary for evaluating a function 
      */
+    char* name; // make 128
+    char* description; // make 128
     int n, m;
     int num_garb_inputs, num_eval_inputs;
-
     FunctionComponent components;
     InputMapping input_mapping;
     Instructions instructions;
@@ -105,10 +106,8 @@ int readBufferIntoInstructions(Instructions* instructions, const char* buffer);
 int writeInputMappingToBuffer(const InputMapping* input_mapping, char* buffer);
 int readBufferIntoInputMapping(InputMapping* input_mapping, const char* buffer);
 
-void
-newInputMapping(InputMapping *map, int size);
-void
-deleteInputMapping(InputMapping *map);
+void newInputMapping(InputMapping *map, int size);
+void deleteInputMapping(InputMapping *map);
 
 size_t
 instructionBufferSize(const Instructions *instructions);

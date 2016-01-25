@@ -5,6 +5,7 @@ int levenNumEvalInputs(void);
 int levenNumGarbInputs(void);
 int levenNumOutputs(void);
 int levenNumCircs(void);
+int levenNumEvalLabels(void);
 
 void leven_garb_off();
 void leven_garb_on();
