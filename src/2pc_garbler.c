@@ -188,14 +188,23 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
            int num_chained_gcs, const int *circuitMapping, const int *inputs)
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
-    
+
+    unsigned long _start, _end;
+
+    _start = RDTSC;
     send_instructions_and_input_mapping(function, fd);
+    _end = RDTSC;
+    fprintf(stderr, "send inst/map: %lu\n", _end - _start);
 
     // 3. send circuitMapping
+    _start = RDTSC;
     net_send(fd, &function->components.totComponents, sizeof(int), 0);
     net_send(fd, circuitMapping, sizeof(int) * function->components.totComponents, 0);
+    _end = RDTSC;
+    fprintf(stderr, "send circmap: %lu\n", _end - _start);
 
     // 4. send labels
+    _start = RDTSC;
     InputMapping imap = function->input_mapping;
     int num_eval_labels = 0, num_garb_labels = 0;
     for (int i = 0; i < imap.size; ++i) {
@@ -227,9 +236,12 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     if (num_garb_labels > 0) {
         net_send(fd, garbLabels, sizeof(block) * num_garb_labels, 0);
     }
+    _end = RDTSC;
+    fprintf(stderr, "send labels: %lu\n", _end - _start);
 
     /* Send evaluator's labels via OT correct */
     /* OT correction */
+    _start = RDTSC;
     if (num_eval_labels > 0) {
         int *corrections;
         block *randLabels;
@@ -282,7 +294,10 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         free(corrections);
         free(randLabels);
     }
+    _end = RDTSC;
+    fprintf(stderr, "ot correction: %lu\n", _end - _start);
 
+    _start = RDTSC;
     // 5a. send "output" 
     // output is from the json, and tells which components/wires are used for outputs
     // note that size is not size of the output, but length of the arrays in output
@@ -318,6 +333,8 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
 
         free(outputmap);
     }
+    _end = RDTSC;
+    fprintf(stderr, "send output/outputmap: %lu\n", _end - _start);
 
     // 6. clean up
     if (num_garb_labels > 0)
@@ -403,7 +420,6 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
     /* send GCs */
     for (int i = 0; i < num_chained_gcs; i++) {
         chained_gc_comm_send(fd, &chained_gcs[i]);
-        assert(chained_gcs[i].gc.wires);
         saveChainedGC(&chained_gcs[i], dir, true);
     }
 

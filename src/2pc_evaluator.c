@@ -325,7 +325,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_labels,
         for (int i = 0; i < num_eval_labels; ++i) {
             int input_idx = input_mapping->input_idx[i];
             eval_labels[i] = xorBlocks(eval_labels[i],
-                            recvLabels[(2 * i) + eval_inputs[input_idx]]);
+                                       recvLabels[(2 * i) + eval_inputs[input_idx]]);
         }
 
         free(recvLabels);
