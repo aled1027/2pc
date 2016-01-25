@@ -162,6 +162,7 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
     int sockfd;
     struct state state;
     ChainedGarbledCircuit cgc;
+    unsigned long start, end;
     
     state_init(&state);
 
@@ -170,7 +171,8 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
         exit(EXIT_FAILURE);
     }
 
-    /* receive GCs */
+    start = RDTSC;
+
     for (int i = 0; i < nchains; i++) {
         chained_gc_comm_recv(sockfd, &cgc);
         saveChainedGC(&cgc, dir, false);
@@ -205,6 +207,9 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
         free(selections);
         free(evalLabels);
     }
+
+    end = RDTSC;
+    fprintf(stderr, "evaluator offline: %lu\n", end - start);
 
     close(sockfd);
     state_cleanup(&state);
@@ -242,6 +247,9 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_labels,
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
     block **labels;
+    int *circuitMapping;
+    int num_garb_labels;
+    block *garb_labels = NULL, *eval_labels = NULL;
 
     state_init(&state);
     if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
@@ -252,22 +260,24 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_labels,
     start = RDTSC;
 
     _start = RDTSC;
-    chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
-    for (int i = 0; i < num_chained_gcs; ++i) {
-        loadChainedGC(&chained_gcs[i], dir, i, false);
+    {
+        chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
+        for (int i = 0; i < num_chained_gcs; ++i) {
+            loadChainedGC(&chained_gcs[i], dir, i, false);
+        }
     }
     _end = RDTSC;
     fprintf(stderr, "load gcs: %lu\n", _end - _start);
 
     _start = RDTSC;
-    receive_instructions_and_input_mapping(&function, sockfd);
+    {
+        receive_instructions_and_input_mapping(&function, sockfd);
+    }
     _end = RDTSC;
     fprintf(stderr, "receive inst/map: %lu\n", _end - _start);
 
-    // 6. receive circuitMapping
     // circuitMapping maps instruction-gc-ids --> saved-gc-ids
     _start = RDTSC;
-    int *circuitMapping;
     {
         int circuitMappingSize;
         net_recv(sockfd, &circuitMappingSize, sizeof(int), 0);
@@ -280,12 +290,12 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_labels,
     // 7. receive labels
     // receieve labels based on garblers inputs
     _start = RDTSC;
-    int num_garb_labels;
-    block *garb_labels = NULL, *eval_labels = NULL;
-    net_recv(sockfd, &num_garb_labels, sizeof(int), 0);
-    if (num_garb_labels > 0) {
-        garb_labels = allocate_blocks(num_garb_labels);
-        net_recv(sockfd, garb_labels, sizeof(block) * num_garb_labels, 0);
+    {
+        net_recv(sockfd, &num_garb_labels, sizeof(int), 0);
+        if (num_garb_labels > 0) {
+            garb_labels = allocate_blocks(num_garb_labels);
+            net_recv(sockfd, garb_labels, sizeof(block) * num_garb_labels, 0);
+        }
     }
     _end = RDTSC;
     fprintf(stderr, "receive labels: %lu\n", _end - _start);
@@ -298,6 +308,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_labels,
         int *corrections;
         block *recvLabels;
         char selName[50], lblName[50];
+        int counter;
 
         (void) sprintf(selName, "%s/%s", dir, "sel"); /* XXX: security hole */
         (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
@@ -308,7 +319,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_labels,
         eval_labels = loadOTLabels(lblName);
 
         // correction based on input
-        int counter = 0;
+        counter = 0;
         for (int i = 0; i < input_mapping->size; ++i) {
             if (input_mapping->inputter[i] == PERSON_EVALUATOR) {
                 int input_idx = input_mapping->input_idx[i];
@@ -322,10 +333,14 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_labels,
         net_send(sockfd, corrections, sizeof(int) * num_eval_labels, 0);
         net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_labels, 0);
 
-        for (int i = 0; i < num_eval_labels; ++i) {
-            int input_idx = input_mapping->input_idx[i];
-            eval_labels[i] = xorBlocks(eval_labels[i],
-                                       recvLabels[(2 * i) + eval_inputs[input_idx]]);
+        counter = 0;
+        for (int i = 0; i < input_mapping->size; ++i) {
+            if (input_mapping->inputter[i] == PERSON_EVALUATOR) {
+                int idx = input_mapping->input_idx[i];
+                eval_labels[counter] = xorBlocks(eval_labels[counter],
+                                                 recvLabels[2 * counter + eval_inputs[idx]]);
+                counter++;
+            }
         }
 
         free(recvLabels);
