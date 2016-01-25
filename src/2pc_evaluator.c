@@ -385,7 +385,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     _start = RDTSC;
     block** computedOutputMap = malloc(sizeof(block*) * num_chained_gcs);
     for (int i = 0; i < num_chained_gcs; i++) {
-        computedOutputMap[i] = allocate_blocks(chained_gcs[i].gc.m);
+        computedOutputMap[i] = (block*) allocate_blocks(chained_gcs[i].gc.m);
     }
     evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
                        labels, circuitMapping, computedOutputMap);

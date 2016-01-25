@@ -3,7 +3,6 @@
 
 #include "2pc_function_spec.h"
 
-
 void
 garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
                     block *outputMap, int num_garb_inputs, int num_eval_inputs,

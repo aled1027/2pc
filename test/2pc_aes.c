@@ -43,7 +43,7 @@ aes_garb_off(char *dir, int nchains)
             chained_gcs[i].inputLabels[2 * j] = gc->wires[j].label0;
             chained_gcs[i].inputLabels[2 * j + 1] = gc->wires[j].label1;
         }
-    }
+   }
 
     garbler_offline(dir, chained_gcs, aesNumEvalInputs(), nchains);
     for (int i = 0; i < nchains; ++i) {

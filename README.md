@@ -80,3 +80,7 @@
     - `2pc_function_spec`
         - has functions related to `FunctionSpec` and json specification
 
+## FAQ
+- json file not working,
+    - make sure that everything is on a single line
+    - verify format: try [json online editor](http://www.jsoneditoronline.org/)

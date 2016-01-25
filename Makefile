@@ -39,11 +39,8 @@ MISC_TESTS = 2pc_misc_tests
 ###############
 all: test
 
-test: $(OBJECTS) $(TESTOBJECTS) $(TESTDIR)/2pc_misc_tests.c
+test: $(OBJECTS) $(TESTOBJECTS) $(TESTDIR)/main.c
 	$(CC) $(SOURCES) $(JUSTGARBLESRC) $(CIRCUITSRC) $(TESTSOURCES) -o $(BINDIR)/test $(LIBS) $(CFLAGS) 
-
-LEVEN: $(OBJECTS) $(TESTDIR)/$(LEVEN).c
-	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(LEVEN).c -o $(BINDIR)/$(LEVEN) $(LIBS) $(CFLAGS) 
 
 MISC_TESTS: $(OBJECTS) $(TESTDIR)/$(MISC_TESTS).c
 	$(CC) $(JUSTGARBLESRC) $(OBJFULL) $(TESTDIR)/$(MISC_TESTS).c -o $(BINDIR)/$(MISC_TESTS) $(LIBS) $(CFLAGS) 
@@ -57,23 +54,17 @@ $(TESTOBJECTS): $(OBJDIR)/%.o : $(TESTDIR)/%.c
 # COMPONENT CBC #
 #################
 
-cbc_garb_off:
-	./$(BINDIR)/$(CBC) garb_offline
-
-cbc_eval_off:
-	./$(BINDIR)/$(CBC) eval_offline
-
 cbc_garb_on:
-	./$(BINDIR)/$(CBC) garb_online
+	gdb --args ./$(BINDIR)/$(CBC) garb_online
 
 cbc_eval_on:
-	./$(BINDIR)/$(CBC) eval_online
+	gdb --args ./$(BINDIR)/$(CBC) eval_online
 
-cbc_gdb_garb:
-	gdb --args $(BINDIR)/$(CBC) garb_online
+cbc_garb_off:
+	gdb --args $(BINDIR)/$(CBC) garb_offline
 
-cbc_gdb_eval:
-	gdb --args $(BINDIR)/$(CBC) eval_online
+cbc_eval_off:
+	gdb --args $(BINDIR)/$(CBC) eval_offline
 
 ############
 # FULL CBC #
@@ -93,23 +84,17 @@ full_cbc_eval_on:
 #################
 # COMPONENT AES #
 #################
-aes_garb_off:
-	./$(BINDIR)/$(AES) garb_offline
-
-aes_eval_off:
-	./$(BINDIR)/$(AES) eval_offline
-
 aes_garb_on:
-	./$(BINDIR)/$(AES) garb_online
-
-aes_eval_on:
-	./$(BINDIR)/$(AES) eval_online
-
-aes_gdb_garb:
 	gdb --args $(BINDIR)/$(AES) garb_online
 
-aes_gdb_eval:
+aes_garb_off:
+	gdb --args $(BINDIR)/$(AES) garb_offline
+
+aes_eval_on:
 	gdb --args $(BINDIR)/$(AES) eval_online
+
+aes_eval_off:
+	gdb --args $(BINDIR)/$(AES) eval_offline
 
 aes_full_garb:
 	gdb --args $(BINDIR)/$(AES) full_garb
@@ -130,10 +115,10 @@ leven_full_eval:
 # MISC TESTS #
 ##############
 valg:
-	valgrind --leak-check=full ./$(BINDIR)/$(MISC_TESTS)
+	valgrind --leak-check=full ./$(BINDIR)/$(AES) garb_online
 
 all_tests:
-	./$(BINDIR)/$(MISC_TESTS)
+	gdb ./$(BINDIR)/$(MISC_TESTS)
 
 ##########
 # EXTRAS #

@@ -193,8 +193,8 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     send_instructions_and_input_mapping(function, fd);
 
     // 3. send circuitMapping
-    net_send(fd, &function->num_components, sizeof(int), 0);
-    net_send(fd, circuitMapping, sizeof(int) * function->num_components, 0);
+    net_send(fd, &function->components.totComponents, sizeof(int), 0);
+    net_send(fd, circuitMapping, sizeof(int) * function->components.totComponents, 0);
 
     // 4. send labels
     InputMapping imap = function->input_mapping;
@@ -278,7 +278,7 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     }
 
     // 5a. send "output" 
-    //  output is from the json, and tells which components/wires are used for outputs
+    // output is from the json, and tells which components/wires are used for outputs
     // note that size is not size of the output, but length of the arrays in output
     net_send(fd, &function->output.size, sizeof(int), 0); 
     net_send(fd, function->output.gc_id, sizeof(int)*function->output.size, 0);
@@ -330,13 +330,13 @@ garbler_make_real_instructions(FunctionSpec *function,
     int num_component_types;
         
     is_circuit_used = calloc(num_chained_gcs, sizeof(bool));
-    num_component_types = function->num_component_types;
+    num_component_types = function->components.numComponentTypes;
 
     // loop over type of circuit
     for (int i = 0; i < num_component_types; i++) {
-        CircuitType needed_type = function->components[i].circuit_type;
-        int num_needed = function->components[i].num;
-        int* circuit_ids = function->components[i].circuit_ids; // = {0,1,2};
+        CircuitType needed_type = function->components.circuitType[i];
+        int num_needed = function->components.nCircuits[i];
+        int *circuit_ids = function->components.circuitIds[i];
         
         // j indexes circuit_ids, k indexes is_circuit_used and saved_gcs
         int j = 0;
@@ -471,7 +471,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     _start = RDTSC;
     {
         int res;
-        circuitMapping = malloc(sizeof(int) * function.num_components);
+        circuitMapping = malloc(sizeof(int) * function.components.totComponents);
         res = garbler_make_real_instructions(&function, chained_gcs,
                                              num_chained_gcs, circuitMapping);
         if (res == FAILURE) {
