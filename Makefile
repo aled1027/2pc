@@ -93,19 +93,6 @@ leven_garb_on:
 leven_eval_on:
 	gdb --args $(BINDIR)/test --eval-on --type LEVEN
 
-leven_garb_on:
-	gdb --args $(BINDIR)/test --garb-on --type LEVEN
-
-clean_gcs:
-	rm -r files/garbler_gcs
-	rm -r files/evaluator_gcs
-	mkdir files/garbler_gcs
-	mkdir files/evaluator_gcs
-
-all_test:
-	./$(BINDIR)/$(MISC_TESTS)
-
-
 ##########
 # EXTRAS #
 ##########

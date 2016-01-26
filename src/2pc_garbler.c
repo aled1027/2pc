@@ -238,9 +238,6 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         free(usedGarbInputIdx);
         free(usedEvalInputIdx);
 
-/*         extract_labels_cgc(garbLabels, evalLabels, chained_gcs, circuitMapping, */
-/*                            &imap, inputs); */
-
         net_send(fd, &num_garb_inputs, sizeof(int), 0);
         if (num_garb_inputs > 0) {
             net_send(fd, garbLabels, sizeof(block) * num_garb_inputs, 0);
@@ -278,14 +275,14 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
             case 0:
                 evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
                                               randLabels[2 * i]);
-                evalLabels[(2 * i) + 1] = xorBlocks(evalLabels[(2 * i) + 1],
-                                                    randLabels[(2 * i) + 1]);
+                evalLabels[2 * i + 1] = xorBlocks(evalLabels[2 * i + 1],
+                                                  randLabels[2 * i + 1]);
                 break;
             case 1:
                 evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
-                                              randLabels[(2 * i) + 1]);
-                evalLabels[(2 * i) + 1] = xorBlocks(evalLabels[(2 * i) + 1],
-                                                    randLabels[2 * i]);
+                                              randLabels[2 * i + 1]);
+                evalLabels[2 * i + 1] = xorBlocks(evalLabels[2 * i + 1],
+                                                  randLabels[2 * i]);
                 break;
             default:
                 assert(false);
@@ -322,7 +319,6 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
             int end_wire_idx = function->output.end_wire_idx[j];
             // add 1 because values are inclusive
             int dist = end_wire_idx - start_wire_idx + 1; 
-            printf("copying gc_id %d for outputmap\n", gc_id);
             memcpy(&outputmap[p_outputmap],
                    &chained_gcs[gc_id].outputMap[start_wire_idx],
                    sizeof(block)*2*dist);
@@ -332,14 +328,11 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         net_send(fd, &function->m, sizeof(int), 0); 
         net_send(fd, outputmap, sizeof(block)*2*function->m, 0);
 
-        /* print_blocks("chained_gcs[1].inputLabels", &chained_gcs[1].inputLabels[16], 4); */
-
         free(outputmap);
     }
     _end = RDTSC;
     fprintf(stderr, "send output/outputmap: %lu\n", _end - _start);
 
-    // 6. clean up
     if (num_garb_inputs > 0)
         free(garbLabels);
     if (num_eval_inputs > 0)
@@ -431,7 +424,7 @@ garbler_make_real_instructions(FunctionSpec *function,
 
 void
 garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
-                int num_eval_labels, int num_chained_gcs)
+                int num_eval_inputs, int num_chained_gcs)
 {
     int serverfd, fd;
     struct state state;
@@ -457,20 +450,20 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
         }
 
         /* pre-processing OT using random labels */
-        if (num_eval_labels > 0) {
+        if (num_eval_inputs > 0) {
             block *evalLabels;
             char lblName[50];
 
             (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
 
-            evalLabels = allocate_blocks(2 * num_eval_labels);
-            for (int i = 0; i < 2 * num_eval_labels; ++i) {
+            evalLabels = allocate_blocks(2 * num_eval_inputs);
+            for (int i = 0; i < 2 * num_eval_inputs; ++i) {
                 evalLabels[i] = randomBlock();
             }
             
-            ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_labels, 2,
+            ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs, 2,
                        new_msg_reader, new_item_reader);
-            saveOTLabels(lblName, evalLabels, num_eval_labels, true);
+            saveOTLabels(lblName, evalLabels, num_eval_inputs, true);
 
             free(evalLabels);
         }

@@ -175,7 +175,7 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
     for (int i = 0; i < nchains; i++) {
         chained_gc_comm_recv(sockfd, &cgc);
         saveChainedGC(&cgc, dir, false);
-        removeGarbledCircuit(&cgc.gc);
+        freeChainedGarbledCircuit(&cgc, false);
     }
 
     /* pre-processing OT using random selection bits */
@@ -214,28 +214,6 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
     state_cleanup(&state);
 }
 
-static void
-receive_instructions_and_input_mapping(FunctionSpec *f, int fd)
-{
-    char *buffer1, *buffer2;
-    size_t buf_size1, buf_size2;
-
-    net_recv(fd, &buf_size1, sizeof(size_t), 0);
-    net_recv(fd, &buf_size2, sizeof(size_t), 0);
-
-    buffer1 = malloc(buf_size1);
-    buffer2 = malloc(buf_size2);
-
-    net_recv(fd, buffer1, buf_size1, 0);
-    net_recv(fd, buffer2, buf_size2, 0);
-
-    readBufferIntoInstructions(&f->instructions, buffer1);
-    readBufferIntoInputMapping(&f->input_mapping, buffer2);
-
-    free(buffer1);
-    free(buffer2);
-}
-
 void
 evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
                  int num_chained_gcs, unsigned long *tot_time)
@@ -256,6 +234,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
         exit(EXIT_FAILURE);
     }
 
+    /* start timing after socket connection */
     start = RDTSC;
 
     _start = RDTSC;
@@ -277,10 +256,9 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
         size_t buf_size;
 
         net_recv(sockfd, &buf_size, sizeof(size_t), 0);
-
+        /* TODO: don't allocate buffer but read into instructions directly */
         buffer = malloc(buf_size);
         net_recv(sockfd, buffer, buf_size, 0);
-
         readBufferIntoInstructions(&function.instructions, buffer);
         free(buffer);
     }
@@ -335,7 +313,8 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
         net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
 
         for (int i = 0; i < num_eval_inputs; ++i) {
-            eval_labels[i] = xorBlocks(eval_labels[i], recvLabels[2 * i + eval_inputs[i]]);
+            eval_labels[i] = xorBlocks(eval_labels[i],
+                                       recvLabels[2 * i + eval_inputs[i]]);
         }
 
         free(recvLabels);
@@ -393,7 +372,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     block** computedOutputMap = malloc(sizeof(block*) * (num_chained_gcs + 1));
     computedOutputMap[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
     memcpy(computedOutputMap[0], labels[0], sizeof(block) * (num_garb_inputs + num_eval_inputs));
-    for (int i = 0; i < num_chained_gcs + 1; i++) {
+    for (int i = 1; i < num_chained_gcs + 1; i++) {
         computedOutputMap[i] = allocate_blocks(chained_gcs[i-1].gc.m);
     }
     evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
