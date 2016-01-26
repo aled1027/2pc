@@ -159,27 +159,18 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
 }
 
 static void
-send_instructions_and_input_mapping(const FunctionSpec *function, int fd)
+sendInstructions(const Instructions* instructions, int fd)
 {
-    char *buffer1, *buffer2;
-    size_t buf_size1, buf_size2;
+    char *buffer;
+    size_t buf_size;
 
+    buffer = malloc(instructionBufferSize(instructions));
+    buf_size = writeInstructionsToBuffer(instructions, buffer);
 
-    buf_size1 = instructionBufferSize(&function->instructions);
-    buf_size2 = inputMappingBufferSize(&function->input_mapping);
-    buffer1 = malloc(buf_size1);
-    buffer2 = malloc(buf_size2);
+    net_send(fd, &buf_size, sizeof(buf_size), 0);
+    net_send(fd, buffer, buf_size, 0);
 
-    (void) writeInstructionsToBuffer(&function->instructions, buffer1);
-    (void) writeInputMappingToBuffer(&function->input_mapping, buffer2);
-
-    net_send(fd, &buf_size1, sizeof(buf_size1), 0);
-    net_send(fd, &buf_size2, sizeof(buf_size2), 0);
-    net_send(fd, buffer1, buf_size1, 0);
-    net_send(fd, buffer2, buf_size2, 0);
-
-    free(buffer1);
-    free(buffer2);
+    free(buffer);
 }
 
 static void
@@ -189,22 +180,24 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
     InputMapping imap = function->input_mapping;
-    int num_eval_labels = 0, num_garb_labels = 0;
+    int num_eval_inputs = function->num_eval_inputs;
+    int num_garb_inputs = function->num_garb_inputs;
     block *garbLabels, *evalLabels;
     unsigned long _start, _end;
 
     _start = RDTSC;
     {
-        send_instructions_and_input_mapping(function, fd);
+        sendInstructions(&function->instructions, fd);
     }
     _end = RDTSC;
-    fprintf(stderr, "send inst/map: %lu\n", _end - _start);
+    fprintf(stderr, "send inst: %lu\n", _end - _start);
 
     // 3. send circuitMapping
     _start = RDTSC;
     {
-        net_send(fd, &function->components.totComponents, sizeof(int), 0);
-        net_send(fd, circuitMapping, sizeof(int) * function->components.totComponents, 0);
+        int circuitMappingSize = function->components.totComponents + 1;
+        net_send(fd, &circuitMappingSize, sizeof(int), 0);
+        net_send(fd, circuitMapping, sizeof(int) * circuitMappingSize, 0);
     }
     _end = RDTSC;
     fprintf(stderr, "send circmap: %lu\n", _end - _start);
@@ -212,33 +205,45 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     // 4. send labels
     _start = RDTSC;
     {
-        for (int i = 0; i < imap.size; ++i) {
-            switch (imap.inputter[i]) {
+        evalLabels = allocate_blocks(2 * num_eval_inputs);
+        garbLabels = allocate_blocks(num_garb_inputs);
+        bool *usedGarbInputIdx = calloc(sizeof(bool), num_garb_inputs);
+        bool *usedEvalInputIdx = calloc(sizeof(bool), num_eval_inputs);
+
+        for (int i = 0; i < imap.size; i++) {
+            int input_idx = imap.input_idx[i];
+            switch(imap.inputter[i]) {
             case PERSON_GARBLER:
-                num_garb_labels++;
+                if (usedGarbInputIdx[input_idx] == false) {
+                    assert(inputs[input_idx] == 0 || inputs[input_idx] == 1);
+                    memcpy(&garbLabels[input_idx], 
+                           &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i] + inputs[input_idx]], 
+                           sizeof(block));
+                    usedGarbInputIdx[input_idx] = true;
+                }
                 break;
             case PERSON_EVALUATOR:
-                num_eval_labels++;
+                if (usedEvalInputIdx[input_idx] == false) {
+                    memcpy(&evalLabels[2*input_idx], 
+                           &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]], 
+                           sizeof(block)*2);
+                    usedEvalInputIdx[input_idx] = true;
+                }
                 break;
             default:
-                assert(false);
-                abort();
-            }
+                printf("Person not detected while processing input_mapping.\n");
+                break;
+            } 
         }
+        free(usedGarbInputIdx);
+        free(usedEvalInputIdx);
 
-        if (num_garb_labels > 0) {
-            garbLabels = allocate_blocks(num_garb_labels);
-        }
-        if (num_eval_labels > 0) {
-            evalLabels = allocate_blocks(2 * num_eval_labels);
-        }
+/*         extract_labels_cgc(garbLabels, evalLabels, chained_gcs, circuitMapping, */
+/*                            &imap, inputs); */
 
-        extract_labels_cgc(garbLabels, evalLabels, chained_gcs, circuitMapping,
-                           &imap, inputs);
-
-        net_send(fd, &num_garb_labels, sizeof(int), 0);
-        if (num_garb_labels > 0) {
-            net_send(fd, garbLabels, sizeof(block) * num_garb_labels, 0);
+        net_send(fd, &num_garb_inputs, sizeof(int), 0);
+        if (num_garb_inputs > 0) {
+            net_send(fd, garbLabels, sizeof(block) * num_garb_inputs, 0);
         }
     }
     _end = RDTSC;
@@ -247,7 +252,7 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     /* Send evaluator's labels via OT correct */
     /* OT correction */
     _start = RDTSC;
-    if (num_eval_labels > 0) {
+    if (num_eval_inputs > 0) {
         int *corrections;
         block *randLabels;
         char lblName[50];
@@ -260,42 +265,35 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
             exit(EXIT_FAILURE);
         }
 
-        corrections = malloc(sizeof(int) * num_eval_labels);
+        corrections = malloc(sizeof(int) * num_eval_inputs);
         if (corrections == NULL) {
             perror("malloc");
             exit(EXIT_FAILURE);
         }
 
-        net_recv(fd, corrections, sizeof(int) * num_eval_labels, 0);
+        net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
 
-        int k = 0;
-        for (int j = 0; j < imap.size; ++j) {
-            if (imap.inputter[j] == PERSON_EVALUATOR) {
-                int i = k;
-                switch (corrections[i]) {
-                case 0:
-                    evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
-                                                  randLabels[2 * i]);
-                    evalLabels[(2 * i) + 1] = xorBlocks(evalLabels[(2 * i) + 1],
-                                                        randLabels[(2 * i) + 1]);
-                    break;
-                case 1:
-                    evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
-                                                  randLabels[(2 * i) + 1]);
-                    evalLabels[(2 * i) + 1] = xorBlocks(evalLabels[(2 * i) + 1],
-                                                        randLabels[2 * i]);
-                    break;
-                default:
-                    assert(false);
-                    abort();
-                }
-                k++;
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            switch (corrections[i]) {
+            case 0:
+                evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
+                                              randLabels[2 * i]);
+                evalLabels[(2 * i) + 1] = xorBlocks(evalLabels[(2 * i) + 1],
+                                                    randLabels[(2 * i) + 1]);
+                break;
+            case 1:
+                evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
+                                              randLabels[(2 * i) + 1]);
+                evalLabels[(2 * i) + 1] = xorBlocks(evalLabels[(2 * i) + 1],
+                                                    randLabels[2 * i]);
+                break;
+            default:
+                assert(false);
+                abort();
             }
         }
-        assert(k == num_eval_labels);
-        printf("num_eval_labels = %d\n", num_eval_labels);
 
-        net_send(fd, evalLabels, sizeof(block) * 2 * num_eval_labels, 0);
+        net_send(fd, evalLabels, sizeof(block) * 2 * num_eval_inputs, 0);
         free(corrections);
         free(randLabels);
     }
@@ -342,9 +340,9 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     fprintf(stderr, "send output/outputmap: %lu\n", _end - _start);
 
     // 6. clean up
-    if (num_garb_labels > 0)
+    if (num_garb_inputs > 0)
         free(garbLabels);
-    if (num_eval_labels > 0)
+    if (num_eval_inputs > 0)
         free(evalLabels);
 }
 
@@ -362,6 +360,7 @@ garbler_make_real_instructions(FunctionSpec *function,
         
     is_circuit_used = calloc(num_chained_gcs, sizeof(bool));
     num_component_types = function->components.numComponentTypes;
+    circuitMapping[0] = 0;
 
     // loop over type of circuit
     for (int i = 0; i < num_component_types; i++) {
@@ -390,16 +389,43 @@ garbler_make_real_instructions(FunctionSpec *function,
     
     // set the chaining offsets.
     int num_instructions = function->instructions.size;
+
+    // size of n
+    /* Did not know what to name these arrays. They are used for filling
+     * in the offsets for InputComponent */
+    int *imapCirc = allocate_ints(function->n);
+    int *imapWire = allocate_ints(function->n);
+    for (int i = 0; i < function->n; ++i)
+        imapCirc[i] = -1;
+
     Instruction *cur;
-    for (int i = 0; i < num_instructions; i++) {
+    for (int i = 0; i < num_instructions; ++i) {
         cur = &(function->instructions.instr[i]);
         if (cur->type == CHAIN) {
-            cur->chOffset = xorBlocks(
-                chained_gcs[circuitMapping[cur->chFromCircId]].outputMap[2*cur->chFromWireId],
-                chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
+            if (cur->chFromCircId == 0) {
+                int idx = cur->chFromWireId;
+
+                if (imapCirc[idx] == -1) {
+                    /* this input has not been used */
+                    imapCirc[idx] = cur->chToCircId;
+                    imapWire[idx] = cur->chToWireId;
+                    cur->chOffset = zero_block();
+                } else {
+                    /* this idx has been used */
+                    cur->chOffset = xorBlocks(
+                        chained_gcs[circuitMapping[imapCirc[idx]]].inputLabels[2*imapWire[idx]],
+                        chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
+                }
+            } else {
+                cur->chOffset = xorBlocks(
+                    chained_gcs[circuitMapping[cur->chFromCircId]].outputMap[2*cur->chFromWireId],
+                    chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
+            }
         }
     }
     free(is_circuit_used);
+    free(imapCirc);
+    free(imapWire);
     return SUCCESS;
 }
 
@@ -510,7 +536,8 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
 
     _start = RDTSC;
     {
-        circuitMapping = malloc(sizeof(int) * function.components.totComponents);
+        // + 1 because 0th component is inputComponent
+        circuitMapping = malloc(sizeof(int) * (function.components.totComponents + 1));
         if (garbler_make_real_instructions(&function, chained_gcs,
                                            num_chained_gcs,
                                            circuitMapping) == FAILURE) {
@@ -530,7 +557,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     
     free(circuitMapping);
     for (int i = 0; i < num_chained_gcs; ++i) {
-        freeChainedGarbledCircuit(&chained_gcs[i]);
+        freeChainedGarbledCircuit(&chained_gcs[i], true);
     }
     free(chained_gcs);
     freeFunctionSpec(&function);

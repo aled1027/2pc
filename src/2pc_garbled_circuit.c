@@ -10,14 +10,15 @@
 #include "circuits.h"
 #include "gates.h"
 
-void
-freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc) 
+int 
+freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb) 
 {
-    removeGarbledCircuit(&chained_gc->gc);
-    if (chained_gc->inputLabels)
+    removeGarbledCircuit(&chained_gc->gc); // frees memory in gc
+    if (isGarb) {
         free(chained_gc->inputLabels);
-    if (chained_gc->outputMap)
         free(chained_gc->outputMap);
+    }
+    return 0;
 }
 
 int

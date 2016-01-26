@@ -113,14 +113,13 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials) {
 
     for (int i = 0; i < ntrials; i++) {
         sleep(1); // uncomment this if getting hung up
-        /* printf("Inputs: "); */
-        /* TODO ninputs and nlabels being conflated */
+        printf("inputs: ");
         for (int j = 0; j < ninputs; j++) {
             inputs[j] = rand() % 2;
-            /* printf("%d", inputs[j]); */
+            printf("%d", inputs[j]);
         }
-        /* printf("\n"); */
-        evaluator_online(EVALUATOR_DIR, inputs, nlabels, nchains, &tot_time[i]);
+        printf("\n");
+        evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i]);
         printf("%lu\n", tot_time[i]);
         sum += tot_time[i];
     }

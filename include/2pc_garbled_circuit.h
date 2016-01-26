@@ -14,19 +14,8 @@ typedef struct {
     block *outputMap;
 } ChainedGarbledCircuit; 
 
-/* typedef struct {  */
-/*     /\* index is i \in {0, ... , num_gcs-1}  */
-/*      * so gc with index i has properties gc_types[i], gc_valids[i], gc_paths[i].  */
-/*      *\/ */
-
-/*     int num_gcs; */
-/*     CircuitType* gc_types; */
-/*     bool* gc_valids; */
-/*     char** gc_paths;  */
-/* } GCsMetadata; */
-
-void
-freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc);
+int
+freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb);
 
 int
 saveChainedGC(ChainedGarbledCircuit* chained_gc, const char *dir, bool isGarbler);

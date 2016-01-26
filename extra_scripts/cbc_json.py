@@ -35,7 +35,7 @@ def addIVXOR(ret_dict):
     r["inputter"] = "garbler"
     r["start_input_idx"] = 0
     r["end_input_idx"] = 127
-    r["gc_id"] = 0
+    r["gc_id"] = 1
     r["start_wire_idx"] = 0
     r["end_wire_idx"] = 127
     ret_dict['input_mapping'].append(r)
@@ -45,7 +45,7 @@ def addIVXOR(ret_dict):
     r["inputter"] = "evaluator"
     r["start_input_idx"] = 0
     r["end_input_idx"] = 127
-    r["gc_id"] = 0
+    r["gc_id"] = 1
     r["start_wire_idx"] = 128
     r["end_wire_idx"] = 255
     ret_dict['input_mapping'].append(r)
@@ -53,12 +53,12 @@ def addIVXOR(ret_dict):
 
     r = OrderedDict()
     r["type"] = "EVAL"
-    r["gc_id"] = 0
+    r["gc_id"] = 1
     ret_dict['instructions'].append(r)
 
     for component in ret_dict['components']:
         if component['type'] == 'XOR':
-            component['circuit_ids'].append(0)
+            component['circuit_ids'].append(1)
             component['num'] += 1
     ret_dict['gcs_used'] += 1
 
@@ -226,7 +226,7 @@ def generateCBCJSON(num_message_blocks, num_rounds):
     ret_dict['instructions'] = []
     ret_dict['components'] = []
 
-    ret_dict['gcs_used'] = 0
+    ret_dict['gcs_used'] = 1
     ret_dict['garbler_input_idx'] = 0
     ret_dict['evaluator_input_idx'] = 0
 

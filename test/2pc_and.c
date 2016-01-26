@@ -27,15 +27,15 @@
 
 /*         buildANDCircuit(gc, ninputs, nlayers / nchains); */
 
-/*         /\* gcs[i].inputLabels = allocate_blocks(2 * gc->n); *\/ */
+/*         gcs[i].inputLabels = allocate_blocks(2 * gc->n); */
 /*         gcs[i].outputMap = allocate_blocks(2 * gc->m); */
-/*         garbleCircuit(gc, gcs[i].outputMap, GARBLE_TYPE_STANDARD); */
+/*         garbleCircuit(gc, gcs[i].inputLabels, gcs[i].outputMap, GARBLE_TYPE_STANDARD); */
 /*     } */
 /*     garbler_offline(dir, gcs, ninputs, nchains); */
 /*     for (int i = 0; i < nchains; ++i) { */
 /*         removeGarbledCircuit(&gcs[i].gc); */
 /*     } */
-/*     freeChainedGarbledCircuit(gcs); */
+/*     freeChainedGarbledCircuit(gcs, true); */
 /* } */
 
 /* void */

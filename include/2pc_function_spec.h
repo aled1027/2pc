@@ -20,7 +20,8 @@ typedef struct {
     int *nCircuits;
     int **circuitIds; 
     // so circuit_type[i] has circuitIds[i], which is an integer array of size nCircuits[i]
-} FunctionComponent;
+} 
+FunctionComponent;
 
 typedef struct {
     int size;
@@ -102,16 +103,13 @@ void print_output(Output *output);
 
 int writeInstructionsToBuffer(const Instructions* instructions, char* buffer);
 int readBufferIntoInstructions(Instructions* instructions, const char* buffer);
-
 int writeInputMappingToBuffer(const InputMapping* input_mapping, char* buffer);
 int readBufferIntoInputMapping(InputMapping* input_mapping, const char* buffer);
 
 void newInputMapping(InputMapping *map, int size);
 void deleteInputMapping(InputMapping *map);
 
-size_t
-instructionBufferSize(const Instructions *instructions);
-size_t
-inputMappingBufferSize(const InputMapping *map);
+size_t instructionBufferSize(const Instructions *instructions);
+size_t inputMappingBufferSize(const InputMapping *map);
 
 #endif

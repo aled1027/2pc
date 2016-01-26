@@ -25,7 +25,7 @@ INCLUDES := $(wildcard $(SRCDIR)/*.h)
 IDIR =include
 
 CC=gcc
-CFLAGS= -g -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -Wno-typedef-redefinition -Wno-unused-function -maes -msse4 -march=native
+CFLAGS= -g -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -Wno-typedef-redefinition -Wno-unused-function -maes -msse4 -march=native -std=gnu11
 LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson
 
 AES = 2pc_aes
@@ -92,6 +92,19 @@ leven_garb_on:
 
 leven_eval_on:
 	gdb --args $(BINDIR)/test --eval-on --type LEVEN
+
+leven_garb_on:
+	gdb --args $(BINDIR)/test --garb-on --type LEVEN
+
+clean_gcs:
+	rm -r files/garbler_gcs
+	rm -r files/evaluator_gcs
+	mkdir files/garbler_gcs
+	mkdir files/evaluator_gcs
+
+all_test:
+	./$(BINDIR)/$(MISC_TESTS)
+
 
 ##########
 # EXTRAS #

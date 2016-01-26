@@ -63,10 +63,6 @@ void leven_garb_off()
         addLevenshteinCoreCircuit(gc, &gcContext, l, inputWires, outputWires);
 	    finishBuilding(gc, &gcContext, chainedGCs[i].outputMap, outputWires);
         garbleCircuit(gc, chainedGCs[i].outputMap, GARBLE_TYPE_STANDARD);
-        /* for (int j = 0; j < gc->n; ++j) { */
-        /*     chainedGCs[i].inputLabels[2 * j] = gc->wires[j].label0; */
-        /*     chainedGCs[i].inputLabels[2 * j + 1] = gc->wires[j].label1; */
-        /* } */
 
         /* Declare chaining vars */
         chainedGCs[i].id = i;
