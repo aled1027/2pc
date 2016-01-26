@@ -75,17 +75,17 @@ def addComponents(ret_dict):
     r = OrderedDict()
     r['type'] = 'AND21'
     r['num'] = ret_dict['circs_used']
-    r['circuit_ids'] = list(range(r['num']))
+    r['circuit_ids'] = list(range(1,r['num']+1))
     ret_dict['components'].append(r)
 
-def generateANDJSON(n, nlayers)
+def generateANDJSON(n, nlayers):
     m = n
     ret_dict = OrderedDict()
     ret_dict['input_mapping'] = []
     ret_dict['instructions'] = []
     ret_dict['output'] = []
     ret_dict['components'] = []
-    ret_dict['circs_used'] = 0
+    ret_dict['circs_used'] = 1
     ret_dict['garb_input_idx'] = 0
 
     ret_dict['metadata'] = OrderedDict()
@@ -95,16 +95,17 @@ def generateANDJSON(n, nlayers)
     assert(n >= 2) #otherwise, what is going to be ANDed?
     prev_circ = 0
 
-    circs = list(range(n))
-    for i in range(0,n,2):
+    circs = list(range(0,n+1))
+    for i in range(1,n+1,2):
         circs[i] = circs[i+1] = addANDWires(ret_dict, i, i+1)
 
     for i in range(1,nlayers):
-        for j in range(0, n, 2):
+        for j in range(1, n+1, 2):
             circs[j] = circs[j+1] = addANDChained(ret_dict, circs[j], 0, circs[j+1], 0)
 
-    addOutput(ret_dict, circs)
     addComponents(ret_dict)
+    output_circs = ret_dict['components'][0]['circuit_ids']
+    addOutput(ret_dict, circs[1:])
 
     ret_dict['metadata']['num_garb_inputs'] = n
     ret_dict['metadata']['num_eval_inputs'] = 0
