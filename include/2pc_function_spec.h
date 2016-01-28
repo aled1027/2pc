@@ -101,15 +101,12 @@ void print_input_mapping(InputMapping* inputMapping);
 void print_instructions(Instructions* instr);
 void print_output(Output *output);
 
-int writeInstructionsToBuffer(const Instructions* instructions, char* buffer);
-int readBufferIntoInstructions(Instructions* instructions, const char* buffer);
 int writeInputMappingToBuffer(const InputMapping* input_mapping, char* buffer);
 int readBufferIntoInputMapping(InputMapping* input_mapping, const char* buffer);
 
 void newInputMapping(InputMapping *map, int size);
 void deleteInputMapping(InputMapping *map);
 
-size_t instructionBufferSize(const Instructions *instructions);
 size_t inputMappingBufferSize(const InputMapping *map);
 
 #endif

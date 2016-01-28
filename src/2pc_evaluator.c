@@ -41,7 +41,6 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      * This is because instruction's circuits are id'ed 0,..,n-1
      * whereas saved gc id'ed arbitrarily.
      */
-    assert(computedOutputMap); // memory should already be allocated
     int savedCircId;
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
@@ -214,6 +213,32 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
     state_cleanup(&state);
 }
 
+static void
+recvInstructions(Instructions *insts, int fd)
+{
+    net_recv(fd, &insts->size, sizeof insts->size, 0);
+    insts->instr = malloc(insts->size * sizeof(Instruction));
+    for (int i = 0; i < insts->size; ++i) {
+        Instruction *inst = &insts->instr[i];
+        net_recv(fd, &inst->type, sizeof inst->type, 0);
+        switch (inst->type) {
+        case CHAIN:
+            net_recv(fd, &inst->chFromCircId, sizeof inst->chFromCircId, 0);
+            net_recv(fd, &inst->chFromWireId, sizeof inst->chFromWireId, 0);
+            net_recv(fd, &inst->chToCircId, sizeof inst->chToCircId, 0);
+            net_recv(fd, &inst->chToWireId, sizeof inst->chToWireId, 0);
+            net_recv(fd, &inst->chOffset, sizeof inst->chOffset, 0);
+            break;
+        case EVAL:
+            net_recv(fd, &inst->evCircId, sizeof inst->evCircId, 0);
+            break;
+        default:
+            assert(0);
+            abort();
+        }
+    }
+}
+
 void
 evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
                  int num_chained_gcs, unsigned long *tot_time)
@@ -249,18 +274,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 
     _start = RDTSC;
     {
-        // 5. receive instructions
-        // popualtes instructions and input_mapping field of function
-        // allocates memory for them as needed.
-        char *buffer;
-        size_t buf_size;
-
-        net_recv(sockfd, &buf_size, sizeof(size_t), 0);
-        /* TODO: don't allocate buffer but read into instructions directly */
-        buffer = malloc(buf_size);
-        net_recv(sockfd, buffer, buf_size, 0);
-        readBufferIntoInstructions(&function.instructions, buffer);
-        free(buffer);
+        recvInstructions(&function.instructions, sockfd);
     }
     _end = RDTSC;
     fprintf(stderr, "receive inst: %lu\n", _end - _start);
@@ -268,10 +282,10 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     // circuitMapping maps instruction-gc-ids --> saved-gc-ids
     _start = RDTSC;
     {
-        int circuitMappingSize;
-        net_recv(sockfd, &circuitMappingSize, sizeof(int), 0);
-        circuitMapping = malloc(sizeof(int) * circuitMappingSize);
-        net_recv(sockfd, circuitMapping, sizeof(int) * circuitMappingSize, 0);
+        int size;
+        net_recv(sockfd, &size, sizeof(int), 0);
+        circuitMapping = malloc(sizeof(int) * size);
+        net_recv(sockfd, circuitMapping, sizeof(int) * size, 0);
     }
     _end = RDTSC;
     fprintf(stderr, "receive circmap: %lu\n", _end - _start);
@@ -281,9 +295,17 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     _start = RDTSC;
     {
         net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
+
+        labels = malloc(sizeof(block *) * (num_chained_gcs + 1));
+        /* the first num_garb_inputs of labels[0] are the garb_labels, the rest
+         * are the eval_labels */
+        labels[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
+        for (int i = 1; i < num_chained_gcs + 1; i++) {
+            labels[i] = allocate_blocks(chained_gcs[i-1].gc.n);
+        }
+
         if (num_garb_inputs > 0) {
-            garb_labels = allocate_blocks(num_garb_inputs);
-            net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
+            net_recv(sockfd, &labels[0][0], sizeof(block) * num_garb_inputs, 0);
         }
     }
     _end = RDTSC;
@@ -317,23 +339,13 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
                                        recvLabels[2 * i + eval_inputs[i]]);
         }
 
+        memcpy(&labels[0][num_garb_inputs], eval_labels, sizeof(block) * num_eval_inputs);
+
         free(recvLabels);
         free(corrections);
     }
     _end = RDTSC;
     fprintf(stderr, "ot correction: %lu\n", _end - _start);
-
-    // 8. put garb_labels and eval_labels into labels[0]
-    _start = RDTSC;
-    labels = (block**) malloc(sizeof(block*) * (num_chained_gcs + 1));
-    labels[0] = (block*) allocate_blocks(num_garb_inputs + num_eval_inputs);
-    for (int i = 1; i < num_chained_gcs + 1; i++) {
-        labels[i] = (block*) allocate_blocks(chained_gcs[i-1].gc.n);
-    }
-    memcpy(labels[0], garb_labels, sizeof(block) * num_garb_inputs);
-    memcpy(&labels[0][num_garb_inputs], eval_labels, sizeof(block) * num_eval_inputs);
-    _end = RDTSC;
-    fprintf(stderr, "process labels: %lu\n", _end - _start);
 
     // 9a receive "output" 
     //  output is from the json, and tells which components/wires are used for outputs

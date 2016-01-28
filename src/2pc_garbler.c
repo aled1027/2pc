@@ -159,18 +159,28 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
 }
 
 static void
-sendInstructions(const Instructions* instructions, int fd)
+sendInstructions(const Instructions *insts, int fd)
 {
-    char *buffer;
-    size_t buf_size;
-
-    buffer = malloc(instructionBufferSize(instructions));
-    buf_size = writeInstructionsToBuffer(instructions, buffer);
-
-    net_send(fd, &buf_size, sizeof(buf_size), 0);
-    net_send(fd, buffer, buf_size, 0);
-
-    free(buffer);
+    net_send(fd, &insts->size, sizeof insts->size, 0);
+    for (int i = 0; i < insts->size; ++i) {
+        Instruction inst = insts->instr[i];
+        net_send(fd, &inst.type, sizeof inst.type, 0);
+        switch (inst.type) {
+        case CHAIN:
+            net_send(fd, &inst.chFromCircId, sizeof inst.chFromCircId, 0);
+            net_send(fd, &inst.chFromWireId, sizeof inst.chFromWireId, 0);
+            net_send(fd, &inst.chToCircId, sizeof inst.chToCircId, 0);
+            net_send(fd, &inst.chToWireId, sizeof inst.chToWireId, 0);
+            net_send(fd, &inst.chOffset, sizeof inst.chOffset, 0);
+            break;
+        case EVAL:
+            net_send(fd, &inst.evCircId, sizeof inst.evCircId, 0);
+            break;
+        default:
+            assert(0);
+            abort();
+        }
+    }
 }
 
 static void
@@ -195,38 +205,36 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     // 3. send circuitMapping
     _start = RDTSC;
     {
-        int circuitMappingSize = function->components.totComponents + 1;
-        net_send(fd, &circuitMappingSize, sizeof(int), 0);
-        net_send(fd, circuitMapping, sizeof(int) * circuitMappingSize, 0);
+        int size = function->components.totComponents + 1;
+        net_send(fd, &size, sizeof(int), 0);
+        net_send(fd, circuitMapping, sizeof(int) * size, 0);
     }
     _end = RDTSC;
     fprintf(stderr, "send circmap: %lu\n", _end - _start);
 
-    // 4. send labels
     _start = RDTSC;
     {
+        bool *usedGarbInputIdx, *usedEvalInputIdx;
+
         evalLabels = allocate_blocks(2 * num_eval_inputs);
         garbLabels = allocate_blocks(num_garb_inputs);
-        bool *usedGarbInputIdx = calloc(sizeof(bool), num_garb_inputs);
-        bool *usedEvalInputIdx = calloc(sizeof(bool), num_eval_inputs);
+        usedGarbInputIdx = calloc(sizeof(bool), num_garb_inputs);
+        usedEvalInputIdx = calloc(sizeof(bool), num_eval_inputs);
 
         for (int i = 0; i < imap.size; i++) {
+            block *label = &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]];
             int input_idx = imap.input_idx[i];
             switch(imap.inputter[i]) {
             case PERSON_GARBLER:
                 if (usedGarbInputIdx[input_idx] == false) {
-                    assert(inputs[input_idx] == 0 || inputs[input_idx] == 1);
-                    memcpy(&garbLabels[input_idx], 
-                           &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i] + inputs[input_idx]], 
-                           sizeof(block));
+                    garbLabels[input_idx] = *(label + inputs[input_idx]);
                     usedGarbInputIdx[input_idx] = true;
                 }
                 break;
             case PERSON_EVALUATOR:
                 if (usedEvalInputIdx[input_idx] == false) {
-                    memcpy(&evalLabels[2*input_idx], 
-                           &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]], 
-                           sizeof(block)*2);
+                    evalLabels[2*input_idx] = *label;
+                    evalLabels[2*input_idx + 1] = *(label + 1);
                     usedEvalInputIdx[input_idx] = true;
                 }
                 break;
@@ -257,35 +265,26 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
 
         randLabels = loadOTLabels(lblName);
-        if (randLabels == NULL) {
-            perror("loadOTLabels");
-            exit(EXIT_FAILURE);
-        }
-
         corrections = malloc(sizeof(int) * num_eval_inputs);
-        if (corrections == NULL) {
-            perror("malloc");
-            exit(EXIT_FAILURE);
-        }
 
         net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
 
         for (int i = 0; i < num_eval_inputs; ++i) {
             switch (corrections[i]) {
             case 0:
-                evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
-                                              randLabels[2 * i]);
-                evalLabels[2 * i + 1] = xorBlocks(evalLabels[2 * i + 1],
-                                                  randLabels[2 * i + 1]);
+                evalLabels[2 * i] =
+                    xorBlocks(evalLabels[2 * i], randLabels[2 * i]);
+                evalLabels[2 * i + 1] =
+                    xorBlocks(evalLabels[2 * i + 1], randLabels[2 * i + 1]);
                 break;
             case 1:
-                evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
-                                              randLabels[2 * i + 1]);
-                evalLabels[2 * i + 1] = xorBlocks(evalLabels[2 * i + 1],
-                                                  randLabels[2 * i]);
+                evalLabels[2 * i] =
+                    xorBlocks(evalLabels[2 * i], randLabels[2 * i + 1]);
+                evalLabels[2 * i + 1] =
+                    xorBlocks(evalLabels[2 * i + 1], randLabels[2 * i]);
                 break;
             default:
-                assert(false);
+                assert(0);
                 abort();
             }
         }
@@ -298,37 +297,30 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     fprintf(stderr, "ot correction: %lu\n", _end - _start);
 
     _start = RDTSC;
-    // 5a. send "output" 
-    // output is from the json, and tells which components/wires are used for outputs
-    // note that size is not size of the output, but length of the arrays in output
-    net_send(fd, &function->output.size, sizeof(int), 0); 
-    net_send(fd, function->output.gc_id, sizeof(int)*function->output.size, 0);
-    net_send(fd, function->output.start_wire_idx, sizeof(int)*function->output.size, 0);
-    net_send(fd, function->output.end_wire_idx, sizeof(int)*function->output.size, 0);
-
-    // 5b. send outputMap
     {
-        block *outputmap;
-        int p_outputmap = 0;
+        int size = function->output.size;
 
-        outputmap = allocate_blocks(2 * function->m);
+        // 5a. send "output" 
+        // output is from the json, and tells which components/wires are used
+        // for outputs note that size is not size of the output, but length of
+        // the arrays in output
+        net_send(fd, &size, sizeof size, 0); 
+        net_send(fd, function->output.gc_id, sizeof(int) * size, 0);
+        net_send(fd, function->output.start_wire_idx, sizeof(int) * size, 0);
+        net_send(fd, function->output.end_wire_idx, sizeof(int) * size, 0);
 
-        for (int j = 0; j < function->output.size; j++) {
+        // 5b. send outputMap
+        /* outputmap = allocate_blocks(2 * function->m); */
+        net_send(fd, &function->m, sizeof function->m, 0);
+        for (int j = 0; j < size; j++) {
             int gc_id = circuitMapping[function->output.gc_id[j]];
             int start_wire_idx = function->output.start_wire_idx[j];
             int end_wire_idx = function->output.end_wire_idx[j];
             // add 1 because values are inclusive
-            int dist = end_wire_idx - start_wire_idx + 1; 
-            memcpy(&outputmap[p_outputmap],
-                   &chained_gcs[gc_id].outputMap[start_wire_idx],
-                   sizeof(block)*2*dist);
-            p_outputmap += (dist*2);
+            int dist = end_wire_idx - start_wire_idx + 1;
+            net_send(fd, &chained_gcs[gc_id].outputMap[start_wire_idx],
+                     sizeof(block) * 2 * dist, 0);
         }
-        assert(p_outputmap == 2 * function->m);
-        net_send(fd, &function->m, sizeof(int), 0); 
-        net_send(fd, outputmap, sizeof(block)*2*function->m, 0);
-
-        free(outputmap);
     }
     _end = RDTSC;
     fprintf(stderr, "send output/outputmap: %lu\n", _end - _start);
