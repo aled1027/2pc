@@ -218,25 +218,26 @@ recvInstructions(Instructions *insts, int fd)
 {
     net_recv(fd, &insts->size, sizeof insts->size, 0);
     insts->instr = malloc(insts->size * sizeof(Instruction));
-    for (int i = 0; i < insts->size; ++i) {
-        Instruction *inst = &insts->instr[i];
-        net_recv(fd, &inst->type, sizeof inst->type, 0);
-        switch (inst->type) {
-        case CHAIN:
-            net_recv(fd, &inst->chFromCircId, sizeof inst->chFromCircId, 0);
-            net_recv(fd, &inst->chFromWireId, sizeof inst->chFromWireId, 0);
-            net_recv(fd, &inst->chToCircId, sizeof inst->chToCircId, 0);
-            net_recv(fd, &inst->chToWireId, sizeof inst->chToWireId, 0);
-            net_recv(fd, &inst->chOffset, sizeof inst->chOffset, 0);
-            break;
-        case EVAL:
-            net_recv(fd, &inst->evCircId, sizeof inst->evCircId, 0);
-            break;
-        default:
-            assert(0);
-            abort();
-        }
-    }
+    net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
+    //for (int i = 0; i < insts->size; ++i) {
+    //    Instruction *inst = &insts->instr[i];
+    //    net_recv(fd, &inst->type, sizeof inst->type, 0);
+    //    switch (inst->type) {
+    //    case CHAIN:
+    //        net_recv(fd, &inst->chFromCircId, sizeof inst->chFromCircId, 0);
+    //        net_recv(fd, &inst->chFromWireId, sizeof inst->chFromWireId, 0);
+    //        net_recv(fd, &inst->chToCircId, sizeof inst->chToCircId, 0);
+    //        net_recv(fd, &inst->chToWireId, sizeof inst->chToWireId, 0);
+    //        net_recv(fd, &inst->chOffset, sizeof inst->chOffset, 0);
+    //        break;
+    //    case EVAL:
+    //        net_recv(fd, &inst->evCircId, sizeof inst->evCircId, 0);
+    //        break;
+    //    default:
+    //        assert(0);
+    //        abort();
+    //    }
+    //}
 }
 
 void

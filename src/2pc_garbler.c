@@ -162,25 +162,26 @@ static void
 sendInstructions(const Instructions *insts, int fd)
 {
     net_send(fd, &insts->size, sizeof insts->size, 0);
-    for (int i = 0; i < insts->size; ++i) {
-        Instruction inst = insts->instr[i];
-        net_send(fd, &inst.type, sizeof inst.type, 0);
-        switch (inst.type) {
-        case CHAIN:
-            net_send(fd, &inst.chFromCircId, sizeof inst.chFromCircId, 0);
-            net_send(fd, &inst.chFromWireId, sizeof inst.chFromWireId, 0);
-            net_send(fd, &inst.chToCircId, sizeof inst.chToCircId, 0);
-            net_send(fd, &inst.chToWireId, sizeof inst.chToWireId, 0);
-            net_send(fd, &inst.chOffset, sizeof inst.chOffset, 0);
-            break;
-        case EVAL:
-            net_send(fd, &inst.evCircId, sizeof inst.evCircId, 0);
-            break;
-        default:
-            assert(0);
-            abort();
-        }
-    }
+    net_send(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
+    //for (int i = 0; i < insts->size; ++i) {
+    //    Instruction inst = insts->instr[i];
+    //    net_send(fd, &inst.type, sizeof inst.type, 0);
+    //    switch (inst.type) {
+    //    case CHAIN:
+    //        net_send(fd, &inst.chFromCircId, sizeof inst.chFromCircId, 0);
+    //        net_send(fd, &inst.chFromWireId, sizeof inst.chFromWireId, 0);
+    //        net_send(fd, &inst.chToCircId, sizeof inst.chToCircId, 0);
+    //        net_send(fd, &inst.chToWireId, sizeof inst.chToWireId, 0);
+    //        net_send(fd, &inst.chOffset, sizeof inst.chOffset, 0);
+    //        break;
+    //    case EVAL:
+    //        net_send(fd, &inst.evCircId, sizeof inst.evCircId, 0);
+    //        break;
+    //    default:
+    //        assert(0);
+    //        abort();
+    //    }
+    //}
 }
 
 static void
