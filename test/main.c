@@ -84,12 +84,12 @@ garb_on(char* function_path, int ninputs, int nchains, int ntrials)
 
     for (int i = 0; i < ntrials; i++) {
 
-        printf("inputs: ");
-        for (int j = 0; j < ninputs; j++) {
-            inputs[j] = rand() % 2; 
-            printf("%d", inputs[j]);
-        }
-        printf("\n");
+        //printf("inputs: ");
+        //for (int j = 0; j < ninputs; j++) {
+        //    inputs[j] = rand() % 2; 
+        //    printf("%d", inputs[j]);
+        //}
+        //printf("\n");
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i]);
         printf("%lu\n", tot_time[i]);
@@ -113,14 +113,14 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials) {
 
     for (int i = 0; i < ntrials; i++) {
         sleep(1); // uncomment this if getting hung up
-        printf("inputs: ");
-        for (int j = 0; j < ninputs; j++) {
-            inputs[j] = rand() % 2;
-            printf("%d", inputs[j]);
-        }
-        printf("\n");
+        //printf("inputs: ");
+        //for (int j = 0; j < ninputs; j++) {
+        //    inputs[j] = rand() % 2;
+        //    printf("%d", inputs[j]);
+        //}
+        //printf("\n");
         evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i]);
-        printf("%lu\n", tot_time[i]);
+        printf("total: %lu\n", tot_time[i]);
         sum += tot_time[i];
     }
 

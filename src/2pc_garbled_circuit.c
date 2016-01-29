@@ -131,8 +131,7 @@ saveOTLabels(char *fname, block *labels, int n, bool isSender)
 block *
 loadOTLabels(char *fname)
 {
-    block *buf;
-
+    block *buf = NULL;
     (void) posix_memalign((void **) &buf, 128, filesize(fname));
     if (readFileIntoBuffer((char *) buf, fname) == FAILURE) {
         free(buf);

@@ -122,8 +122,7 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
 
     /* Setup for communicating labels to evaluator */
     /* Populate garb_labels and eval_labels as instructed by input_mapping */
-    block *garb_labels, *eval_labels;
-
+    block *garb_labels = NULL, *eval_labels = NULL;
     if (num_garb_inputs > 0) {
         garb_labels = allocate_blocks(num_garb_inputs);
     }
