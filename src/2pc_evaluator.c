@@ -216,15 +216,19 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
 static void
 recvInstructions(Instructions *insts, int fd)
 {
-    uint64_t a,b,c,d;
-
-    int local_size;
-    a = current_time();
+    // Without timings:
     //net_recv(fd, &insts->size, sizeof insts->size, 0);
     //net_recv(fd, &insts->size, sizeof(int), 0);
-    net_recv(fd, &local_size, sizeof(int), 0);
-    insts->size = local_size;
+    //insts->instr = malloc(insts->size * sizeof(Instruction));
+    //net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
+    
+    uint64_t a,b,c,d;
+
+    /* a -> b is taking 4 milliseconds */
+    a = current_time();
+    net_recv(fd, &insts->size, sizeof(insts->size), 0);
     b = current_time();
+
     fprintf(stderr, "receiving instructions receive size: %llu\n", b-a);
 
     insts->instr = malloc(insts->size * sizeof(Instruction));
@@ -232,25 +236,6 @@ recvInstructions(Instructions *insts, int fd)
     net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
     d = current_time();
     fprintf(stderr, "receiving instructions: b-a=%llu c-b=%llu d-c=%llu\n", b-a,  c-b, d-c);
-    //for (int i = 0; i < insts->size; ++i) {
-    //    Instruction *inst = &insts->instr[i];
-    //    net_recv(fd, &inst->type, sizeof inst->type, 0);
-    //    switch (inst->type) {
-    //    case CHAIN:
-    //        net_recv(fd, &inst->chFromCircId, sizeof inst->chFromCircId, 0);
-    //        net_recv(fd, &inst->chFromWireId, sizeof inst->chFromWireId, 0);
-    //        net_recv(fd, &inst->chToCircId, sizeof inst->chToCircId, 0);
-    //        net_recv(fd, &inst->chToWireId, sizeof inst->chToWireId, 0);
-    //        net_recv(fd, &inst->chOffset, sizeof inst->chOffset, 0);
-    //        break;
-    //    case EVAL:
-    //        net_recv(fd, &inst->evCircId, sizeof inst->evCircId, 0);
-    //        break;
-    //    default:
-    //        assert(0);
-    //        abort();
-    //    }
-    //}
 }
 
 void
