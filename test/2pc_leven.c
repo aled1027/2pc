@@ -93,7 +93,7 @@ void leven_garb_on()
     }
     printf("\n");
 
-    unsigned long tot_time;
+    uint64_t tot_time;
     garbler_online(functionPath, "files/garbler_gcs", garbInputs, numGarbInputs, numCircuits, &tot_time);
     free(garbInputs);
 }
@@ -157,7 +157,7 @@ void full_leven_garb()
     }
 
     /* Online work */
-    unsigned long tot_time;
+    uint64_t tot_time;
     garbler_classic_2pc(&gc, &imap, outputMap, numGarbInputs, numEvalInputs,
                         inputs, &tot_time);
 
@@ -195,7 +195,7 @@ void full_leven_eval()
 
     /* Online work */
     int *outputs = allocate_ints(m);
-    unsigned long tot_time;
+    uint64_t tot_time;
     evaluator_classic_2pc(inputs, outputs, numGarbInputs, numEvalInputs, &tot_time);
 
     /* Results */

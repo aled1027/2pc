@@ -6,13 +6,13 @@
 void
 evaluator_classic_2pc(int *input, int *output,
                       int num_garb_inputs, int num_eval_inputs,
-                      unsigned long *tot_time);
+                      uint64_t *tot_time);
 
 void
 evaluator_offline(char *dir, int num_eval_inputs, int nchains);
 
 void
 evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
-                 int num_chained_gcs, unsigned long *tot_time);
+                 int num_chained_gcs, uint64_t *tot_time);
 
 #endif

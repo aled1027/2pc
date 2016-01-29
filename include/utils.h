@@ -3,7 +3,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h> 
 #include "justGarble.h"
+
+#define BILLION 1000000000L
+
 
 #define SUCCESS 0
 #define FAILURE -1
@@ -22,8 +26,11 @@ convertToBinary(int x, int *arr, int narr);
 void
 reverse_array(int *arr, size_t nints);
 
-double
+uint64_t
 current_time(void);
+
+uint64_t
+nanoSecondsToMilliseconds(uint64_t nanoseconds);
 
 void *
 ot_malloc(size_t size);

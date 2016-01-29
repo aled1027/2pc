@@ -5,6 +5,7 @@
 #include <wmmintrin.h>
 #include <sys/stat.h>
 #include <assert.h>
+#include <time.h>
 
 #include "state.h"
 
@@ -31,12 +32,24 @@ reverse_array(int *arr, size_t nints)
     free(temp);
 }
 
-double
+uint64_t 
 current_time(void)
 {
-    struct timeval t;
-    (void) gettimeofday(&t, NULL);
-    return (double) (t.tv_sec + (double) (t.tv_usec / 1000000.0));
+    struct timespec tp;
+    int res;
+
+    res = clock_gettime(CLOCK_MONOTONIC, &tp); /* mark start time */
+    if (res == -1) {
+        fprintf(stderr, "Failure with clock_gettime");
+        return 0;
+    }
+
+    return nanoSecondsToMilliseconds(BILLION * tp.tv_sec + tp.tv_nsec);
+}
+
+uint64_t
+nanoSecondsToMilliseconds(uint64_t nanoseconds) {
+    return nanoseconds / 1000000;
 }
 
 void *
