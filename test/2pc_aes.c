@@ -38,11 +38,9 @@ aes_garb_off(char *dir, int nchains)
         chained_gcs[i].id = i;
         chained_gcs[i].inputLabels = allocate_blocks(2 * gc->n);
         chained_gcs[i].outputMap = allocate_blocks(2 * gc->m);
-        garbleCircuit(gc, chained_gcs[i].outputMap, GARBLE_TYPE_STANDARD);
-        for (int j = 0; j < gc->n; ++j) {
-            chained_gcs[i].inputLabels[2 * j] = gc->wires[j].label0;
-            chained_gcs[i].inputLabels[2 * j + 1] = gc->wires[j].label1;
-        }
+        createInputLabelsWithR(chained_gcs[i].inputLabels, gc->n, delta);
+        garbleCircuit(gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap,
+                      GARBLE_TYPE_STANDARD);
    }
 
     garbler_offline(dir, chained_gcs, aesNumEvalInputs(), nchains);

@@ -58,11 +58,12 @@ void leven_garb_off()
 
         /* Garble */
         createInputLabelsWithR(chainedGCs[i].inputLabels, coreN, delta);
-	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR, chainedGCs[i].inputLabels);
+	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR);
 	    startBuilding(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, inputWires, outputWires);
-	    finishBuilding(gc, &gcContext, chainedGCs[i].outputMap, outputWires);
-        garbleCircuit(gc, chainedGCs[i].outputMap, GARBLE_TYPE_STANDARD);
+	    finishBuilding(gc, &gcContext, outputWires);
+        garbleCircuit(gc, chainedGCs[i].inputLabels, chainedGCs[i].outputMap,
+                      GARBLE_TYPE_STANDARD);
 
         /* Declare chaining vars */
         chainedGCs[i].id = i;
@@ -132,7 +133,7 @@ void full_leven_garb()
     block *inputLabels = allocate_blocks(2*n);
     block *outputMap = allocate_blocks(2*m);
     buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, m);
-    garbleCircuit(&gc, outputMap, GARBLE_TYPE_STANDARD);
+    garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
     
     /* Set input mapping */
     InputMapping imap; 

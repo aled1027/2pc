@@ -25,11 +25,11 @@ INCLUDES := $(wildcard $(SRCDIR)/*.h)
 IDIR =include
 
 CC=gcc
-CFLAGS= -O2 -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
+CFLAGS= -O3 -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
 # TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
 CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing
 
-LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson 
+LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson 
 #LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson # for Alex L (libmsgpackc)
 #LIB+= -DNDDEBUG # removes all "assert()" at compile time
 

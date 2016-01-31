@@ -138,7 +138,7 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
     InputMapping imap;
     block *outputMap = allocate_blocks(2 * gc->m);
 
-    garbleCircuit(gc, outputMap, GARBLE_TYPE_STANDARD);
+    garbleCircuit(gc, NULL, outputMap, GARBLE_TYPE_STANDARD);
 
     newInputMapping(&imap, num_eval_inputs + num_garb_inputs);
 

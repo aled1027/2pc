@@ -41,12 +41,8 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
         q = 5000000;
     int r = n + q; /* number of wires */
 
-    block delta = randomBlock();
-    *((uint16_t *) (&delta)) |= 1;
-    createInputLabelsWithR(inputLabels, n, delta);
-
     GarblingContext gcContext;
-	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
+	createEmptyGarbledCircuit(gc, n, m, q, r);
 	startBuilding(gc, &gcContext);
 
     int *inputWires = allocate_ints(n);
@@ -114,7 +110,7 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
         }
     }
     memcpy(outputWires, D[l][l], sizeof(int) * DIntSize);
-    finishBuilding(gc, &gcContext, outputMap, outputWires);
+    finishBuilding(gc, &gcContext, outputWires);
     for (int i = 0; i < l+1; i++)
         for (int j = 0; j < l+1; j++)
             free(D[i][j]);
@@ -264,20 +260,15 @@ int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext
 void
 buildANDCircuit(GarbledCircuit *gc, int n, int nlayers)
 {
-    block inputLabels[2 * n];
-    block outputLabels[n];
     GarblingContext ctxt;
     int wire;
     int wires[n];
     int r = n + n / 2 * nlayers;
     int q = n / 2 * nlayers;
 
-    /* printf("# gates = %d\n", q); */
-
     countToN(wires, n);
 
-    createInputLabels(inputLabels, n);
-    createEmptyGarbledCircuit(gc, n, n, q, r, inputLabels);
+    createEmptyGarbledCircuit(gc, n, n, q, r);
     startBuilding(gc, &ctxt);
 
     for (int i = 0; i < nlayers; ++i) {
@@ -288,7 +279,7 @@ buildANDCircuit(GarbledCircuit *gc, int n, int nlayers)
         }
     }
 
-    finishBuilding(gc, &ctxt, outputLabels, wires);
+    finishBuilding(gc, &ctxt, wires);
 }
 
 void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
@@ -357,11 +348,7 @@ buildCBCFullCircuit (GarbledCircuit *gc, int num_message_blocks, int num_aes_rou
     int *outputWires = (int*) malloc(sizeof(int) * m);
     assert(aesIn && outputWires);
 
-    block *inputLabels = allocate_blocks(2*n); 
-    block *outputMap = allocate_blocks(2*m);
-
-	createInputLabelsWithR(inputLabels, n, *delta);
-	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
+	createEmptyGarbledCircuit(gc, n, m, q, r);
     GarblingContext gc_context;
 	startBuilding(gc, &gc_context);
 
@@ -401,7 +388,7 @@ buildCBCFullCircuit (GarbledCircuit *gc, int num_message_blocks, int num_aes_rou
     assert(garbler_input_idx == num_garbler_inputs);
     assert(evaluator_input_idx == num_evaluator_inputs);
     assert(output_idx == m);
-	finishBuilding(gc, &gc_context, outputMap, outputWires);
+	finishBuilding(gc, &gc_context, outputWires);
 }
 
 void
@@ -415,22 +402,17 @@ buildAdderCircuit(GarbledCircuit *gc)
 	int *inputs = (int *) malloc(sizeof(int) * n);
 	countToN(inputs, n);
     int* outputs = (int*) malloc(sizeof(int) * m);
-	block *labels = (block*) malloc(sizeof(block) * 2 * n);
-	block *outputmap = (block*) malloc(sizeof(block) * 2 * m);
 
 	GarblingContext gc_context;
 
-	createInputLabels(labels, n);
-	createEmptyGarbledCircuit(gc, n, m, q, r, labels);
+	createEmptyGarbledCircuit(gc, n, m, q, r);
 	startBuilding(gc, &gc_context);
 	ADD22Circuit(gc, &gc_context, inputs, outputs);
-	finishBuilding(gc, &gc_context, outputmap, outputs);
+	finishBuilding(gc, &gc_context, outputs);
 
     free(gc_context.fixedWires);
     free(inputs);
     free(outputs);
-    free(labels);
-    free(outputmap);
 }
 
 void 
@@ -443,14 +425,11 @@ buildXORCircuit(GarbledCircuit *gc, block *delta) {
     int inp[n];
     int outs[m];
     countToN(inp, n);
-    block inputLabels[2*n];
-    block outputMap[2*m];
 
-	createInputLabelsWithR(inputLabels, n, *delta);
-	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
+	createEmptyGarbledCircuit(gc, n, m, q, r);
 	startBuilding(gc, &garblingContext);
     XORCircuit(gc, &garblingContext, 256, inp, outs);
-	finishBuilding(gc, &garblingContext, outputMap, outs);
+	finishBuilding(gc, &garblingContext, outs);
 }
 
 void
@@ -469,15 +448,8 @@ buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block* delt
 	int subBytesOutputs[n1];
 	int shiftRowsOutputs[n1];
 	int mixColumnOutputs[n1];
-	block inputLabels[2*n];
-	block outputMap[2*m];
 
-    // So i'm pretty sure that these labels are ignored
-    // in justGarble/src/garble.c line 190ish. 
-    // the for loop overwires these values with values that it created.
-    // but justGarble's tests are setup like this, where the values are overwritten.
-	createInputLabelsWithR(inputLabels, n, *delta);
-	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
+	createEmptyGarbledCircuit(gc, n, m, q, r);
 	startBuilding(gc, &garblingContext);
 	countToN(prevAndKey, 256); 
 
@@ -499,9 +471,9 @@ buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block* delt
 	    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
 	    }
         // output wires are stored in mixColumnOutputs
-	    finishBuilding(gc, &garblingContext, outputMap, mixColumnOutputs);
+	    finishBuilding(gc, &garblingContext, mixColumnOutputs);
     } else {
-	    finishBuilding(gc, &garblingContext, outputMap, shiftRowsOutputs);
+	    finishBuilding(gc, &garblingContext, shiftRowsOutputs);
     }
 }
 
@@ -522,14 +494,9 @@ void buildAESCircuit(GarbledCircuit *gc)
 	int subBytesOutputs[n];
 	int shiftRowsOutputs[n];
 	int mixColumnOutputs[n];
-	block labels[2 * n];
-	block outputbs[m];
-	block *outputMap = outputbs;
-	block *inputLabels = labels;
 	int i;
 
-	createInputLabels(labels, n);
-	createEmptyGarbledCircuit(gc, n, m, q, r, inputLabels);
+	createEmptyGarbledCircuit(gc, n, m, q, r);
 	startBuilding(gc, &garblingContext);
 
 	countToN(addKeyInputs, 256);
@@ -544,8 +511,7 @@ void buildAESCircuit(GarbledCircuit *gc)
                      subBytesOutputs + 8 * i);
 		}
 
-		ShiftRows(gc, &garblingContext, subBytesOutputs,
-                  shiftRowsOutputs);
+		ShiftRows(gc, &garblingContext, subBytesOutputs, shiftRowsOutputs);
 
         // TODO double check this. I don't this coded correctly
         // final is being set to the 9th round's output
@@ -563,6 +529,6 @@ void buildAESCircuit(GarbledCircuit *gc)
 		}
 	}
 	final = shiftRowsOutputs;
-	finishBuilding(gc, &garblingContext, outputMap, final);
+	finishBuilding(gc, &garblingContext, final);
 }
 
