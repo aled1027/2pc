@@ -17,6 +17,8 @@ typedef enum {
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
+bool isFinalCircuitType(CircuitType *type);
+
 void buildMinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap,
                      int *outputWires);
 void buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels,

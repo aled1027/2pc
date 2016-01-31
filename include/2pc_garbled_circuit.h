@@ -24,6 +24,9 @@ int loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
 
 void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num);
 
+int saveOutputMap(char *fname, block *labels, int nlabels);
+int loadOutputMap(char *fname, block* labels);
+
 int saveOTLabels(char *fname, block *labels, int n, bool isSender);
 block *loadOTLabels(char *fname);
 int saveOTSelections(char *fname, int *selections, int n);

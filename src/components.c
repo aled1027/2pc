@@ -8,6 +8,13 @@
 #include <assert.h>
 #include <math.h>
 
+bool isFinalCircuitType(CircuitType *type) 
+{
+    if (*type == AES_FINAL_ROUND) 
+        return true;
+    return false;
+}
+
 void
 buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap,
                         int *outputWires, int l, int m)

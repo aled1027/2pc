@@ -171,7 +171,7 @@ sendInstructions(const Instructions *insts, int fd)
 
 static void
 garbler_go(int fd, const FunctionSpec *function, const char *dir,
-           const ChainedGarbledCircuit *chained_gcs,
+           const ChainedGarbledCircuit *chained_gcs, block *randLabels,
            int num_chained_gcs, const int *circuitMapping, const int *inputs)
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
@@ -244,15 +244,7 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     /* OT correction */
     _start = current_time();
     if (num_eval_inputs > 0) {
-        int *corrections;
-        block *randLabels;
-        char lblName[50];
-
-        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
-
-        randLabels = loadOTLabels(lblName);
-        corrections = malloc(sizeof(int) * num_eval_inputs);
-
+        int *corrections = malloc(sizeof(int) * num_eval_inputs);
         net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
 
         for (int i = 0; i < num_eval_inputs; ++i) {
@@ -286,7 +278,7 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     {
         int size = function->output.size;
 
-        // 5a. send "output" 
+        // Send "output" 
         // output is from the json, and tells which components/wires are used
         // for outputs note that size is not size of the output, but length of
         // the arrays in output
@@ -296,16 +288,15 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         net_send(fd, function->output.end_wire_idx, sizeof(int) * size, 0);
 
         // 5b. send outputMap
-        /* outputmap = allocate_blocks(2 * function->m); */
         net_send(fd, &function->m, sizeof function->m, 0);
         for (int j = 0; j < size; j++) {
-            int gc_id = circuitMapping[function->output.gc_id[j]];
-            int start_wire_idx = function->output.start_wire_idx[j];
-            int end_wire_idx = function->output.end_wire_idx[j];
-            // add 1 because values are inclusive
-            int dist = end_wire_idx - start_wire_idx + 1;
-            net_send(fd, &chained_gcs[gc_id].outputMap[start_wire_idx],
-                     sizeof(block) * 2 * dist, 0);
+          int gc_id = circuitMapping[function->output.gc_id[j]];
+          int start_wire_idx = function->output.start_wire_idx[j];
+          int end_wire_idx = function->output.end_wire_idx[j];
+          // add 1 because values are inclusive
+          int dist = end_wire_idx - start_wire_idx + 1;
+          net_send(fd, &chained_gcs[gc_id].outputMap[start_wire_idx],
+                   sizeof(block) * 2 * dist, 0);
         }
     }
     _end = current_time();
@@ -422,8 +413,12 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
 
     start = current_time();
     {
+        /* Send chained garbled circuits */
         for (int i = 0; i < num_chained_gcs; i++) {
             chained_gc_comm_send(fd, &chained_gcs[i]);
+            /*if (isFinalCircuitType(&chained_gcs[i].type) == true) {*/
+                /*net_send(fd, chained_gcs[i].outputMap, 2 * chained_gcs[i].gc.m * sizeof(block), 0);*/
+            /*}*/
             saveChainedGC(&chained_gcs[i], dir, true);
         }
 
@@ -469,6 +464,8 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     ChainedGarbledCircuit *chained_gcs;
     FunctionSpec function;
     int *circuitMapping;
+    block *randLabels;
+    char lblName[50];
 
     state_init(&state);
     if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
@@ -483,20 +480,11 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     /* start timing after socket connection */
     start = current_time();
 
+    /* Load function from disk */
     _start = current_time();
     {
-        chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
-        for (int i = 0; i < num_chained_gcs; ++i) {
-            loadChainedGC(&chained_gcs[i], dir, i, true);
-        }
-    }
-    _end = current_time();
-    fprintf(stderr, "load gcs: %llu\n", _end - _start);
-
-    /*load function allocates a bunch of memory for the function*/
-    /*this is later freed by freeFunctionSpec*/
-    _start = current_time();
-    {
+        /*load function allocates a bunch of memory for the function*/
+        /*this is later freed by freeFunctionSpec*/
         if (load_function_via_json(function_path, &function) == FAILURE) {
             fprintf(stderr, "Could not load function %s\n", function_path);
             return FAILURE;
@@ -505,6 +493,29 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     _end = current_time();
     fprintf(stderr, "load function: %llu\n", _end - _start);
 
+    /* Load everything else from disk */
+    _start = current_time();
+    {
+        net_send(fd, &function.m, sizeof(int), 0);
+
+        /* load chained garbled circuits from disk */
+        chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
+        for (int i = 0; i < num_chained_gcs; ++i) {
+            loadChainedGC(&chained_gcs[i], dir, i, true);
+        }
+
+        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
+        randLabels = loadOTLabels(lblName);
+        
+        /* load ot info from disk */
+    }
+    _end = current_time();
+    fprintf(stderr, "loading: %llu\n", _end - _start);
+
+    /* Tell evaluator that we are done loading circuits so they can start timing */
+    int empty = 0;
+    net_send(fd, &empty, sizeof(int), 0);
+    
     _start = current_time();
     {
         // + 1 because 0th component is inputComponent
@@ -521,7 +532,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
 
     /*main function; does core of work*/
     _start = current_time();
-    garbler_go(fd, &function, dir, chained_gcs, num_chained_gcs, circuitMapping,
+    garbler_go(fd, &function, dir, chained_gcs, randLabels, num_chained_gcs, circuitMapping,
                inputs);
     _end = current_time();
     fprintf(stderr, "garbler_go: %llu\n", _end - _start);

@@ -67,6 +67,15 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
     return SUCCESS;
 }
 
+int 
+saveOutputMap(char *fname, block *labels, int nlabels)
+{
+    size_t size = sizeof(block) * nlabels;
+    if (writeBufferToFile((char *) labels, size, fname) == FAILURE)
+        return FAILURE;
+    return SUCCESS;
+}
+
 int
 saveOTLabels(char *fname, block *labels, int n, bool isSender)
 {
@@ -75,6 +84,20 @@ saveOTLabels(char *fname, block *labels, int n, bool isSender)
     if (writeBufferToFile((char *) labels, size, fname) == FAILURE)
         return FAILURE;
 
+    return SUCCESS;
+}
+
+int
+loadOutputMap(char *fname, block* labels)
+{
+    labels = NULL;
+    (void) posix_memalign((void **) &labels, 128, filesize(fname));
+    printf("filesize(fname): %zu\n", filesize(fname));
+    if (readFileIntoBuffer((char *) labels, fname) == FAILURE) {
+        free(labels);
+        assert(false);
+        return FAILURE;
+    }
     return SUCCESS;
 }
 
@@ -89,6 +112,7 @@ loadOTLabels(char *fname)
     }
     return buf;
 }
+
     
 int
 saveOTSelections(char *fname, int *selections, int n)
