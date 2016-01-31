@@ -6,13 +6,13 @@
 void
 garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
                     block *outputMap, int num_garb_inputs, int num_eval_inputs,
-                    const int *inputs, unsigned long *tot_time);
+                    const int *inputs, uint64_t *tot_time);
 
 void garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
                      int num_eval_inputs, int num_chained_gcs);
 
 int garbler_online(char *function_path, char *dir, int *inputs,
                    int num_garb_inputs, int num_chained_gcs,
-                   unsigned long *tot_time);
+                   uint64_t *tot_time);
 
 #endif

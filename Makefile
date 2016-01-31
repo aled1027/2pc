@@ -25,9 +25,10 @@ INCLUDES := $(wildcard $(SRCDIR)/*.h)
 IDIR =include
 
 CC=gcc
-CFLAGS= -O3 -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
+CFLAGS= -g -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
 # TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
-CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing
+# Wno-format is for printing uint64_t as llu.
+CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
 
 LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson 
 #LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson # for Alex L (libmsgpackc)
@@ -78,9 +79,9 @@ aes_eval_off:
 	./$(BINDIR)/test --eval-off --type AES
 
 aes_garb_on:
-	./$(BINDIR)/test --garb-on --type AES --times 1
+	./$(BINDIR)/test --garb-on --type AES --times 10
 aes_eval_on:
-	./$(BINDIR)/test --eval-on --type AES --times 1
+	./$(BINDIR)/test --eval-on --type AES --times 10
 #########
 # LEVEN #
 #########

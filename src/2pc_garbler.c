@@ -83,12 +83,12 @@ extract_labels_cgc(block *garbLabels, block *evalLabels,
 void 
 garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
                     block *output_map, int num_garb_inputs, int num_eval_inputs,
-                    const int *inputs, unsigned long *tot_time)
+                    const int *inputs, uint64_t *tot_time)
 {
     /* Does 2PC in the classic way, without components. */
     int serverfd, fd;
     struct state state;
-    unsigned long start, end;
+    uint64_t start, end;
 
     assert(gc->n == num_garb_inputs + num_eval_inputs);
 
@@ -103,7 +103,7 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
         exit(EXIT_FAILURE);
     }
 
-    start = RDTSC;
+    start = current_time();;
 
     gc_comm_send(fd, gc);
 
@@ -153,34 +153,20 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
     close(serverfd);
     state_cleanup(&state);
 
-    end = RDTSC;
+    end = current_time();
     *tot_time = end - start;
 }
 
 static void
 sendInstructions(const Instructions *insts, int fd)
 {
-    net_send(fd, &insts->size, sizeof insts->size, 0);
+    uint64_t a,b,c;
+    a = current_time();
+    net_send(fd, &insts->size, sizeof(int), 0);
+    b = current_time();
     net_send(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
-    //for (int i = 0; i < insts->size; ++i) {
-    //    Instruction inst = insts->instr[i];
-    //    net_send(fd, &inst.type, sizeof inst.type, 0);
-    //    switch (inst.type) {
-    //    case CHAIN:
-    //        net_send(fd, &inst.chFromCircId, sizeof inst.chFromCircId, 0);
-    //        net_send(fd, &inst.chFromWireId, sizeof inst.chFromWireId, 0);
-    //        net_send(fd, &inst.chToCircId, sizeof inst.chToCircId, 0);
-    //        net_send(fd, &inst.chToWireId, sizeof inst.chToWireId, 0);
-    //        net_send(fd, &inst.chOffset, sizeof inst.chOffset, 0);
-    //        break;
-    //    case EVAL:
-    //        net_send(fd, &inst.evCircId, sizeof inst.evCircId, 0);
-    //        break;
-    //    default:
-    //        assert(0);
-    //        abort();
-    //    }
-    //}
+    c = current_time();
+    fprintf(stderr, "receiving instructions: b-a=%llu c-b=%llu\n", b-a,  c-b);
 }
 
 static void
@@ -193,26 +179,26 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     int num_eval_inputs = function->num_eval_inputs;
     int num_garb_inputs = function->num_garb_inputs;
     block *garbLabels, *evalLabels;
-    unsigned long _start, _end;
+    uint64_t _start, _end;
 
-    _start = RDTSC;
+    _start = current_time();
     {
         sendInstructions(&function->instructions, fd);
     }
-    _end = RDTSC;
-    fprintf(stderr, "send inst: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "send inst: %llu\n", _end - _start);
 
     // 3. send circuitMapping
-    _start = RDTSC;
+    _start = current_time();
     {
         int size = function->components.totComponents + 1;
         net_send(fd, &size, sizeof(int), 0);
         net_send(fd, circuitMapping, sizeof(int) * size, 0);
     }
-    _end = RDTSC;
-    fprintf(stderr, "send circmap: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "send circmap: %llu\n", _end - _start);
 
-    _start = RDTSC;
+    _start = current_time();
     {
         bool *usedGarbInputIdx, *usedEvalInputIdx;
 
@@ -251,12 +237,12 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
             net_send(fd, garbLabels, sizeof(block) * num_garb_inputs, 0);
         }
     }
-    _end = RDTSC;
-    fprintf(stderr, "send labels: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "send labels: %llu\n", _end - _start);
 
     /* Send evaluator's labels via OT correct */
     /* OT correction */
-    _start = RDTSC;
+    _start = current_time();
     if (num_eval_inputs > 0) {
         int *corrections;
         block *randLabels;
@@ -293,10 +279,10 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         free(corrections);
         free(randLabels);
     }
-    _end = RDTSC;
-    fprintf(stderr, "ot correction: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "ot correction: %llu\n", _end - _start);
 
-    _start = RDTSC;
+    _start = current_time();
     {
         int size = function->output.size;
 
@@ -322,8 +308,8 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
                      sizeof(block) * 2 * dist, 0);
         }
     }
-    _end = RDTSC;
-    fprintf(stderr, "send output/outputmap: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "send output/outputmap: %llu\n", _end - _start);
 
     if (num_garb_inputs > 0)
         free(garbLabels);
@@ -420,7 +406,7 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
 {
     int serverfd, fd;
     struct state state;
-    unsigned long start, end;
+    uint64_t start, end;
 
     state_init(&state);
 
@@ -434,7 +420,7 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
         exit(EXIT_FAILURE);
     }
 
-    start = RDTSC;
+    start = current_time();
     {
         for (int i = 0; i < num_chained_gcs; i++) {
             chained_gc_comm_send(fd, &chained_gcs[i]);
@@ -460,8 +446,8 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
             free(evalLabels);
         }
     }
-    end = RDTSC;
-    fprintf(stderr, "garbler offline: %lu\n", end - start);
+    end = current_time();
+    fprintf(stderr, "garbler offline: %llu\n", end - start);
 
     close(fd);
     close(serverfd);
@@ -470,7 +456,7 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
 
 int
 garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
-               int num_chained_gcs, unsigned long *tot_time) 
+               int num_chained_gcs, uint64_t *tot_time) 
 {
     /*runs the garbler code
      * First, initializes and loads function, and then calls garbler_go which
@@ -479,7 +465,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
 
     int serverfd, fd;
     struct state state;
-    unsigned long start, end, _start, _end;
+    uint64_t start, end, _start, _end;
     ChainedGarbledCircuit *chained_gcs;
     FunctionSpec function;
     int *circuitMapping;
@@ -495,31 +481,31 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     }
 
     /* start timing after socket connection */
-    start = RDTSC;
+    start = current_time();
 
-    _start = RDTSC;
+    _start = current_time();
     {
         chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         for (int i = 0; i < num_chained_gcs; ++i) {
             loadChainedGC(&chained_gcs[i], dir, i, true);
         }
     }
-    _end = RDTSC;
-    fprintf(stderr, "load gcs: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "load gcs: %llu\n", _end - _start);
 
     /*load function allocates a bunch of memory for the function*/
     /*this is later freed by freeFunctionSpec*/
-    _start = RDTSC;
+    _start = current_time();
     {
         if (load_function_via_json(function_path, &function) == FAILURE) {
             fprintf(stderr, "Could not load function %s\n", function_path);
             return FAILURE;
         }
     }
-    _end = RDTSC;
-    fprintf(stderr, "load function: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "load function: %llu\n", _end - _start);
 
-    _start = RDTSC;
+    _start = current_time();
     {
         // + 1 because 0th component is inputComponent
         circuitMapping = malloc(sizeof(int) * (function.components.totComponents + 1));
@@ -530,15 +516,15 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
             return FAILURE;
         }
     }
-    _end = RDTSC;
-    fprintf(stderr, "make inst: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "make inst: %llu\n", _end - _start);
 
     /*main function; does core of work*/
-    _start = RDTSC;
+    _start = current_time();
     garbler_go(fd, &function, dir, chained_gcs, num_chained_gcs, circuitMapping,
                inputs);
-    _end = RDTSC;
-    fprintf(stderr, "garbler_go: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "garbler_go: %llu\n", _end - _start);
     
     free(circuitMapping);
     for (int i = 0; i < num_chained_gcs; ++i) {
@@ -547,7 +533,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     free(chained_gcs);
     freeFunctionSpec(&function);
 
-    end = RDTSC;
+    end = current_time();
     if (tot_time) {
         *tot_time = end - start;
     }

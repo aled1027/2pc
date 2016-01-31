@@ -64,7 +64,7 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 
 void evaluator_classic_2pc(int *input, int *output,
         int num_garb_inputs, int num_eval_inputs,
-        unsigned long *tot_time) 
+        uint64_t *tot_time) 
 {
     int sockfd, res;
     struct state state;
@@ -72,7 +72,7 @@ void evaluator_classic_2pc(int *input, int *output,
     InputMapping map;
     block *garb_labels = NULL, *eval_labels = NULL;
     block *labels, *output_map, *computed_output_map;
-    unsigned long start, end;
+    uint64_t start, end;
 
     assert(output && tot_time); /* input could be NULL if num_eval_inputs == 0 */
 
@@ -82,7 +82,7 @@ void evaluator_classic_2pc(int *input, int *output,
         exit(EXIT_FAILURE);
     }
 
-    start = RDTSC;
+    start = current_time();
 
     gc_comm_recv(sockfd, &gc);
 
@@ -150,7 +150,7 @@ void evaluator_classic_2pc(int *input, int *output,
     free(garb_labels);
     free(labels);
 
-    end = RDTSC;
+    end = current_time();
     *tot_time = end - start;
 }
 
@@ -160,7 +160,7 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
     int sockfd;
     struct state state;
     ChainedGarbledCircuit cgc;
-    unsigned long start, end;
+    uint64_t start, end;
     
     state_init(&state);
 
@@ -169,7 +169,7 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
         exit(EXIT_FAILURE);
     }
 
-    start = RDTSC;
+    start = current_time();
 
     for (int i = 0; i < nchains; i++) {
         chained_gc_comm_recv(sockfd, &cgc);
@@ -206,8 +206,8 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
         free(evalLabels);
     }
 
-    end = RDTSC;
-    fprintf(stderr, "evaluator offline: %lu\n", end - start);
+    end = current_time();
+    fprintf(stderr, "evaluator offline: %llu\n", end - start);
 
     close(sockfd);
     state_cleanup(&state);
@@ -216,36 +216,34 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
 static void
 recvInstructions(Instructions *insts, int fd)
 {
-    net_recv(fd, &insts->size, sizeof insts->size, 0);
+    // Without timings:
+    //net_recv(fd, &insts->size, sizeof insts->size, 0);
+    //net_recv(fd, &insts->size, sizeof(int), 0);
+    //insts->instr = malloc(insts->size * sizeof(Instruction));
+    //net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
+    
+    uint64_t a,b,c,d;
+
+    /* a -> b is taking 4 milliseconds */
+    a = current_time();
+    net_recv(fd, &insts->size, sizeof(insts->size), 0);
+    b = current_time();
+
+    fprintf(stderr, "receiving instructions receive size: %llu\n", b-a);
+
     insts->instr = malloc(insts->size * sizeof(Instruction));
+    c = current_time();
     net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
-    //for (int i = 0; i < insts->size; ++i) {
-    //    Instruction *inst = &insts->instr[i];
-    //    net_recv(fd, &inst->type, sizeof inst->type, 0);
-    //    switch (inst->type) {
-    //    case CHAIN:
-    //        net_recv(fd, &inst->chFromCircId, sizeof inst->chFromCircId, 0);
-    //        net_recv(fd, &inst->chFromWireId, sizeof inst->chFromWireId, 0);
-    //        net_recv(fd, &inst->chToCircId, sizeof inst->chToCircId, 0);
-    //        net_recv(fd, &inst->chToWireId, sizeof inst->chToWireId, 0);
-    //        net_recv(fd, &inst->chOffset, sizeof inst->chOffset, 0);
-    //        break;
-    //    case EVAL:
-    //        net_recv(fd, &inst->evCircId, sizeof inst->evCircId, 0);
-    //        break;
-    //    default:
-    //        assert(0);
-    //        abort();
-    //    }
-    //}
+    d = current_time();
+    fprintf(stderr, "receiving instructions: b-a=%llu c-b=%llu d-c=%llu\n", b-a,  c-b, d-c);
 }
 
 void
 evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
-                 int num_chained_gcs, unsigned long *tot_time)
+                 int num_chained_gcs, uint64_t *tot_time)
 {
     int sockfd;
-    unsigned long start, end, _start, _end;
+    uint64_t start, end, _start, _end;
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
     block **labels;
@@ -259,39 +257,39 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     }
 
     /* start timing after socket connection */
-    start = RDTSC;
+    start = current_time();
 
-    _start = RDTSC;
+    _start = current_time();
     {
         chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         for (int i = 0; i < num_chained_gcs; ++i) {
             loadChainedGC(&chained_gcs[i], dir, i, false);
         }
     }
-    _end = RDTSC;
-    fprintf(stderr, "load gcs: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "load gcs: %llu\n", _end - _start);
 
-    _start = RDTSC;
+    _start = current_time();
     {
         recvInstructions(&function.instructions, sockfd);
     }
-    _end = RDTSC;
-    fprintf(stderr, "receive inst: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "receive inst: %llu\n", _end - _start);
 
     // circuitMapping maps instruction-gc-ids --> saved-gc-ids
-    _start = RDTSC;
+    _start = current_time();
     {
         int size;
         net_recv(sockfd, &size, sizeof(int), 0);
         circuitMapping = malloc(sizeof(int) * size);
         net_recv(sockfd, circuitMapping, sizeof(int) * size, 0);
     }
-    _end = RDTSC;
-    fprintf(stderr, "receive circmap: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "receive circmap: %llu\n", _end - _start);
 
     // 7. receive labels
     // receieve labels based on garblers inputs
-    _start = RDTSC;
+    _start = current_time();
     {
         net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
 
@@ -307,11 +305,11 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
             net_recv(sockfd, &labels[0][0], sizeof(block) * num_garb_inputs, 0);
         }
     }
-    _end = RDTSC;
-    fprintf(stderr, "receive labels: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "receive labels: %llu\n", _end - _start);
 
     /* OT correction */
-    _start = RDTSC;
+    _start = current_time();
     if (num_eval_inputs > 0) {
         int *corrections;
         block *recvLabels;
@@ -343,13 +341,13 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
         free(recvLabels);
         free(corrections);
     }
-    _end = RDTSC;
-    fprintf(stderr, "ot correction: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "ot correction: %llu\n", _end - _start);
 
     // 9a receive "output" 
     //  output is from the json, and tells which components/wires are used for outputs
     // note that size is not size of the output, but length of the arrays in output
-    _start = RDTSC;
+    _start = current_time();
     int output_arr_size;
     int output_size;
     int *output_gc_id;
@@ -372,11 +370,11 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
         outputmap = allocate_blocks(2 * output_size);
         net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0);
     }
-    _end = RDTSC;
-    fprintf(stderr, "receive output/outputmap: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "receive output/outputmap: %llu\n", _end - _start);
 
     // 11a. evaluate: follow instructions and evaluate components
-    _start = RDTSC;
+    _start = current_time();
     block** computedOutputMap = malloc(sizeof(block*) * (num_chained_gcs + 1));
     {
         computedOutputMap[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
@@ -387,11 +385,11 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
         evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
                            labels, circuitMapping, computedOutputMap);
     }
-    _end = RDTSC;
-    fprintf(stderr, "evaluate: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "evaluate: %llu\n", _end - _start);
 
     // 11b. use computedOutputMap and outputMap to get actual outputs
-    _start = RDTSC;
+    _start = current_time();
     int *output = calloc(sizeof(int), output_size);
     {
         int p_output = 0;
@@ -410,8 +408,8 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
         }
         assert(output_size == p_output);
     }
-    _end = RDTSC;
-    fprintf(stderr, "map outputs: %lu\n", _end - _start);
+    _end = current_time();
+    fprintf(stderr, "map outputs: %llu\n", _end - _start);
 
     // 12. clean up
     free(circuitMapping);
@@ -437,7 +435,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 
     close(sockfd);
 
-    end = RDTSC;
+    end = current_time();
     if (tot_time) {
         *tot_time = end - start;
     }

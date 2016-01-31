@@ -31,7 +31,7 @@ struct args {
     bool garb_full;
     bool eval_full;
     experiment type;
-    int ntrials;
+    uint64_t ntrials;
 };
 
 static void
@@ -70,17 +70,17 @@ eval_off(int ninputs, int nchains)
 static int
 compare(const void * a, const void * b)
 {
-	return (int) (*(unsigned long*) a - *(unsigned long*) b);
+	return (int) (*(uint64_t*) a - *(uint64_t*) b);
 }
 
 static void
-garb_on(char* function_path, int ninputs, int nchains, int ntrials)
+garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials)
 {
-    unsigned long sum = 0, *tot_time;
+    uint64_t sum = 0, *tot_time;
     int *inputs;
 
     inputs = malloc(sizeof(int) * ninputs);
-    tot_time = malloc(sizeof(unsigned long) * ntrials);
+    tot_time = malloc(sizeof(uint64_t) * ntrials);
 
     for (int i = 0; i < ntrials; i++) {
 
@@ -92,12 +92,12 @@ garb_on(char* function_path, int ninputs, int nchains, int ntrials)
         //printf("\n");
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i]);
-        printf("%lu\n", tot_time[i]);
+        printf("%llu\n", tot_time[i]);
         sum += tot_time[i];
     }
 
-    printf("%d trials\n", ntrials);
-    printf("avg time: %f\n", (float) sum / (float) ntrials);
+    printf("%llu trials\n", ntrials);
+    printf("avg time: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
 
     free(inputs);
     free(tot_time);
@@ -105,10 +105,10 @@ garb_on(char* function_path, int ninputs, int nchains, int ntrials)
 
 static void
 eval_on(int ninputs, int nlabels, int nchains, int ntrials) {
-    unsigned long sum = 0, *tot_time;
+    uint64_t sum = 0, *tot_time;
     int *inputs;
 
-    tot_time = malloc(sizeof(unsigned long) * ntrials);
+    tot_time = malloc(sizeof(uint64_t) * ntrials);
     inputs = malloc(sizeof(int) * ninputs);
 
     for (int i = 0; i < ntrials; i++) {
@@ -120,12 +120,12 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials) {
         //}
         //printf("\n");
         evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i]);
-        printf("total: %lu\n", tot_time[i]);
+        printf("total: %llu\n", tot_time[i]);
         sum += tot_time[i];
     }
 
-    printf("%d trials\n", ntrials);
-    printf("avg time: %f\n", (float) sum / (float) ntrials);
+    printf("%llu trials\n", ntrials);
+    printf("avg time: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
 
     free(inputs);
     free(tot_time);
@@ -158,7 +158,7 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
 
     {
         int *garb_inputs = malloc(sizeof(int) * num_garb_inputs);
-        unsigned long *tot_time = malloc(sizeof(unsigned long) * ntrials);
+        uint64_t *tot_time = malloc(sizeof(uint64_t) * ntrials);
 
         for (int i = 0; i < ntrials; ++i) {
             for (int i = 0; i < num_garb_inputs; i++) {
@@ -166,12 +166,12 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
             }
             garbler_classic_2pc(gc, &imap, outputMap, num_garb_inputs,
                                 num_eval_inputs, garb_inputs, &tot_time[i]);
-            printf("%lu\n", tot_time[i]);
+            printf("%llu\n", tot_time[i]);
         }
 
-        qsort(tot_time, ntrials, sizeof(unsigned long), compare);
+        qsort(tot_time, ntrials, sizeof(uint64_t), compare);
         printf("%d trials\n", ntrials);
-        printf("time (cycles): %lu\n", tot_time[ntrials / 2 + 1]);
+        printf("time (cycles): %llu\n", tot_time[ntrials / 2 + 1]);
 
         free(garb_inputs);
         free(tot_time);
@@ -185,7 +185,7 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
 static void
 eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
 {
-    unsigned long *tot_time = malloc(sizeof(unsigned long) * ntrials);
+    uint64_t *tot_time = malloc(sizeof(uint64_t) * ntrials);
     int *eval_inputs = malloc(sizeof(int) * n_eval_inputs);
     int *output = malloc(sizeof(int) * noutputs);
 
@@ -196,12 +196,12 @@ eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
         }
         evaluator_classic_2pc(eval_inputs, output, n_garb_inputs, 
                               n_eval_inputs, &tot_time[i]);
-        printf("%lu\n", tot_time[i]);
+        printf("%llu\n", tot_time[i]);
     }
 
-    qsort(tot_time, ntrials, sizeof(unsigned long), compare);
+    qsort(tot_time, ntrials, sizeof(uint64_t), compare);
     printf("%d trials\n", ntrials);
-    printf("time (cycles): %lu\n", tot_time[ntrials / 2 + 1]);
+    printf("time (cycles): %llu\n", tot_time[ntrials / 2 + 1]);
 
     free(output);
     free(eval_inputs);
