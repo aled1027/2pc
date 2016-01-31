@@ -61,7 +61,7 @@ void leven_garb_off()
 	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR);
 	    startBuilding(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, inputWires, outputWires);
-	    finishBuilding(gc, &gcContext, outputWires);
+	    finishBuilding(gc, outputWires);
         garbleCircuit(gc, chainedGCs[i].inputLabels, chainedGCs[i].outputMap,
                       GARBLE_TYPE_STANDARD);
 

@@ -113,7 +113,7 @@ static void notGateTest()
 
     countToN(outputWires, m);
     block *outputMap = allocate_blocks(2*m);
-	finishBuilding(&gc, &gcContext, outputWires);
+	finishBuilding(&gc, outputWires);
 
     /* Garble */
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
@@ -177,7 +177,7 @@ static void minTest()
     MINCircuit(&gc, &gcContext, 4, inputWires, outputWires);
 
     block *outputMap = allocate_blocks(2*m);
-	finishBuilding(&gc, &gcContext, outputWires);
+	finishBuilding(&gc, outputWires);
 
     /* Garble */
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
@@ -247,7 +247,7 @@ static void MUXTest()
     MUX21Circuit(&gc, &gcContext, inputWires[0], inputWires[1], inputWires[2], outputWires);
 
     block *outputMap = allocate_blocks(2*m);
-	finishBuilding(&gc, &gcContext, outputWires);
+	finishBuilding(&gc, outputWires);
 
     /* Garble */
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
@@ -315,7 +315,7 @@ static void LESTest(int n)
     //countToN(outputWires, m);
 
     block *outputMap = allocate_blocks(2*m);
-	finishBuilding(&gc, &gcContext, outputWires);
+	finishBuilding(&gc, outputWires);
 
     /* Garble */
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
@@ -451,7 +451,7 @@ static void levenCoreTest()
 	createEmptyGarbledCircuit(&gc, n, m, q, r);
 	startBuilding(&gc, &gcContext);
     addLevenshteinCoreCircuit(&gc, &gcContext, 2, inputWires, outputWires);
-	finishBuilding(&gc, &gcContext, outputWires);
+	finishBuilding(&gc, outputWires);
 
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
 
@@ -512,7 +512,7 @@ static void saveAndLoadTest()
 	createEmptyGarbledCircuit(gc, n, m, q, r);
 	startBuilding(gc, &gcContext);
     addLevenshteinCoreCircuit(gc, &gcContext, l, inputWires, outputWires);
-	finishBuilding(gc, &gcContext, outputWires);
+	finishBuilding(gc, outputWires);
     garbleCircuit(gc, cgc.inputLabels, cgc.outputMap, GARBLE_TYPE_STANDARD);
 
     /* Declare chaining vars */

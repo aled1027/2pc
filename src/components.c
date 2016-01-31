@@ -110,7 +110,7 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
         }
     }
     memcpy(outputWires, D[l][l], sizeof(int) * DIntSize);
-    finishBuilding(gc, &gcContext, outputWires);
+    finishBuilding(gc, outputWires);
     for (int i = 0; i < l+1; i++)
         for (int j = 0; j < l+1; j++)
             free(D[i][j]);
@@ -279,7 +279,7 @@ buildANDCircuit(GarbledCircuit *gc, int n, int nlayers)
         }
     }
 
-    finishBuilding(gc, &ctxt, wires);
+    finishBuilding(gc, wires);
 }
 
 void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
@@ -388,7 +388,7 @@ buildCBCFullCircuit (GarbledCircuit *gc, int num_message_blocks, int num_aes_rou
     assert(garbler_input_idx == num_garbler_inputs);
     assert(evaluator_input_idx == num_evaluator_inputs);
     assert(output_idx == m);
-	finishBuilding(gc, &gc_context, outputWires);
+	finishBuilding(gc, outputWires);
 }
 
 void
@@ -408,9 +408,8 @@ buildAdderCircuit(GarbledCircuit *gc)
 	createEmptyGarbledCircuit(gc, n, m, q, r);
 	startBuilding(gc, &gc_context);
 	ADD22Circuit(gc, &gc_context, inputs, outputs);
-	finishBuilding(gc, &gc_context, outputs);
+	finishBuilding(gc, outputs);
 
-    free(gc_context.fixedWires);
     free(inputs);
     free(outputs);
 }
@@ -429,7 +428,7 @@ buildXORCircuit(GarbledCircuit *gc, block *delta) {
 	createEmptyGarbledCircuit(gc, n, m, q, r);
 	startBuilding(gc, &garblingContext);
     XORCircuit(gc, &garblingContext, 256, inp, outs);
-	finishBuilding(gc, &garblingContext, outs);
+	finishBuilding(gc, outs);
 }
 
 void
@@ -471,9 +470,9 @@ buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block* delt
 	    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
 	    }
         // output wires are stored in mixColumnOutputs
-	    finishBuilding(gc, &garblingContext, mixColumnOutputs);
+	    finishBuilding(gc, mixColumnOutputs);
     } else {
-	    finishBuilding(gc, &garblingContext, shiftRowsOutputs);
+	    finishBuilding(gc, shiftRowsOutputs);
     }
 }
 
@@ -529,6 +528,6 @@ void buildAESCircuit(GarbledCircuit *gc)
 		}
 	}
 	final = shiftRowsOutputs;
-	finishBuilding(gc, &garblingContext, final);
+	finishBuilding(gc, final);
 }
 

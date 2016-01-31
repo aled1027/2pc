@@ -29,9 +29,4 @@ block *loadOTLabels(char *fname);
 int saveOTSelections(char *fname, int *selections, int n);
 int *loadOTSelections(char *fname);
 
-void print_garbled_gate(GarbledGate *gg);
-void print_garbled_table(GarbledTable *gt);
-void print_wire(Wire *w);
-void print_gc(GarbledCircuit *gc);
-
 #endif
