@@ -1,9 +1,3 @@
-
-# -w to ignore warnings
-# getting warnings about redefining block -- 
-# previous definitions of typedef __m128i block;
-# turned off warning with -Wno-typedef-redefinition, for now.
-
 SRCDIR := src
 OBJDIR := obj
 TESTDIR := test
@@ -25,13 +19,13 @@ INCLUDES := $(wildcard $(SRCDIR)/*.h)
 IDIR =include
 
 CC=gcc
-CFLAGS= -g -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
+CFLAGS= -O3 -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
 # TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
 # Wno-format is for printing uint64_t as llu.
 CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
 
-LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson 
-#LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson # for Alex L (libmsgpackc)
+#LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson 
+LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson # for Alex L (libmsgpack)
 #LIB+= -DNDDEBUG # removes all "assert()" at compile time
 
 AES = 2pc_aes
@@ -80,6 +74,7 @@ aes_eval_off:
 
 aes_garb_on:
 	./$(BINDIR)/test --garb-on --type AES --times 10
+
 aes_eval_on:
 	./$(BINDIR)/test --eval-on --type AES --times 10
 #########

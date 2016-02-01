@@ -164,7 +164,6 @@ sendInstructions(const Instructions *insts, int fd, block *offsets, int noffsets
     net_send(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
 
     net_send(fd, &noffsets, sizeof(int), 0);
-    printf("size: %zu\n", sizeof(block) * noffsets);
     net_send(fd, offsets, sizeof(block) * noffsets, 0);
 }
 
