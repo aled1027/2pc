@@ -243,65 +243,27 @@ void
 evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
                  int num_chained_gcs, uint64_t *tot_time)
 {
-    int sockfd;
-    uint64_t start, end, _start, _end;
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
-    block **labels;
-    int *circuitMapping;
-    int num_garb_inputs = 0;
-    block *garb_labels = NULL, *eval_labels = NULL;
-    int *corrections;
-    block *recvLabels, *outputmap = NULL;
-    int output_size;
+    block *garb_labels = NULL, *eval_labels = NULL, *recvLabels = NULL, *outputmap = NULL, **labels = NULL;
+    int *corrections = NULL, output_size, *circuitMapping, sockfd;
+    uint64_t start, end, _start, _end;
+    int num_garb_inputs = 0; /* later received from garbler */
 
     if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
         perror("net_init_client");
         exit(EXIT_FAILURE);
     }
 
-
     /* start timing after socket connection */
     start = current_time();
 
     _start = current_time();
     {
-        /* Load chained gcs and outputmaps from disk */
-        /* get size of output */
-
-        /*outputmap = allocate_blocks(2*output_size);*/
-        /*int outputmapIdx = 0;*/
-
+        /* Load things from disk */
         chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
-        for (int i = 0; i < num_chained_gcs; ++i) {
-            loadChainedGC(&chained_gcs[i], dir, i, false);
-            /*if (isFinalCircuitType(&chained_gcs[i].type) == true) {*/
-                /*[> This could be sped up if it's turns out to be slow <]*/
-                /*[> memory is being copied, and that could be avoided with some finesse <]*/
-                /*char fileName[50];*/
-                /*(void) sprintf(fileName, "%s/%s_%d", dir, "outputmap", chained_gcs[i].id);*/
-                /*outputmap = loadOTLabels(fileName);*/
-                /*block *temp = loadOTLabels(fileName);*/
-                /*memcpy(outputmap, temp, sizeof(block) * chained_gcs[i].gc.m * 2);*/
-                /*free(temp);*/
-
-                /*if (!outputmap)*/
-                    /*fprintf(stderr, "Error reading outputmap\n");*/
-
-                /*outputmapIdx += (2 * chained_gcs[i].gc.m);*/
-            /*} */
-        }
-
-        /* Load OT preprocessing from disk */
-        char selName[50], lblName[50];
-
-        (void) sprintf(selName, "%s/%s", dir, "sel"); /* XXX: security hole */
-        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
-
-        recvLabels = malloc(sizeof(block) * 2 * num_eval_inputs);
-
-        corrections = loadOTSelections(selName);
-        eval_labels = loadOTLabels(lblName);
+        loadChainedGarbledCircuits(chained_gcs, num_chained_gcs, dir);
+        loadOTPreprocessing(&eval_labels, &corrections, dir);
     }
 
     _end = current_time();
@@ -318,9 +280,9 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     _end = current_time();
     fprintf(stderr, "receive inst: %llu\n", _end - _start);
 
-    // circuitMapping maps instruction-gc-ids --> saved-gc-ids
     _start = current_time();
     {
+        /* Receive circuit mapping which maps instructions-gc-id to disk-gc-id */
         int size;
         net_recv(sockfd, &size, sizeof(int), 0);
         circuitMapping = malloc(sizeof(int) * size);
@@ -329,20 +291,20 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     _end = current_time();
     fprintf(stderr, "receive circmap: %llu\n", _end - _start);
 
-    // 7. receive labels
-    // receieve labels based on garblers inputs
     _start = current_time();
     {
+        /* receive garb labels */
         net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
-
         labels = malloc(sizeof(block *) * (num_chained_gcs + 1));
-        /* the first num_garb_inputs of labels[0] are the garb_labels, the rest
-         * are the eval_labels */
+
+        /* the first num_garb_inputs of labels[0] are the garb_labels, 
+         * the rest are the eval_labels */
         labels[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
         for (int i = 1; i < num_chained_gcs + 1; i++) {
             labels[i] = allocate_blocks(chained_gcs[i-1].gc.n);
         }
 
+        /* receive garbler labels */
         if (num_garb_inputs > 0) {
             net_recv(sockfd, &labels[0][0], sizeof(block) * num_garb_inputs, 0);
         }
@@ -350,18 +312,21 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     _end = current_time();
     fprintf(stderr, "receive labels: %llu\n", _end - _start);
 
-    /* OT correction */
+    /* Receive eval labels: OT correction */
     _start = current_time();
     if (num_eval_inputs > 0) {
         /* randLabels and eval_labels are loaded during loading phase */
+
         /* correction based on input */
         for (int i = 0; i < num_eval_inputs; ++i) {
             corrections[i] ^= eval_inputs[i];
         }
 
+        recvLabels = malloc(sizeof(block) * 2 * num_eval_inputs);
         net_send(sockfd, corrections, sizeof(int) * num_eval_inputs, 0);
         net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
 
+        /* TODO check if faster if we put these directly into labels[0] */
         for (int i = 0; i < num_eval_inputs; ++i) {
             eval_labels[i] = xorBlocks(eval_labels[i],
                                        recvLabels[2 * i + eval_inputs[i]]);
@@ -375,34 +340,23 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     _end = current_time();
     fprintf(stderr, "ot correction: %llu\n", _end - _start);
 
-    // 9a receive "output" 
-    //  output is from the json, and tells which components/wires are used for outputs
-    // note that size is not size of the output, but length of the arrays in output
+    /* Receive outputmap and outputInstructions */
     _start = current_time();
-    int output_arr_size;
-    int *output_gc_id;
-    int *start_wire_idx;
-    int *end_wire_idx;
+    int output_arr_size; /* size of output_arr, not num outputs */
+    Output *outputInstructions;
     {
         net_recv(sockfd, &output_arr_size, sizeof(int), 0);
+        outputInstructions = recvOutput(output_arr_size, sockfd);
 
-        output_gc_id = malloc(sizeof(int) * output_arr_size);
-        start_wire_idx = malloc(sizeof(int) * output_arr_size);
-        end_wire_idx = malloc(sizeof(int) * output_arr_size);
-
-        net_recv(sockfd, output_gc_id, sizeof(int)*output_arr_size, 0);
-        net_recv(sockfd, start_wire_idx, sizeof(int)*output_arr_size, 0);
-        net_recv(sockfd, end_wire_idx, sizeof(int)*output_arr_size, 0);
-
-        // 9b receive outputmap
+        /* receive outputmap */
         net_recv(sockfd, &output_size, sizeof(int), 0);
         outputmap = allocate_blocks(2 * output_size);
-        net_recv(sockfd, outputmap, sizeof(block)*2*output_size, 0);
+        net_recv(sockfd, outputmap, 2 * sizeof(block) * output_size, 0);
     }
     _end = current_time();
     fprintf(stderr, "receive output/outputmap: %llu\n", _end - _start);
 
-    // 11a. evaluate: follow instructions and evaluate components
+    /* Follow instructions and evaluate */
     _start = current_time();
     block** computedOutputMap = malloc(sizeof(block*) * (num_chained_gcs + 1));
     {
@@ -417,34 +371,21 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     _end = current_time();
     fprintf(stderr, "evaluate: %llu\n", _end - _start);
 
-    // 11b. use computedOutputMap and outputMap to get actual outputs
     _start = current_time();
     int *output = calloc(sizeof(int), output_size);
     {
-        int p_output = 0;
-        for (int i = 0; i < output_arr_size; i++) {
-            int start = start_wire_idx[i];
-            int end = end_wire_idx[i];
-            int dist = end - start + 1;
-            int gc_idx = output_gc_id[i];
-            int res;
-
-            res = mapOutputs(&outputmap[p_output*2],
-                             &computedOutputMap[gc_idx][start],
-                             &output[p_output], dist);
-            assert(res == SUCCESS);
-            p_output += dist;
-        }
-        assert(output_size == p_output);
+        /* Map outputs */
+        mapOutputsWithOutputInstructions(outputInstructions, output_arr_size, 
+                                         output, output_size, computedOutputMap, outputmap);
     }
     _end = current_time();
     fprintf(stderr, "map outputs: %llu\n", _end - _start);
 
     // 12. clean up
     free(circuitMapping);
-    free(output_gc_id);
-    free(start_wire_idx);
-    free(end_wire_idx);
+    free(outputInstructions->gc_id);
+    free(outputInstructions->start_wire_idx);
+    free(outputInstructions->end_wire_idx);
     for (int i = 0; i < num_chained_gcs; ++i) {
         freeChainedGarbledCircuit(&chained_gcs[i], false);
         free(labels[i]);
@@ -459,7 +400,6 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     free(output);
     free(garb_labels);
     free(eval_labels);
-    //deleteInputMapping(&function.input_mapping);
     free(function.instructions.instr);
 
     close(sockfd);
@@ -468,4 +408,84 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
     if (tot_time) {
         *tot_time = end - start;
     }
+}
+
+static void 
+loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, int ncgcs, char *dir) 
+{
+    /* Loads chained garbled circuits from disk, assuming the loader is the evaluator */
+
+    for (int i = 0; i < ncgcs; ++i) {
+            /* false indicates this is the evaluator */
+
+            loadChainedGC(&cgc[i], dir, i, false);
+
+            /* If we want to also load outputmap labels */
+
+            /*if (isFinalCircuitType(&chained_gcs[i].type) == true) {*/
+                /*[> This could be sped up if it's turns out to be slow <]*/
+                /*[> memory is being copied, and that could be avoided with some finesse <]*/
+                /*char fileName[50];*/
+                /*(void) sprintf(fileName, "%s/%s_%d", dir, "outputmap", chained_gcs[i].id);*/
+                /*outputmap = loadOTLabels(fileName);*/
+                /*block *temp = loadOTLabels(fileName);*/
+                /*memcpy(outputmap, temp, sizeof(block) * chained_gcs[i].gc.m * 2);*/
+                /*free(temp);*/
+
+                /*if (!outputmap)*/
+                    /*fprintf(stderr, "Error reading outputmap\n");*/
+
+                /*outputmapIdx += (2 * chained_gcs[i].gc.m);*/
+            /*} */
+        }
+}
+
+static void
+loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
+{
+        char selName[50], lblName[50];
+        (void) sprintf(selName, "%s/%s", dir, "sel"); /* XXX: security hole */
+        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
+        *corrections = loadOTSelections(selName);
+        *eval_labels = loadOTLabels(lblName);
+}
+
+static Output*
+recvOutput(int outputArrSize, int sockfd) 
+{
+    Output *output = malloc(sizeof(Output));
+
+    output->gc_id = malloc(sizeof(int) * outputArrSize);
+    output->start_wire_idx = malloc(sizeof(int) * outputArrSize);
+    output->end_wire_idx = malloc(sizeof(int) * outputArrSize);
+
+    net_recv(sockfd, output->gc_id, sizeof(int) * outputArrSize, 0);
+    net_recv(sockfd, output->start_wire_idx, sizeof(int) * outputArrSize, 0);
+    net_recv(sockfd, output->end_wire_idx, sizeof(int) * outputArrSize, 0);
+
+    return output;
+}
+
+static void
+mapOutputsWithOutputInstructions(Output *outputInstructions, int outputInstructionsSize, 
+                                 int *output, int noutputs, block **computedOutputMap,
+                                 block *outputMap)
+{
+    int output_idx = 0;
+    for (int i = 0; i < outputInstructionsSize; ++i) {
+        int start = outputInstructions->start_wire_idx[i];
+        int end = outputInstructions->end_wire_idx[i];
+        int dist = end - start + 1;
+        int gc_idx = outputInstructions->gc_id[i];
+        int res;
+
+        res = mapOutputs(&outputMap[output_idx * 2],
+                         &computedOutputMap[gc_idx][start],
+                         &output[output_idx], 
+                         dist);
+
+        assert(res == SUCCESS);
+        output_idx += dist;
+    }
+    assert(noutputs == output_idx);
 }
