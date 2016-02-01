@@ -158,21 +158,21 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
 }
 
 static void
-sendInstructions(const Instructions *insts, int fd)
+sendInstructions(const Instructions *insts, int fd, block *offsets, int noffsets)
 {
-    uint64_t a,b,c;
-    a = current_time();
     net_send(fd, &insts->size, sizeof(int), 0);
-    b = current_time();
     net_send(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
-    c = current_time();
-    fprintf(stderr, "receiving instructions: b-a=%llu c-b=%llu\n", b-a,  c-b);
+
+    net_send(fd, &noffsets, sizeof(int), 0);
+    printf("size: %zu\n", sizeof(block) * noffsets);
+    net_send(fd, offsets, sizeof(block) * noffsets, 0);
 }
 
 static void
 garbler_go(int fd, const FunctionSpec *function, const char *dir,
            const ChainedGarbledCircuit *chained_gcs, block *randLabels,
-           int num_chained_gcs, const int *circuitMapping, const int *inputs)
+           int num_chained_gcs, const int *circuitMapping, const int *inputs,
+           block *offsets, int noffsets)
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
     InputMapping imap = function->input_mapping;
@@ -183,7 +183,7 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
 
     _start = current_time();
     {
-        sendInstructions(&function->instructions, fd);
+        sendInstructions(&function->instructions, fd, offsets, noffsets);
     }
     _end = current_time();
     fprintf(stderr, "send inst: %llu\n", _end - _start);
@@ -311,7 +311,8 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
 static int
 garbler_make_real_instructions(FunctionSpec *function,
                                ChainedGarbledCircuit *chained_gcs,
-                               int num_chained_gcs, int *circuitMapping) 
+                               int num_chained_gcs, int *circuitMapping, 
+                               block *offsets, int *noffsets) 
 {
     /* primary role: populate circuitMapping
      * circuitMapping maps instruction-gc-ids --> saved-gc-ids 
@@ -360,31 +361,39 @@ garbler_make_real_instructions(FunctionSpec *function,
     for (int i = 0; i < function->n; ++i)
         imapCirc[i] = -1;
 
+    offsets[0] = zero_block();
+    int offsetsIdx = 1;
     Instruction *cur;
     for (int i = 0; i < num_instructions; ++i) {
         cur = &(function->instructions.instr[i]);
         if (cur->type == CHAIN) {
             if (cur->chFromCircId == 0) {
                 int idx = cur->chFromWireId;
-
                 if (imapCirc[idx] == -1) {
                     /* this input has not been used */
                     imapCirc[idx] = cur->chToCircId;
                     imapWire[idx] = cur->chToWireId;
-                    cur->chOffset = zero_block();
+                    cur->chOffsetIdx = 0;
                 } else {
                     /* this idx has been used */
-                    cur->chOffset = xorBlocks(
+                    offsets[offsetsIdx] = xorBlocks(
                         chained_gcs[circuitMapping[imapCirc[idx]]].inputLabels[2*imapWire[idx]],
                         chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
+                    cur->chOffsetIdx = offsetsIdx;
+                    ++offsetsIdx;
                 }
             } else {
-                cur->chOffset = xorBlocks(
+                offsets[offsetsIdx] = xorBlocks(
                     chained_gcs[circuitMapping[cur->chFromCircId]].outputMap[2*cur->chFromWireId],
                     chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
+
+                cur->chOffsetIdx = offsetsIdx;
+                ++offsetsIdx;
+
             }
         }
     }
+    *noffsets = offsetsIdx;
     free(is_circuit_used);
     free(imapCirc);
     free(imapWire);
@@ -463,8 +472,8 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     uint64_t start, end, _start, _end;
     ChainedGarbledCircuit *chained_gcs;
     FunctionSpec function;
-    int *circuitMapping;
-    block *randLabels;
+    int *circuitMapping, noffsets = 0;
+    block *randLabels = NULL, *offsets = NULL;
     char lblName[50];
 
     state_init(&state);
@@ -520,9 +529,12 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     {
         // + 1 because 0th component is inputComponent
         circuitMapping = malloc(sizeof(int) * (function.components.totComponents + 1));
+        offsets = allocate_blocks(function.instructions.size);
         if (garbler_make_real_instructions(&function, chained_gcs,
                                            num_chained_gcs,
-                                           circuitMapping) == FAILURE) {
+                                           circuitMapping,
+                                           offsets,
+                                           &noffsets) == FAILURE) {
             fprintf(stderr, "Could not make instructions\n");
             return FAILURE;
         }
@@ -533,7 +545,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     /*main function; does core of work*/
     _start = current_time();
     garbler_go(fd, &function, dir, chained_gcs, randLabels, num_chained_gcs, circuitMapping,
-               inputs);
+               inputs, offsets, noffsets);
     _end = current_time();
     fprintf(stderr, "garbler_go: %llu\n", _end - _start);
     

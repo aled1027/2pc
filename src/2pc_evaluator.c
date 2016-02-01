@@ -30,7 +30,7 @@ new_msg_writer(void *array, int idx, void *msg, size_t msglength)
 static void
 evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         Instructions* instructions, block** labels, int* circuitMapping,
-        block **computedOutputMap)
+        block **computedOutputMap, block *offsets)
 {
     /* Essence of function: populate computedOutputMap
      * computedOutputMap[0] should already be populated garb and eval input labels
@@ -52,8 +52,8 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                 break;
             case CHAIN:
                 labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
-                        computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
-                        cur->chOffset);
+                       computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
+                       offsets[cur->chOffsetIdx]);
                 break;
             default:
                 printf("Error: Instruction %d is not of a valid type\n", i);
@@ -230,13 +230,18 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
 }
 
 static void
-recvInstructions(Instructions *insts, int fd)
+recvInstructions(Instructions *insts, int fd, block **offsets)
 {
     // Without timings:
     net_recv(fd, &insts->size, sizeof insts->size, 0);
     net_recv(fd, &insts->size, sizeof(int), 0);
     insts->instr = malloc(insts->size * sizeof(Instruction));
     net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
+
+    int noffsets;
+    net_recv(fd, &noffsets, sizeof(int), 0);
+    *offsets = allocate_blocks(noffsets);
+    net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
 }
 
 void
@@ -245,7 +250,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 {
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
-    block *garb_labels = NULL, *eval_labels = NULL, *recvLabels = NULL, *outputmap = NULL, **labels = NULL;
+    block *garb_labels = NULL, *eval_labels = NULL, *recvLabels = NULL, *outputmap = NULL, **labels = NULL, *offsets = NULL;
     int *corrections = NULL, output_size, *circuitMapping, sockfd;
     uint64_t start, end, _start, _end;
     int num_garb_inputs = 0; /* later received from garbler */
@@ -275,7 +280,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 
     _start = current_time();
     {
-        recvInstructions(&function.instructions, sockfd);
+        recvInstructions(&function.instructions, sockfd, &offsets);
     }
     _end = current_time();
     fprintf(stderr, "receive inst: %llu\n", _end - _start);
@@ -366,7 +371,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
             computedOutputMap[i] = allocate_blocks(chained_gcs[i-1].gc.m);
         }
         evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
-                           labels, circuitMapping, computedOutputMap);
+                           labels, circuitMapping, computedOutputMap, offsets);
     }
     _end = current_time();
     fprintf(stderr, "evaluate: %llu\n", _end - _start);

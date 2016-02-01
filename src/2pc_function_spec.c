@@ -264,13 +264,12 @@ print_instructions(Instructions* instr)
                 printf("EVAL %d\n", instr->instr[i].evCircId);
                 break;
             case CHAIN:
-                printf("CHAIN (%d, %d) -> (%d, %d) with offset (%llu, %llu)\n", 
+                printf("CHAIN (%d, %d) -> (%d, %d) with offset (%d)\n", 
                         instr->instr[i].chFromCircId, 
                         instr->instr[i].chFromWireId,
                         instr->instr[i].chToCircId,
                         instr->instr[i].chToWireId,
-                        instr->instr[i].chOffset[0],
-                        instr->instr[i].chOffset[1]);
+                        instr->instr[i].chOffsetIdx);
 
                 break;
             default:

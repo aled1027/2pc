@@ -44,7 +44,7 @@ typedef struct {
     int chFromWireId;
     int chToCircId;
     int chToWireId;
-    block chOffset; // from_wire xor to_wire, assuming the same deltas
+    int chOffsetIdx; // index for block which is offset. If choffsetidx == -1, then zero_block
 } 
 Instruction;
 
