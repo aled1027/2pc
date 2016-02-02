@@ -82,7 +82,7 @@ extract_labels_cgc(block *garbLabels, block *evalLabels,
 
 void 
 garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
-                    block *output_map, int num_garb_inputs, int num_eval_inputs,
+                    const block *output_map, const int num_garb_inputs, const int num_eval_inputs,
                     const int *inputs, uint64_t *tot_time)
 {
     /* Does 2PC in the classic way, without components. */
@@ -158,7 +158,7 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
 }
 
 static void
-sendInstructions(const Instructions *insts, int fd, block *offsets, int noffsets)
+sendInstructions(const Instructions *insts, const int fd, const block *offsets, const int noffsets)
 {
     net_send(fd, &insts->size, sizeof(int), 0);
     net_send(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
@@ -168,10 +168,10 @@ sendInstructions(const Instructions *insts, int fd, block *offsets, int noffsets
 }
 
 static void
-garbler_go(int fd, const FunctionSpec *function, const char *dir,
-           const ChainedGarbledCircuit *chained_gcs, block *randLabels,
-           int num_chained_gcs, const int *circuitMapping, const int *inputs,
-           block *offsets, int noffsets)
+garbler_go(const int fd, const FunctionSpec *function, const char *dir,
+           const ChainedGarbledCircuit *chained_gcs, const block *randLabels,
+           const int num_chained_gcs, const int *circuitMapping, const int *inputs,
+           const block *offsets, const int noffsets)
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
     InputMapping imap = function->input_mapping;
@@ -268,7 +268,6 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
 
         net_send(fd, evalLabels, sizeof(block) * 2 * num_eval_inputs, 0);
         free(corrections);
-        free(randLabels);
     }
     _end = current_time();
     fprintf(stderr, "ot correction: %llu\n", _end - _start);
@@ -400,8 +399,8 @@ garbler_make_real_instructions(FunctionSpec *function,
 }
 
 void
-garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
-                int num_eval_inputs, int num_chained_gcs)
+garbler_offline(const char *dir, ChainedGarbledCircuit* chained_gcs,
+                const int num_eval_inputs, const int num_chained_gcs)
 {
     int serverfd, fd;
     struct state state;
@@ -526,7 +525,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     
     _start = current_time();
     {
-        // + 1 because 0th component is inputComponent
+        /* +1 because 0th component is inputComponent*/
         circuitMapping = malloc(sizeof(int) * (function.components.totComponents + 1));
         offsets = allocate_blocks(function.instructions.size);
         if (garbler_make_real_instructions(&function, chained_gcs,
@@ -563,6 +562,8 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     state_cleanup(&state);
     close(fd);
     close(serverfd);
+
+    free(randLabels);
 
     return SUCCESS;
 }

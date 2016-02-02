@@ -11,7 +11,7 @@
 #include <sys/socket.h>
 
 int
-net_send(int socket, const void *buffer, size_t length, int flags)
+net_send(const int socket, const void *buffer, const size_t length, int flags)
 {
     size_t total = 0;
     ssize_t bytesleft = length;
@@ -29,7 +29,7 @@ net_send(int socket, const void *buffer, size_t length, int flags)
 }
 
 int
-net_recv(int socket, void *buffer, size_t length, int flags)
+net_recv(const int socket, void *buffer, size_t length, int flags)
 {
     size_t total = 0;
     ssize_t bytesleft = length;

@@ -13,7 +13,7 @@ typedef void * (*ot_msg_reader)(void *msgs, int idx);
  */
 typedef void* (*ot_item_reader)(void *item, int idx, ssize_t *mlen);
 
-typedef int (*ot_choice_reader)(void *choices, int idx);
+typedef int (*ot_choice_reader)(const void *choices, int idx);
 
 typedef int (*ot_msg_writer)(void *array, int idx, void *msg, size_t maxlength);
 

@@ -5,11 +5,11 @@
 
 void
 garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
-                    block *outputMap, int num_garb_inputs, int num_eval_inputs,
+                    const block *outputMap, const int num_garb_inputs, const int num_eval_inputs,
                     const int *inputs, uint64_t *tot_time);
 
-void garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
-                     int num_eval_inputs, int num_chained_gcs);
+void garbler_offline(const char *dir, ChainedGarbledCircuit* chained_gcs,
+                     const int num_eval_inputs, const int num_chained_gcs);
 
 int garbler_online(char *function_path, char *dir, int *inputs,
                    int num_garb_inputs, int num_chained_gcs,

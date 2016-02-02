@@ -19,17 +19,15 @@ freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb);
 
 int
 saveChainedGC(ChainedGarbledCircuit* chained_gc, const char *dir, bool isGarbler);
-int loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
+int loadChainedGC(ChainedGarbledCircuit* chained_gc, const char *dir, int id,
                   bool isGarbler);
 
 void freeChainedGcs(ChainedGarbledCircuit* chained_gcs, int num);
-
-int saveOutputMap(char *fname, block *labels, int nlabels);
-int loadOutputMap(char *fname, block* labels);
-
-int saveOTLabels(char *fname, block *labels, int n, bool isSender);
-block *loadOTLabels(char *fname);
-int saveOTSelections(char *fname, int *selections, int n);
-int *loadOTSelections(char *fname);
+int saveOutputMap(const char *fname, block *labels, int nlabels);
+int loadOutputMap(const char *fname, block* labels);
+int saveOTLabels(const char *fname, block *labels, int n, bool isSender);
+block *loadOTLabels(const char *fname);
+int saveOTSelections(const char *fname, int *selections, int n);
+int *loadOTSelections(const char *fname);
 
 #endif

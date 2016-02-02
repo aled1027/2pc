@@ -13,7 +13,7 @@
 #include "utils.h"
 
 static int
-new_choice_reader(void *choices, int idx)
+new_choice_reader(const void *choices, const int idx)
 {
     int *c = (int *) choices;
     return c[idx];
@@ -28,9 +28,9 @@ new_msg_writer(void *array, int idx, void *msg, size_t msglength)
 }
 
 static void
-evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
-        Instructions* instructions, block** labels, int* circuitMapping,
-        block **computedOutputMap, block *offsets)
+evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, const int num_chained_gcs,
+        const Instructions* instructions, block** labels, const int* circuitMapping,
+        block **computedOutputMap, const block *offsets)
 {
     /* Essence of function: populate computedOutputMap
      * computedOutputMap[0] should already be populated garb and eval input labels
@@ -41,29 +41,42 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      * This is because instruction's circuits are id'ed 0,..,n-1
      * whereas saved gc id'ed arbitrarily.
      */
+    //uint64_t start, end, _start, _end, eval_tot = 0, chain_tot = 0;
     int savedCircId;
+
+    //start = current_time();
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
         switch(cur->type) {
             case EVAL:
+                //_start = current_time();
                 savedCircId = circuitMapping[cur->evCircId];
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                          computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
+                //_end = current_time();
+                //eval_tot += _end - _start;
                 break;
             case CHAIN:
+                //_start = current_time();
                 labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
                        computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
                        offsets[cur->chOffsetIdx]);
+                //_end = current_time();
+                //chain_tot += _end - _start;
                 break;
             default:
                 printf("Error: Instruction %d is not of a valid type\n", i);
                 return;
         }
     }
+    //end = current_time();
+    //fprintf(stderr, "real eval time: %llu\n", eval_tot);
+    //fprintf(stderr, "real chain time: %llu\n", chain_tot);
+    //fprintf(stderr, "real tot: %llu\n", end - start);
 }
 
-void evaluator_classic_2pc(int *input, int *output,
-        int num_garb_inputs, int num_eval_inputs,
+void evaluator_classic_2pc(const int *input, int *output,
+        const const int num_garb_inputs, int num_eval_inputs,
         uint64_t *tot_time) 
 {
     int sockfd, res;
@@ -155,7 +168,7 @@ void evaluator_classic_2pc(int *input, int *output,
 }
 
 void
-evaluator_offline(char *dir, int num_eval_inputs, int nchains)
+evaluator_offline(const char *dir, const int num_eval_inputs, const int nchains)
 {
     int sockfd;
     struct state state;
@@ -230,7 +243,7 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains)
 }
 
 static void
-recvInstructions(Instructions *insts, int fd, block **offsets)
+recvInstructions(Instructions *insts, const int fd, block **offsets)
 {
     // Without timings:
     net_recv(fd, &insts->size, sizeof insts->size, 0);
@@ -245,8 +258,8 @@ recvInstructions(Instructions *insts, int fd, block **offsets)
 }
 
 void
-evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
-                 int num_chained_gcs, uint64_t *tot_time)
+evaluator_online(const char *dir, const int *eval_inputs, const int num_eval_inputs,
+                 const int num_chained_gcs, uint64_t *tot_time)
 {
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
@@ -416,7 +429,7 @@ evaluator_online(char *dir, int *eval_inputs, int num_eval_inputs,
 }
 
 static void 
-loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, int ncgcs, char *dir) 
+loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, const int ncgcs, const char *dir) 
 {
     /* Loads chained garbled circuits from disk, assuming the loader is the evaluator */
 
@@ -446,7 +459,7 @@ loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, int ncgcs, char *dir)
 }
 
 static void
-loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
+loadOTPreprocessing(block **eval_labels, int **corrections, const char *dir)
 {
         char selName[50], lblName[50];
         (void) sprintf(selName, "%s/%s", dir, "sel"); /* XXX: security hole */
@@ -456,7 +469,7 @@ loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
 }
 
 static Output*
-recvOutput(int outputArrSize, int sockfd) 
+recvOutput(const int outputArrSize, const int sockfd) 
 {
     Output *output = malloc(sizeof(Output));
 
@@ -472,9 +485,9 @@ recvOutput(int outputArrSize, int sockfd)
 }
 
 static void
-mapOutputsWithOutputInstructions(Output *outputInstructions, int outputInstructionsSize, 
-                                 int *output, int noutputs, block **computedOutputMap,
-                                 block *outputMap)
+mapOutputsWithOutputInstructions(const Output *outputInstructions, const int outputInstructionsSize, 
+                                 int *output, const int noutputs, block **computedOutputMap,
+                                 const block *outputMap)
 {
     int output_idx = 0;
     for (int i = 0; i < outputInstructionsSize; ++i) {

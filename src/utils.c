@@ -9,7 +9,7 @@
 
 #include "state.h"
 
-void convertToBinary(int x, int *arr, int narr)
+void convertToBinary(int x, int *arr, const int narr)
 {
     int i = 0;
     while (x > 0) {
@@ -44,11 +44,12 @@ current_time(void)
         return 0;
     }
 
-    return nanoSecondsToMilliseconds(BILLION * tp.tv_sec + tp.tv_nsec);
+    return BILLION * tp.tv_sec + tp.tv_nsec;
+    /*return nanoSecondsToMilliseconds(BILLION * tp.tv_sec + tp.tv_nsec);*/
 }
 
 uint64_t
-nanoSecondsToMilliseconds(uint64_t nanoseconds) {
+nanoSecondsToMilliseconds(const uint64_t nanoseconds) {
     return nanoseconds / 1000000;
 }
 
@@ -76,7 +77,7 @@ arrayPopulateRange(int *arr, int start, int end)
 }
 
 int *
-allocate_ints(size_t nints)
+allocate_ints(const size_t nints)
 {
     int *ret = malloc(sizeof(int) * nints);
     if (ret == NULL) {
@@ -99,7 +100,7 @@ filesize(const char *filename)
 }
 
 int 
-writeBufferToFile(char* buffer, size_t buf_size, char* fileName)
+writeBufferToFile(char* buffer, size_t buf_size, const char* fileName)
 {
     FILE *f;
     f = fopen(fileName, "w");
@@ -113,7 +114,7 @@ writeBufferToFile(char* buffer, size_t buf_size, char* fileName)
 }
 
 int
-readFileIntoBuffer(char* buffer, char* fileName) 
+readFileIntoBuffer(char* buffer, const char* fileName) 
 {
     /* assume buffer is already malloced */
     assert(buffer);

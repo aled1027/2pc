@@ -193,7 +193,7 @@ ot_np_send(struct state *st, int fd, void *msgs, int msglength, int num_ots,
 }
 
 int
-ot_np_recv(struct state *st, int fd, void *choices, int nchoices, int msglength,
+ot_np_recv(struct state *st, int fd, const void *choices, int nchoices, int msglength,
            int N, void *out,
            ot_choice_reader ot_choice_reader, ot_msg_writer ot_msg_writer)
 {
