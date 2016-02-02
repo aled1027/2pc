@@ -399,7 +399,7 @@ garbler_make_real_instructions(FunctionSpec *function,
 }
 
 void
-garbler_offline(const char *dir, ChainedGarbledCircuit* chained_gcs,
+garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
                 const int num_eval_inputs, const int num_chained_gcs)
 {
     int serverfd, fd;

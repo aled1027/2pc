@@ -28,7 +28,7 @@ new_msg_writer(void *array, int idx, void *msg, size_t msglength)
 }
 
 static void
-evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, const int num_chained_gcs,
+evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         const Instructions* instructions, block** labels, const int* circuitMapping,
         block **computedOutputMap, const block *offsets)
 {
@@ -168,7 +168,7 @@ void evaluator_classic_2pc(const int *input, int *output,
 }
 
 void
-evaluator_offline(const char *dir, const int num_eval_inputs, const int nchains)
+evaluator_offline(char *dir, const int num_eval_inputs, const int nchains)
 {
     int sockfd;
     struct state state;
@@ -258,8 +258,8 @@ recvInstructions(Instructions *insts, const int fd, block **offsets)
 }
 
 void
-evaluator_online(const char *dir, const int *eval_inputs, const int num_eval_inputs,
-                 const int num_chained_gcs, uint64_t *tot_time)
+evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
+                 int num_chained_gcs, uint64_t *tot_time)
 {
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
@@ -429,7 +429,7 @@ evaluator_online(const char *dir, const int *eval_inputs, const int num_eval_inp
 }
 
 static void 
-loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, const int ncgcs, const char *dir) 
+loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, int ncgcs, char *dir) 
 {
     /* Loads chained garbled circuits from disk, assuming the loader is the evaluator */
 
@@ -459,7 +459,7 @@ loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, const int ncgcs, const ch
 }
 
 static void
-loadOTPreprocessing(block **eval_labels, int **corrections, const char *dir)
+loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
 {
         char selName[50], lblName[50];
         (void) sprintf(selName, "%s/%s", dir, "sel"); /* XXX: security hole */
@@ -469,7 +469,7 @@ loadOTPreprocessing(block **eval_labels, int **corrections, const char *dir)
 }
 
 static Output*
-recvOutput(const int outputArrSize, const int sockfd) 
+recvOutput(int outputArrSize, int sockfd) 
 {
     Output *output = malloc(sizeof(Output));
 

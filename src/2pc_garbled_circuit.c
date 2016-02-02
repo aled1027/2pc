@@ -22,7 +22,7 @@ freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb)
 }
 
 int
-saveChainedGC(ChainedGarbledCircuit* chained_gc, const char *dir, bool isGarbler)
+saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler)
 {
     char fname[50];
     FILE *f;
@@ -43,7 +43,7 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, const char *dir, bool isGarbler
 }
 
 int
-loadChainedGC(ChainedGarbledCircuit* chained_gc, const char *dir, int id,
+loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
               bool isGarbler)
 {
     char fname[50];
@@ -68,7 +68,7 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, const char *dir, int id,
 }
 
 int 
-saveOutputMap(const char *fname, block *labels, int nlabels)
+saveOutputMap(char *fname, block *labels, int nlabels)
 {
     size_t size = sizeof(block) * nlabels;
     if (writeBufferToFile((char *) labels, size, fname) == FAILURE)
@@ -77,7 +77,7 @@ saveOutputMap(const char *fname, block *labels, int nlabels)
 }
 
 int
-saveOTLabels(const char *fname, block *labels, int n, bool isSender)
+saveOTLabels(char *fname, block *labels, int n, bool isSender)
 {
     size_t size = sizeof(block) * (isSender ?  2 : 1) * n;
 
@@ -88,7 +88,7 @@ saveOTLabels(const char *fname, block *labels, int n, bool isSender)
 }
 
 int
-loadOutputMap(const char *fname, block* labels)
+loadOutputMap(char *fname, block* labels)
 {
     labels = NULL;
     (void) posix_memalign((void **) &labels, 128, filesize(fname));
@@ -102,7 +102,7 @@ loadOutputMap(const char *fname, block* labels)
 }
 
 block *
-loadOTLabels(const char *fname)
+loadOTLabels(char *fname)
 {
     block *buf = NULL;
     (void) posix_memalign((void **) &buf, 128, filesize(fname));
@@ -115,7 +115,7 @@ loadOTLabels(const char *fname)
 
     
 int
-saveOTSelections(const char *fname, int *selections, int n)
+saveOTSelections(char *fname, int *selections, int n)
 {
     size_t size = sizeof(int) / sizeof(char) * n;
     if (writeBufferToFile((char *) selections, size, fname) == FAILURE)
@@ -125,7 +125,7 @@ saveOTSelections(const char *fname, int *selections, int n)
 }
 
 int *
-loadOTSelections(const char *fname)
+loadOTSelections(char *fname)
 {
     int *buf;
 

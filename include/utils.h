@@ -21,7 +21,7 @@
     ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
 
 void 
-convertToBinary(int x, int *arr, const int narr);
+convertToBinary(int x, int *arr, int narr);
 
 void
 reverse_array(int *arr, size_t nints);
@@ -30,7 +30,7 @@ uint64_t
 current_time(void);
 
 uint64_t
-nanoSecondsToMilliseconds(const uint64_t nanoseconds);
+nanoSecondsToMilliseconds(uint64_t nanoseconds);
 
 void *
 ot_malloc(size_t size);
@@ -42,16 +42,16 @@ void
 arrayPopulateRange(int *arr, int start, int end);
 
 int *
-allocate_ints(const size_t nints);
+allocate_ints(size_t nints);
 
 long 
-filesize(const char *filename);
+filesize(char *filename);
 
 int 
-writeBufferToFile(char* buffer, size_t buf_size, const char* fileName);
+writeBufferToFile(char* buffer, size_t buf_size, char* fileName);
 
 int
-readFileIntoBuffer(char* buffer, const char* fileName);
+readFileIntoBuffer(char* buffer, char* fileName);
 
 void
 debug(char *s);
