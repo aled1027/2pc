@@ -41,7 +41,15 @@ aes_garb_off(char *dir, int nchains, ChainingType chainingType)
         createInputLabelsWithR(chained_gcs[i].inputLabels, gc->n, delta);
         garbleCircuit(gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap,
                       GARBLE_TYPE_STANDARD);
-   }
+
+    }
+
+    if (chainingType == CHAINING_TYPE_SIMD) {
+        for (int i = 0; i < nchains; i++) {
+            printf("break here\n");
+            generateOfflineChainingOffsets(&chained_gcs[i]);
+        }
+    }
 
     garbler_offline(dir, chained_gcs, aesNumEvalInputs(), nchains, chainingType);
     for (int i = 0; i < nchains; ++i) {

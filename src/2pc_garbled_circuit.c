@@ -1,14 +1,39 @@
-#include "2pc_garbled_circuit.h"
 
 #include <malloc.h>
 #include <assert.h>
 #include <stdint.h>
 #include <math.h>  /* log2 */
 
+#include "crypto.h"
 #include "utils.h"
 #include "2pc_common.h"
 #include "circuits.h"
 #include "gates.h"
+
+#include "2pc_garbled_circuit.h"
+
+int 
+generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
+{
+    block rand, hashBlock;
+    int m;
+
+    m = cgc->gc.m;
+    cgc->offlineChainingOffsets = allocate_blocks(m);
+    rand = randomBlock();
+
+    for (int i = 0; i < m; ++i) {
+        /* check with Ask Alex M to see about hash function */
+        hashBlock = zero_block();
+        sha1_hash((char *) &hashBlock, sizeof(block), i, 
+                (unsigned char *) &i, sizeof i);
+
+        cgc->offlineChainingOffsets[i] = xorBlocks(
+                xorBlocks(rand, cgc->outputMap[2*i]),
+                hashBlock);
+    }
+    return 0;
+}
 
 int 
 freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb) 

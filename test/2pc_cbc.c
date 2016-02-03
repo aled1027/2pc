@@ -62,6 +62,12 @@ void cbc_garb_off(char *dir, ChainingType chainingType)
         garbleCircuit(gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap,
                       GARBLE_TYPE_STANDARD);
     }
+
+    if (chainingType == CHAINING_TYPE_SIMD) {
+        for (int i = 0; i < num_chained_gcs; i++)
+            generateOfflineChainingOffsets(&chained_gcs[i]);
+    }
+
     garbler_offline(dir, chained_gcs, cbcNumEvalInputs(), num_chained_gcs, chainingType);
     for (int i = 0; i < num_chained_gcs; ++i) {
         freeChainedGarbledCircuit(&chained_gcs[i], true);

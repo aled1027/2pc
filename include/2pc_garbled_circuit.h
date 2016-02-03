@@ -8,7 +8,7 @@
 /* Our abstraction/layer on top of GarbledCircuit */
 typedef enum {
     CHAINING_TYPE_STANDARD,
-    GARBLE_TYPE_SIMD,
+    CHAINING_TYPE_SIMD,
 } ChainingType;
 
 typedef struct {
@@ -19,6 +19,8 @@ typedef struct {
     block *outputMap;
     block *offlineChainingOffsets; /* for SIMD chaining operation */
 } ChainedGarbledCircuit; 
+
+int generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc);
 
 int
 freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb);

@@ -222,6 +222,7 @@ go(struct args *args)
         ncircs = aesNumCircs();
         noutputs = aesNumOutputs();
         chainingType = CHAINING_TYPE_STANDARD;
+        chainingType = CHAINING_TYPE_SIMD;
         fn = "functions/aes.json";
         type = "AES";
         break;

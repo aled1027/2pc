@@ -69,6 +69,12 @@ void leven_garb_off(ChainingType chainingType)
         chainedGCs[i].id = i;
         chainedGCs[i].type = LEVEN_CORE;
     }
+
+    if (chainingType == CHAINING_TYPE_SIMD) {
+        for (int i = 0; i < numCircuits; i++)
+            generateOfflineChainingOffsets(&chainedGCs[i]);
+    }
+
     int numEvalLabels = levenNumEvalLabels();
     garbler_offline("files/garbler_gcs", chainedGCs, numEvalLabels, numCircuits, chainingType);
 }
