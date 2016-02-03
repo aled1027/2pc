@@ -18,7 +18,7 @@ int aesNumOutputs() { return 128; }
 /* static unsigned long NUM_GATES = 34000; */
 
 void
-aes_garb_off(char *dir, int nchains)
+aes_garb_off(char *dir, int nchains, ChainingType chainingType)
 {
     printf("Running garb offline\n");
     ChainedGarbledCircuit *chained_gcs = calloc(nchains, sizeof(ChainedGarbledCircuit));
@@ -43,7 +43,7 @@ aes_garb_off(char *dir, int nchains)
                       GARBLE_TYPE_STANDARD);
    }
 
-    garbler_offline(dir, chained_gcs, aesNumEvalInputs(), nchains);
+    garbler_offline(dir, chained_gcs, aesNumEvalInputs(), nchains, chainingType);
     for (int i = 0; i < nchains; ++i) {
         freeChainedGarbledCircuit(&chained_gcs[i], true);
     }

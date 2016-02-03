@@ -22,7 +22,8 @@ freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb)
 }
 
 int
-saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler)
+saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
+              ChainingType chainingType)
 {
     char fname[50];
     FILE *f;
@@ -39,12 +40,15 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler)
         fwrite(chained_gc->inputLabels, sizeof(block), 2 * gc->n, f);
         fwrite(chained_gc->outputMap, sizeof(block), 2 * gc->m, f);
     }
+    //} else {
+    //    fwrite(chained_gc->offlineChainingOffsets, sizeof(block), gc->m, f);
+    //}
     return SUCCESS;
 }
 
 int
 loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
-              bool isGarbler)
+              bool isGarbler, ChainingType chainingType)
 {
     char fname[50];
     FILE *f;
@@ -64,6 +68,10 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
         fread(chained_gc->inputLabels, sizeof(block), 2 * gc->n, f);
         fread(chained_gc->outputMap, sizeof(block), 2 * gc->m, f);
     }
+    //} else {
+    //    chained_gc->offlineChainingOffsets = allocate_blocks(gc->m);
+    //    fread(chained_gc->offlineChainingOffsets, sizeof(block), gc->m, f);
+    //}
     return SUCCESS;
 }
 

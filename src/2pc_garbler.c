@@ -400,7 +400,7 @@ garbler_make_real_instructions(FunctionSpec *function,
 
 void
 garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
-                const int num_eval_inputs, const int num_chained_gcs)
+                const int num_eval_inputs, const int num_chained_gcs, ChainingType chainingType)
 {
     int serverfd, fd;
     struct state state;
@@ -423,10 +423,11 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
         /* Send chained garbled circuits */
         for (int i = 0; i < num_chained_gcs; i++) {
             chained_gc_comm_send(fd, &chained_gcs[i]);
+
             /*if (isFinalCircuitType(&chained_gcs[i].type) == true) {*/
                 /*net_send(fd, chained_gcs[i].outputMap, 2 * chained_gcs[i].gc.m * sizeof(block), 0);*/
             /*}*/
-            saveChainedGC(&chained_gcs[i], dir, true);
+            saveChainedGC(&chained_gcs[i], dir, true, chainingType);
         }
 
         /* pre-processing OT using random labels */
@@ -458,7 +459,7 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
 
 int
 garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
-               int num_chained_gcs, uint64_t *tot_time) 
+               int num_chained_gcs, uint64_t *tot_time, ChainingType chainingType) 
 {
     /*runs the garbler code
      * First, initializes and loads function, and then calls garbler_go which
@@ -508,7 +509,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
         /* load chained garbled circuits from disk */
         chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         for (int i = 0; i < num_chained_gcs; ++i) {
-            loadChainedGC(&chained_gcs[i], dir, i, true);
+            loadChainedGC(&chained_gcs[i], dir, i, true, chainingType);
         }
 
         (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */

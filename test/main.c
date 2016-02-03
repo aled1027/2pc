@@ -62,9 +62,9 @@ static struct option opts[] =
 };
 
 static void
-eval_off(int ninputs, int nchains)
+eval_off(int ninputs, int nchains, ChainingType chainingType)
 {
-    evaluator_offline(EVALUATOR_DIR, ninputs, nchains);
+    evaluator_offline(EVALUATOR_DIR, ninputs, nchains, chainingType);
 }
 
 static int
@@ -74,7 +74,7 @@ compare(const void * a, const void * b)
 }
 
 static void
-garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials)
+garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials, ChainingType chainingType)
 {
     uint64_t sum = 0, *tot_time;
     int *inputs;
@@ -83,7 +83,6 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials)
     tot_time = malloc(sizeof(uint64_t) * ntrials);
 
     for (int i = 0; i < ntrials; i++) {
-
         //printf("inputs: ");
         //for (int j = 0; j < ninputs; j++) {
         //    inputs[j] = rand() % 2; 
@@ -91,7 +90,7 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials)
         //}
         //printf("\n");
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
-                       &tot_time[i]);
+                       &tot_time[i], chainingType);
         printf("%llu\n", tot_time[i]);
         sum += tot_time[i];
     }
@@ -104,7 +103,7 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials)
 }
 
 static void
-eval_on(int ninputs, int nlabels, int nchains, int ntrials) {
+eval_on(int ninputs, int nlabels, int nchains, int ntrials, ChainingType chainingType) {
     uint64_t sum = 0, *tot_time;
     int *inputs;
 
@@ -119,7 +118,7 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials) {
         //    printf("%d", inputs[j]);
         //}
         //printf("\n");
-        evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i]);
+        evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i], chainingType);
         printf("total: %llu\n", tot_time[i]);
         sum += tot_time[i];
     }
@@ -213,6 +212,7 @@ go(struct args *args)
 {
     int n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs;
     char *fn, *type;
+    ChainingType chainingType;
 
     switch (args->type) {
     case AES:
@@ -221,6 +221,7 @@ go(struct args *args)
         n_eval_labels = n_eval_inputs;
         ncircs = aesNumCircs();
         noutputs = aesNumOutputs();
+        chainingType = CHAINING_TYPE_STANDARD;
         fn = "functions/aes.json";
         type = "AES";
         break;
@@ -230,6 +231,7 @@ go(struct args *args)
         n_eval_labels = n_eval_inputs;
         ncircs = cbcNumCircs();
         noutputs = cbcNumOutputs();
+        chainingType = CHAINING_TYPE_STANDARD;
         fn = "functions/cbc_10_10.json";
         type = "CBC";
         break;
@@ -239,6 +241,7 @@ go(struct args *args)
         n_eval_labels = levenNumEvalLabels();
         ncircs = levenNumCircs();
         noutputs = levenNumOutputs();
+        chainingType = CHAINING_TYPE_STANDARD;
         fn = "functions/leven_2.json";
         type = "LEVEN";
         break;
@@ -254,13 +257,13 @@ go(struct args *args)
         printf("Offline garbling\n");
         switch (args->type) {
         case AES:
-            aes_garb_off(GARBLER_DIR, 10);
+            aes_garb_off(GARBLER_DIR, 10, chainingType);
             break;
         case CBC:
-            cbc_garb_off(GARBLER_DIR);
+            cbc_garb_off(GARBLER_DIR, chainingType);
             break;
         case LEVEN:
-            leven_garb_off();
+            leven_garb_off(chainingType);
             break;
         default:
             assert(false);
@@ -268,17 +271,17 @@ go(struct args *args)
         }
     } else if (args->eval_off) {
         printf("Offline evaluating\n");
-        eval_off(n_eval_labels, ncircs);
+        eval_off(n_eval_labels, ncircs, chainingType);
     } else if (args->garb_on) {
         printf("Online garbling\n");
         if (args->type == LEVEN) {
-            leven_garb_on();
+            leven_garb_on(chainingType);
         } else {
-            garb_on(fn, n_garb_inputs, ncircs, args->ntrials);
+            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, chainingType);
         }
     } else if (args->eval_on) {
         printf("Online evaluating\n");
-        eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials);
+        eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, chainingType);
     } else if (args->garb_full) {
         printf("Full garbling\n");
         GarbledCircuit gc;

@@ -9,6 +9,6 @@ int cbcNumEvalInputs(void);
 int cbcNumCircs(void);
 int cbcNumOutputs(void);
 
-void cbc_garb_off(char *dir);
+void cbc_garb_off(char *dir, ChainingType chainingType);
 
 #endif

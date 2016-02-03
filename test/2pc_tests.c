@@ -490,6 +490,8 @@ static void saveAndLoadTest()
     block delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
 
+    ChainingType chainingType = CHAINING_TYPE_STANDARD;
+
     int l = 2;
     int n = 10;
     int m = 2;
@@ -518,11 +520,11 @@ static void saveAndLoadTest()
     /* Declare chaining vars */
     cgc.id = 0;
     cgc.type = LEVEN_CORE;
-    saveChainedGC(&cgc, dir, true);
+    saveChainedGC(&cgc, dir, true, chainingType);
 
     /* loading */
     ChainedGarbledCircuit cgc2;
-    loadChainedGC(&cgc2, dir, 0, true);
+    loadChainedGC(&cgc2, dir, 0, true, chainingType);
     int inputs[n];
     int outputs[n];
     for (int i = 0; i < n; i++)

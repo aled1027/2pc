@@ -34,7 +34,7 @@ static int getNumGatesPerCore() {return 10; } // figure out this number
 static int getNumCoresForL() { return l * 10; } // figure out this number
 static int getNumGates() { return getNumCoresForL() * getNumGatesPerCore(); }
 
-void leven_garb_off() 
+void leven_garb_off(ChainingType chainingType) 
 {
     printf("Running leven garb offline\n");
 
@@ -70,10 +70,10 @@ void leven_garb_off()
         chainedGCs[i].type = LEVEN_CORE;
     }
     int numEvalLabels = levenNumEvalLabels();
-    garbler_offline("files/garbler_gcs", chainedGCs, numEvalLabels, numCircuits);
+    garbler_offline("files/garbler_gcs", chainedGCs, numEvalLabels, numCircuits, chainingType);
 }
 
-void leven_garb_on()
+void leven_garb_on(ChainingType chainingType)
 {
     printf("Running leven garb online\n");
     char *functionPath = COMPONENT_FUNCTION_PATH;
@@ -95,7 +95,8 @@ void leven_garb_on()
     printf("\n");
 
     uint64_t tot_time;
-    garbler_online(functionPath, "files/garbler_gcs", garbInputs, numGarbInputs, numCircuits, &tot_time);
+    garbler_online(functionPath, "files/garbler_gcs", garbInputs, numGarbInputs, 
+            numCircuits, &tot_time, chainingType);
     free(garbInputs);
 }
 

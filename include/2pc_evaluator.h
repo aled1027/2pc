@@ -9,23 +9,9 @@ evaluator_classic_2pc(const int *input, int *output,
                       uint64_t *tot_time);
 
 void
-evaluator_offline(char *dir, const int num_eval_inputs, const int nchains);
+evaluator_offline(char *dir, const int num_eval_inputs, const int nchains, ChainingType chainingType);
 
 void
 evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
-                 int num_chained_gcs, uint64_t *tot_time);
-
-static void
-loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, int ncgcs, char *dir);
-
-static void
-loadOTPreprocessing(block **eval_labels, int **corrections, char *dir);
-
-static Output*
-recvOutput(const int outputArrSize, const int sockfd) ;
-
-static void
-mapOutputsWithOutputInstructions(const Output *outputInstructions, const int outputInstructionsSize,
-                                 int *output, const int noutputs, block **computedOutputMap,
-                                 const block *outputMap);
+                 int num_chained_gcs, uint64_t *tot_time, ChainingType chainingType);
 #endif

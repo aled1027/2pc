@@ -8,6 +8,6 @@ int aesNumEvalInputs(void);
 int aesNumCircs(void);
 int aesNumOutputs(void);
 
-void aes_garb_off(char *dir, int nchains);
+void aes_garb_off(char *dir, int nchains, ChainingType chainingType);
 
 #endif
