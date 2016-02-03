@@ -15,12 +15,11 @@
 int 
 generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
 {
-    block rand, hashBlock;
-    int m;
+    block hashBlock;
+    int m = cgc->gc.m;
 
-    m = cgc->gc.m;
     cgc->offlineChainingOffsets = allocate_blocks(m);
-    rand = randomBlock();
+    cgc->SIMDBlock = randomBlock();
 
     for (int i = 0; i < m; ++i) {
         /* check with Ask Alex M to see about hash function */
@@ -29,8 +28,9 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
                 (unsigned char *) &i, sizeof i);
 
         cgc->offlineChainingOffsets[i] = xorBlocks(
-                xorBlocks(rand, cgc->outputMap[2*i]),
+                xorBlocks(cgc->SIMDBlock, cgc->outputMap[2*i]),
                 hashBlock);
+
     }
     return 0;
 }
@@ -64,6 +64,9 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
     if (isGarbler) {
         fwrite(chained_gc->inputLabels, sizeof(block), 2 * gc->n, f);
         fwrite(chained_gc->outputMap, sizeof(block), 2 * gc->m, f);
+        if (chainingType == CHAINING_TYPE_SIMD)
+            fwrite(&chained_gc->SIMDBlock, sizeof(block), 1, f);
+
     }
     
     if (!isGarbler && chainingType == CHAINING_TYPE_SIMD)
@@ -92,6 +95,9 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
         chained_gc->outputMap = allocate_blocks(2 * gc->m);
         fread(chained_gc->inputLabels, sizeof(block), 2 * gc->n, f);
         fread(chained_gc->outputMap, sizeof(block), 2 * gc->m, f);
+
+        if (chainingType == CHAINING_TYPE_SIMD)
+            fwrite(&chained_gc->SIMDBlock, sizeof(block), 1, f);
     }
 
     if (!isGarbler && chainingType == CHAINING_TYPE_SIMD) {
