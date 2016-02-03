@@ -6,7 +6,7 @@
 
 int gc_comm_send(int sock, GarbledCircuit *gc);
 int gc_comm_recv(int sock, GarbledCircuit *gc);
-int chained_gc_comm_send(int sock, ChainedGarbledCircuit *chained_gc);
-int chained_gc_comm_recv(int sock, ChainedGarbledCircuit *chained_gc) ;
+int chained_gc_comm_send(int sock, ChainedGarbledCircuit *chained_gc, ChainingType chainingType);
+int chained_gc_comm_recv(int sock, ChainedGarbledCircuit *chained_gc, ChainingType chainingType) ;
 
 #endif

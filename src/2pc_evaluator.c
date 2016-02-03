@@ -185,22 +185,7 @@ evaluator_offline(char *dir, const int num_eval_inputs, const int nchains, Chain
     start = current_time();
 
     for (int i = 0; i < nchains; i++) {
-        chained_gc_comm_recv(sockfd, &cgc);
-        /* If we want to add outputmap */
-        /*if (isFinalCircuitType(&cgc.type) == true) {*/
-            /*char fileName[50];*/
-            /*int nOutputLabels;*/
-            /*block *outputMap;*/
-
-            /*nOutputLabels = 2 *cgc.gc.m;*/
-            /*outputMap = allocate_blocks(nOutputLabels);*/
-
-            /*net_recv(sockfd, outputMap, nOutputLabels * sizeof(block), 0);*/
-            /*(void) sprintf(fileName, "%s/%s_%d", dir, "outputmap", cgc.id);*/
-            /*if (saveOutputMap(fileName, outputMap, nOutputLabels) == FAILURE)*/
-                /*fprintf(stderr, "Error writing outputmap\n");*/
-        /*}*/
-
+        chained_gc_comm_recv(sockfd, &cgc, chainingType);
         saveChainedGC(&cgc, dir, false, chainingType);
         freeChainedGarbledCircuit(&cgc, false);
     }

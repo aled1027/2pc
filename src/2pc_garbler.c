@@ -422,11 +422,7 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
     {
         /* Send chained garbled circuits */
         for (int i = 0; i < num_chained_gcs; i++) {
-            chained_gc_comm_send(fd, &chained_gcs[i]);
-
-            /*if (isFinalCircuitType(&chained_gcs[i].type) == true) {*/
-                /*net_send(fd, chained_gcs[i].outputMap, 2 * chained_gcs[i].gc.m * sizeof(block), 0);*/
-            /*}*/
+            chained_gc_comm_send(fd, &chained_gcs[i], chainingType);
             saveChainedGC(&chained_gcs[i], dir, true, chainingType);
         }
 
