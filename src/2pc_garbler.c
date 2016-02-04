@@ -158,7 +158,8 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
 }
 
 static void
-sendInstructions(const Instructions *insts, const int fd, const block *offsets, const int noffsets)
+sendInstructions(const Instructions *insts, const int fd, const block *offsets, 
+        const int noffsets, ChainingType chainingType)
 {
     net_send(fd, &insts->size, sizeof(int), 0);
     net_send(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
@@ -168,10 +169,10 @@ sendInstructions(const Instructions *insts, const int fd, const block *offsets, 
 }
 
 static void
-garbler_go(const int fd, const FunctionSpec *function, const char *dir,
+garbler_go(int fd, const FunctionSpec *function, const char *dir,
            const ChainedGarbledCircuit *chained_gcs, const block *randLabels,
-           const int num_chained_gcs, const int *circuitMapping, const int *inputs,
-           const block *offsets, const int noffsets)
+           int num_chained_gcs, const int *circuitMapping, const int *inputs,
+           const block *offsets, const int noffsets, ChainingType chainingType)
 {
     /* primary role: send appropriate labels to evaluator and garbled circuits*/
     InputMapping imap = function->input_mapping;
@@ -182,7 +183,7 @@ garbler_go(const int fd, const FunctionSpec *function, const char *dir,
 
     _start = current_time();
     {
-        sendInstructions(&function->instructions, fd, offsets, noffsets);
+        sendInstructions(&function->instructions, fd, offsets, noffsets, chainingType);
     }
     _end = current_time();
     fprintf(stderr, "send inst: %llu\n", _end - _start);
@@ -310,7 +311,7 @@ static int
 garbler_make_real_instructions(FunctionSpec *function,
                                ChainedGarbledCircuit *chained_gcs,
                                int num_chained_gcs, int *circuitMapping, 
-                               block *offsets, int *noffsets) 
+                               block *offsets, int *noffsets, ChainingType chainingType) 
 {
     /* primary role: populate circuitMapping
      * circuitMapping maps instruction-gc-ids --> saved-gc-ids 
@@ -347,54 +348,93 @@ garbler_make_real_instructions(FunctionSpec *function,
             return FAILURE;
         }
     }
+    free(is_circuit_used);
     
-    // set the chaining offsets.
-    int num_instructions = function->instructions.size;
 
-    // size of n
-    /* Did not know what to name these arrays. They are used for filling
-     * in the offsets for InputComponent */
+    /* Part 2: Set chaining offsets */
+    /* This is done in two loops. The first loop does everything for the input 
+     * mapping. The second loop does everything for regular chaining. While clearly
+     * not the most efficient, as it could all be done in a single loop, that would require
+     * a lot of jumping, and is not the most readable/maintainable code.*/
+
+    /* Add input component chaining offsets */
     int *imapCirc = allocate_ints(function->n);
     int *imapWire = allocate_ints(function->n);
     for (int i = 0; i < function->n; ++i)
         imapCirc[i] = -1;
 
-    offsets[0] = zero_block();
     int offsetsIdx = 1;
+    int num_instructions = function->instructions.size;
+    offsets[0] = zero_block();
     Instruction *cur;
+
     for (int i = 0; i < num_instructions; ++i) {
         cur = &(function->instructions.instr[i]);
-        if (cur->type == CHAIN) {
-            if (cur->chFromCircId == 0) {
-                int idx = cur->chFromWireId;
-                if (imapCirc[idx] == -1) {
-                    /* this input has not been used */
-                    imapCirc[idx] = cur->chToCircId;
-                    imapWire[idx] = cur->chToWireId;
-                    cur->chOffsetIdx = 0;
-                } else {
-                    /* this idx has been used */
-                    offsets[offsetsIdx] = xorBlocks(
-                        chained_gcs[circuitMapping[imapCirc[idx]]].inputLabels[2*imapWire[idx]],
-                        chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
-                    cur->chOffsetIdx = offsetsIdx;
-                    ++offsetsIdx;
-                }
+        if (cur->type == CHAIN && cur->chFromCircId == 0) {
+            int idx = cur->chFromWireId;
+            if (imapCirc[idx] == -1) {
+                /* this input has not been used */
+                imapCirc[idx] = cur->chToCircId;
+                imapWire[idx] = cur->chToWireId;
+                cur->chOffsetIdx = 0;
             } else {
+                /* this idx has been used */
+                offsets[offsetsIdx] = xorBlocks(
+                    chained_gcs[circuitMapping[imapCirc[idx]]].inputLabels[2*imapWire[idx]],
+                    chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
+                cur->chOffsetIdx = offsetsIdx;
+                ++offsetsIdx;
+            }
+        }
+    }
+    free(imapCirc);
+    free(imapWire);
+
+    if (chainingType == CHAINING_TYPE_STANDARD) {
+        Instruction *cur;
+        for (int i = 0; i < num_instructions; ++i) {
+            cur = &(function->instructions.instr[i]);
+            if (cur->type == CHAIN && cur->chFromCircId != 0) {
                 offsets[offsetsIdx] = xorBlocks(
                     chained_gcs[circuitMapping[cur->chFromCircId]].outputMap[2*cur->chFromWireId],
                     chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
 
                 cur->chOffsetIdx = offsetsIdx;
                 ++offsetsIdx;
+            }
+        }
+    } else { /* CHAINING_TYPE_SIMD */
+        /* Do chaining with SIMD. Here an entire component is chained with a single offset */
 
+        /* gcChainingMap tracks which component is mapping to which component. 
+         * In particular, maps gc-id \times gc-id to offset idx */
+        int gcChainingMap[num_chained_gcs+1][num_chained_gcs+1];
+        for (int i = 0; i < num_chained_gcs+1; i++)
+            for (int j = 0; j < num_chained_gcs+1; j++)
+                gcChainingMap[i][j] = -1;
+        
+        for (int i = 0; i < num_instructions; ++i) {
+            cur = &(function->instructions.instr[i]);
+            if (cur->type == CHAIN && cur->chFromCircId != 0) {
+                if (gcChainingMap[cur->chFromCircId][cur->chToCircId] == -1) {
+                /* add approparite offset to offsets */
+                offsets[offsetsIdx] = xorBlocks(
+                        chained_gcs[circuitMapping[cur->chFromCircId]].SIMDBlock,
+                        chained_gcs[circuitMapping[cur->chToCircId]].SIMDBlock);
+                gcChainingMap[cur->chFromCircId][cur->chToCircId] = offsetsIdx;
+
+                
+                cur->chOffsetIdx = offsetsIdx;
+                ++offsetsIdx;
+
+                } else {
+                    /* reference block already in offsets */
+                    cur->chOffsetIdx = gcChainingMap[cur->chFromCircId][cur->chToCircId];
+                }
             }
         }
     }
     *noffsets = offsetsIdx;
-    free(is_circuit_used);
-    free(imapCirc);
-    free(imapWire);
     return SUCCESS;
 }
 
@@ -529,7 +569,8 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
                                            num_chained_gcs,
                                            circuitMapping,
                                            offsets,
-                                           &noffsets) == FAILURE) {
+                                           &noffsets,
+                                           chainingType) == FAILURE) {
             fprintf(stderr, "Could not make instructions\n");
             return FAILURE;
         }
@@ -540,7 +581,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     /*main function; does core of work*/
     _start = current_time();
     garbler_go(fd, &function, dir, chained_gcs, randLabels, num_chained_gcs, circuitMapping,
-               inputs, offsets, noffsets);
+               inputs, offsets, noffsets, chainingType);
     _end = current_time();
     fprintf(stderr, "garbler_go: %llu\n", _end - _start);
     

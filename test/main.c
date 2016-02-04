@@ -222,7 +222,7 @@ go(struct args *args)
         ncircs = aesNumCircs();
         noutputs = aesNumOutputs();
         chainingType = CHAINING_TYPE_STANDARD;
-        chainingType = CHAINING_TYPE_SIMD;
+        //chainingType = CHAINING_TYPE_SIMD;
         fn = "functions/aes.json";
         type = "AES";
         break;
@@ -251,8 +251,8 @@ go(struct args *args)
         exit(EXIT_FAILURE);
     }
 
-    printf("Running %s with (%d, %d) inputs, %d outputs, %d chains, %d trials\n",
-           type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, args->ntrials);
+    printf("Running %s with (%d, %d) inputs, %d outputs, %d chains, %d chain_type, %d trials\n",
+           type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, chainingType, args->ntrials);
 
     if (args->garb_off) {
         printf("Offline garbling\n");
