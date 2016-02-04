@@ -50,11 +50,11 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 
                 savedCircId = circuitMapping[cur->evCircId];
 
-//                printf("Evaluating %d \n", savedCircId);
-//                printf("input label[0]: ");
-//                print_block(labels[cur->evCircId][0]);
-//                printf("\n");
-                
+                printf("evaluating circuit %d, cur->evCircId=%d\n", savedCircId, cur->evCircId);
+                printf("inputLabel[0] = ");
+                print_block(labels[cur->evCircId][0]);
+                printf("\n");
+
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                          computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
 
@@ -64,21 +64,20 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                     /* correct computedOutputMap offlineChainingOffsets */
                     /* i.e. correct to enable SIMD trick */
 
-                    //print_block(computedOutputMap[cur->evCircId][0]);
-                    //printf("\n");
+                    printf("compOutputMap[0] = ");
+                    print_block(computedOutputMap[cur->evCircId][0]);
+                    printf("\n");
                     for (int j = 0; j < chained_gcs[savedCircId].gc.m; ++j) {
                         computedOutputMap[cur->evCircId][j] = xorBlocks(
                                 computedOutputMap[cur->evCircId][j],
                                 chained_gcs[savedCircId].offlineChainingOffsets[j]);
                     }
-                    //print_block(computedOutputMap[cur->evCircId][0]);
-                    //printf("\n");
+                    printf("compOutputMap[0] = ");
+                    print_block(computedOutputMap[cur->evCircId][0]);
+                    printf("\n");
                 }
                 break;
             case CHAIN:
-                //printf("updating label[%d][%d] with offset %d \n", cur->chToCircId, cur->chToWireId, cur->chOffsetIdx);
-                //print_block(offsets[cur->chOffsetIdx]);
-                //printf("\n");
                 labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
                        computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
                        offsets[cur->chOffsetIdx]);
@@ -256,11 +255,6 @@ recvInstructions(Instructions *insts, const int fd, block **offsets)
     net_recv(fd, &noffsets, sizeof(int), 0);
     *offsets = allocate_blocks(noffsets);
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
-    printf("in recv instructions\n");
-    for (int i = 0; i < noffsets; i++) {
-        print_block((*offsets)[i]);
-        printf("\n");
-    }
 }
 
 static void 

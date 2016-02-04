@@ -79,7 +79,6 @@ chained_gc_comm_recv(int sock, ChainedGarbledCircuit *chained_gc, ChainingType c
     if (chainingType == CHAINING_TYPE_SIMD) {
         chained_gc->offlineChainingOffsets = allocate_blocks(chained_gc->gc.m);
         net_recv(sock, chained_gc->offlineChainingOffsets, sizeof(block) * chained_gc->gc.m, 0);
-        print_block(chained_gc->offlineChainingOffsets[0]);
     }
     
     return 0;

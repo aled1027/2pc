@@ -18,7 +18,8 @@ typedef struct {
     block *inputLabels;
     block *outputMap;
     block *offlineChainingOffsets; /* for SIMD chaining operation */
-    block SIMDBlock; /* only garbler uses */
+    block inputSIMDBlock; /* only garbler uses */
+    block outputSIMDBlock; /* only garbler uses */
 } ChainedGarbledCircuit; 
 
 int generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc);
@@ -41,4 +42,6 @@ block *loadOTLabels(char *fname);
 int saveOTSelections(char *fname, int *selections, int n);
 int *loadOTSelections(char *fname);
 
+
+void createSIMDInputLabelsWithR(ChainedGarbledCircuit *cgc, block R);
 #endif

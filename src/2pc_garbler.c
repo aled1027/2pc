@@ -166,13 +166,11 @@ sendInstructions(const Instructions *insts, const int fd, const block *offsets,
 
     net_send(fd, &noffsets, sizeof(int), 0);
     net_send(fd, offsets, sizeof(block) * noffsets, 0);
-
-    printf("in send instructions\n");
+    printf("send instructions:\n");
     for (int i = 0; i < noffsets; i++) {
         print_block(offsets[i]);
         printf("\n");
     }
-
 }
 
 static void
@@ -428,8 +426,8 @@ garbler_make_real_instructions(FunctionSpec *function,
                 if (gcChainingMap[cur->chFromCircId][cur->chToCircId] == -1) {
                 /* add approparite offset to offsets */
                 offsets[offsetsIdx] = xorBlocks(
-                        chained_gcs[circuitMapping[cur->chFromCircId]].SIMDBlock,
-                        chained_gcs[circuitMapping[cur->chToCircId]].SIMDBlock);
+                        chained_gcs[circuitMapping[cur->chFromCircId]].outputSIMDBlock,
+                        chained_gcs[circuitMapping[cur->chToCircId]].inputSIMDBlock);
                 gcChainingMap[cur->chFromCircId][cur->chToCircId] = offsetsIdx;
                 
                 cur->chOffsetIdx = offsetsIdx;
@@ -566,15 +564,34 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
 
     /* TODO REMOVE
      * ADDING RANDOM DEBUGGING STUFF HERE */
+    printf("chained_gcs[0].outputMap: \n");
     print_block(chained_gcs[0].outputMap[0]);
     printf("\n");
     print_block(chained_gcs[0].outputMap[1]);
-    printf("\n printed blocks\n");
+
     printf("\n");
-    printf("input labels: \n");
+    printf("chained_gcs[1].inputLabels: \n");
     print_block(chained_gcs[1].inputLabels[0]);
     printf("\n");
     print_block(chained_gcs[1].inputLabels[1]);
+    printf("\n");
+
+    printf("chained_gcs[1].outputMap: \n");
+    print_block(chained_gcs[1].outputMap[0]);
+    printf("\n");
+    print_block(chained_gcs[1].outputMap[1]);
+    printf("\n");
+
+    printf("chained_gcs[2].inputLabels: \n");
+    print_block(chained_gcs[2].inputLabels[0]);
+    printf("\n");
+    print_block(chained_gcs[2].inputLabels[1]);
+    printf("\n");
+
+    printf("chained_gcs[2].outputMap: \n");
+    print_block(chained_gcs[2].outputMap[0]);
+    printf("\n");
+    print_block(chained_gcs[2].outputMap[1]);
     printf("\n printed blocks\n");
 
 

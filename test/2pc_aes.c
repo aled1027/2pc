@@ -38,7 +38,12 @@ aes_garb_off(char *dir, int nchains, ChainingType chainingType)
         chained_gcs[i].id = i;
         chained_gcs[i].inputLabels = allocate_blocks(2 * gc->n);
         chained_gcs[i].outputMap = allocate_blocks(2 * gc->m);
-        createInputLabelsWithR(chained_gcs[i].inputLabels, gc->n, delta);
+
+        if (chainingType == CHAINING_TYPE_SIMD)
+            createSIMDInputLabelsWithR(&chained_gcs[i], delta);
+        else 
+            createInputLabelsWithR(chained_gcs[i].inputLabels, gc->n, delta);
+
         garbleCircuit(gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap,
                       GARBLE_TYPE_STANDARD);
 
