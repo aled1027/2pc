@@ -541,8 +541,6 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     /* Load everything else from disk */
     _start = current_time();
     {
-        net_send(fd, &function.m, sizeof(int), 0);
-
         /* load chained garbled circuits from disk */
         chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         for (int i = 0; i < num_chained_gcs; ++i) {
@@ -558,8 +556,6 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     fprintf(stderr, "loading: %llu\n", _end - _start);
 
     /* Tell evaluator that we are done loading circuits so they can start timing */
-    int empty = 0;
-    net_send(fd, &empty, sizeof(int), 0);
     
     _start = current_time();
     {

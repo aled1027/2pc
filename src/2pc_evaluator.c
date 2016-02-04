@@ -232,8 +232,6 @@ evaluator_offline(char *dir, const int num_eval_inputs, const int nchains, Chain
 static void
 recvInstructions(Instructions *insts, const int fd, block **offsets)
 {
-    // Without timings:
-    net_recv(fd, &insts->size, sizeof insts->size, 0);
     net_recv(fd, &insts->size, sizeof(int), 0);
     insts->instr = malloc(insts->size * sizeof(Instruction));
     net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
@@ -334,8 +332,6 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     fprintf(stderr, "loading: %llu\n", _end - _start);
 
     /* Wait for garbler to load garble circuits, so we know when to start timing */
-    int empty;
-    net_recv(sockfd, &empty, sizeof(int), 0);
 
     _start = current_time();
     {
