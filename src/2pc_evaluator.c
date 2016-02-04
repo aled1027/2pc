@@ -47,14 +47,7 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         Instruction* cur = &instructions->instr[i];
         switch(cur->type) {
             case EVAL:
-
                 savedCircId = circuitMapping[cur->evCircId];
-
-                printf("evaluating circuit %d, cur->evCircId=%d\n", savedCircId, cur->evCircId);
-                printf("inputLabel[0] = ");
-                print_block(labels[cur->evCircId][0]);
-                printf("\n");
-
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                          computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
 
@@ -64,17 +57,11 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                     /* correct computedOutputMap offlineChainingOffsets */
                     /* i.e. correct to enable SIMD trick */
 
-                    printf("compOutputMap[0] = ");
-                    print_block(computedOutputMap[cur->evCircId][0]);
-                    printf("\n");
                     for (int j = 0; j < chained_gcs[savedCircId].gc.m; ++j) {
                         computedOutputMap[cur->evCircId][j] = xorBlocks(
                                 computedOutputMap[cur->evCircId][j],
                                 chained_gcs[savedCircId].offlineChainingOffsets[j]);
                     }
-                    printf("compOutputMap[0] = ");
-                    print_block(computedOutputMap[cur->evCircId][0]);
-                    printf("\n");
                 }
                 break;
             case CHAIN:

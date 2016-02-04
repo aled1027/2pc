@@ -166,11 +166,6 @@ sendInstructions(const Instructions *insts, const int fd, const block *offsets,
 
     net_send(fd, &noffsets, sizeof(int), 0);
     net_send(fd, offsets, sizeof(block) * noffsets, 0);
-    printf("send instructions:\n");
-    for (int i = 0; i < noffsets; i++) {
-        print_block(offsets[i]);
-        printf("\n");
-    }
 }
 
 static void
@@ -561,41 +556,6 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     }
     _end = current_time();
     fprintf(stderr, "loading: %llu\n", _end - _start);
-
-    /* TODO REMOVE
-     * ADDING RANDOM DEBUGGING STUFF HERE */
-    printf("chained_gcs[0].outputMap: \n");
-    print_block(chained_gcs[0].outputMap[0]);
-    printf("\n");
-    print_block(chained_gcs[0].outputMap[1]);
-
-    printf("\n");
-    printf("chained_gcs[1].inputLabels: \n");
-    print_block(chained_gcs[1].inputLabels[0]);
-    printf("\n");
-    print_block(chained_gcs[1].inputLabels[1]);
-    printf("\n");
-
-    printf("chained_gcs[1].outputMap: \n");
-    print_block(chained_gcs[1].outputMap[0]);
-    printf("\n");
-    print_block(chained_gcs[1].outputMap[1]);
-    printf("\n");
-
-    printf("chained_gcs[2].inputLabels: \n");
-    print_block(chained_gcs[2].inputLabels[0]);
-    printf("\n");
-    print_block(chained_gcs[2].inputLabels[1]);
-    printf("\n");
-
-    printf("chained_gcs[2].outputMap: \n");
-    print_block(chained_gcs[2].outputMap[0]);
-    printf("\n");
-    print_block(chained_gcs[2].outputMap[1]);
-    printf("\n printed blocks\n");
-
-
-    /* END RANDOM STUFF */
 
     /* Tell evaluator that we are done loading circuits so they can start timing */
     int empty = 0;
