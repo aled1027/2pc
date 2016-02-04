@@ -30,7 +30,7 @@ new_msg_writer(void *array, int idx, void *msg, size_t msglength)
 static void
 evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         const Instructions* instructions, block** labels, const int* circuitMapping,
-        block **computedOutputMap, const block *offsets)
+        block **computedOutputMap, const block *offsets, ChainingType chainingType)
 {
     /* Essence of function: populate computedOutputMap
      * computedOutputMap[0] should already be populated garb and eval input labels
@@ -41,38 +41,54 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      * This is because instruction's circuits are id'ed 0,..,n-1
      * whereas saved gc id'ed arbitrarily.
      */
-    //uint64_t start, end, _start, _end, eval_tot = 0, chain_tot = 0;
     int savedCircId;
 
-    //start = current_time();
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
         switch(cur->type) {
             case EVAL:
-                //_start = current_time();
+
                 savedCircId = circuitMapping[cur->evCircId];
+
+//                printf("Evaluating %d \n", savedCircId);
+//                printf("input label[0]: ");
+//                print_block(labels[cur->evCircId][0]);
+//                printf("\n");
+                
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                          computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
-                //_end = current_time();
-                //eval_tot += _end - _start;
+
+                if (chainingType == CHAINING_TYPE_SIMD && 
+                        !isFinalCircuitType(chained_gcs[savedCircId].type)) {
+
+                    /* correct computedOutputMap offlineChainingOffsets */
+                    /* i.e. correct to enable SIMD trick */
+
+                    //print_block(computedOutputMap[cur->evCircId][0]);
+                    //printf("\n");
+                    for (int j = 0; j < chained_gcs[savedCircId].gc.m; ++j) {
+                        computedOutputMap[cur->evCircId][j] = xorBlocks(
+                                computedOutputMap[cur->evCircId][j],
+                                chained_gcs[savedCircId].offlineChainingOffsets[j]);
+                    }
+                    //print_block(computedOutputMap[cur->evCircId][0]);
+                    //printf("\n");
+                }
                 break;
             case CHAIN:
-                //_start = current_time();
+                //printf("updating label[%d][%d] with offset %d \n", cur->chToCircId, cur->chToWireId, cur->chOffsetIdx);
+                //print_block(offsets[cur->chOffsetIdx]);
+                //printf("\n");
                 labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
                        computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
                        offsets[cur->chOffsetIdx]);
-                //_end = current_time();
-                //chain_tot += _end - _start;
+
                 break;
             default:
                 printf("Error: Instruction %d is not of a valid type\n", i);
                 return;
         }
     }
-    //end = current_time();
-    //fprintf(stderr, "real eval time: %llu\n", eval_tot);
-    //fprintf(stderr, "real chain time: %llu\n", chain_tot);
-    //fprintf(stderr, "real tot: %llu\n", end - start);
 }
 
 void evaluator_classic_2pc(const int *input, int *output,
@@ -240,36 +256,20 @@ recvInstructions(Instructions *insts, const int fd, block **offsets)
     net_recv(fd, &noffsets, sizeof(int), 0);
     *offsets = allocate_blocks(noffsets);
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
+    printf("in recv instructions\n");
+    for (int i = 0; i < noffsets; i++) {
+        print_block((*offsets)[i]);
+        printf("\n");
+    }
 }
 
 static void 
 loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, int ncgcs, char *dir, ChainingType chainingType) 
 {
     /* Loads chained garbled circuits from disk, assuming the loader is the evaluator */
-
     for (int i = 0; i < ncgcs; ++i) {
-            /* false indicates this is the evaluator */
-
-            loadChainedGC(&cgc[i], dir, i, false, chainingType);
-
-            /* If we want to also load outputmap labels */
-
-            /*if (isFinalCircuitType(&chained_gcs[i].type) == true) {*/
-                /*[> This could be sped up if it's turns out to be slow <]*/
-                /*[> memory is being copied, and that could be avoided with some finesse <]*/
-                /*char fileName[50];*/
-                /*(void) sprintf(fileName, "%s/%s_%d", dir, "outputmap", chained_gcs[i].id);*/
-                /*outputmap = loadOTLabels(fileName);*/
-                /*block *temp = loadOTLabels(fileName);*/
-                /*memcpy(outputmap, temp, sizeof(block) * chained_gcs[i].gc.m * 2);*/
-                /*free(temp);*/
-
-                /*if (!outputmap)*/
-                    /*fprintf(stderr, "Error reading outputmap\n");*/
-
-                /*outputmapIdx += (2 * chained_gcs[i].gc.m);*/
-            /*} */
-        }
+        loadChainedGC(&cgc[i], dir, i, false, chainingType);
+    }
 }
 
 static void
@@ -449,7 +449,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
             computedOutputMap[i] = allocate_blocks(chained_gcs[i-1].gc.m);
         }
         evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
-                           labels, circuitMapping, computedOutputMap, offsets);
+                           labels, circuitMapping, computedOutputMap, offsets, chainingType);
     }
     _end = current_time();
     fprintf(stderr, "evaluate: %llu\n", _end - _start);

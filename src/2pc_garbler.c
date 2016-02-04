@@ -166,6 +166,13 @@ sendInstructions(const Instructions *insts, const int fd, const block *offsets,
 
     net_send(fd, &noffsets, sizeof(int), 0);
     net_send(fd, offsets, sizeof(block) * noffsets, 0);
+
+    printf("in send instructions\n");
+    for (int i = 0; i < noffsets; i++) {
+        print_block(offsets[i]);
+        printf("\n");
+    }
+
 }
 
 static void
@@ -289,13 +296,15 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         // 5b. send outputMap
         net_send(fd, &function->m, sizeof function->m, 0);
         for (int j = 0; j < size; j++) {
-          int gc_id = circuitMapping[function->output.gc_id[j]];
-          int start_wire_idx = function->output.start_wire_idx[j];
-          int end_wire_idx = function->output.end_wire_idx[j];
-          // add 1 because values are inclusive
-          int dist = end_wire_idx - start_wire_idx + 1;
-          net_send(fd, &chained_gcs[gc_id].outputMap[start_wire_idx],
-                   sizeof(block) * 2 * dist, 0);
+            int gc_id = circuitMapping[function->output.gc_id[j]];
+            int start_wire_idx = function->output.start_wire_idx[j];
+            int end_wire_idx = function->output.end_wire_idx[j];
+            // add 1 because values are inclusive
+            int dist = end_wire_idx - start_wire_idx + 1;
+
+
+            net_send(fd, &chained_gcs[gc_id].outputMap[start_wire_idx],
+                    sizeof(block) * 2 * dist, 0);
         }
     }
     _end = current_time();
@@ -422,7 +431,6 @@ garbler_make_real_instructions(FunctionSpec *function,
                         chained_gcs[circuitMapping[cur->chFromCircId]].SIMDBlock,
                         chained_gcs[circuitMapping[cur->chToCircId]].SIMDBlock);
                 gcChainingMap[cur->chFromCircId][cur->chToCircId] = offsetsIdx;
-
                 
                 cur->chOffsetIdx = offsetsIdx;
                 ++offsetsIdx;
@@ -555,6 +563,22 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     }
     _end = current_time();
     fprintf(stderr, "loading: %llu\n", _end - _start);
+
+    /* TODO REMOVE
+     * ADDING RANDOM DEBUGGING STUFF HERE */
+    print_block(chained_gcs[0].outputMap[0]);
+    printf("\n");
+    print_block(chained_gcs[0].outputMap[1]);
+    printf("\n printed blocks\n");
+    printf("\n");
+    printf("input labels: \n");
+    print_block(chained_gcs[1].inputLabels[0]);
+    printf("\n");
+    print_block(chained_gcs[1].inputLabels[1]);
+    printf("\n printed blocks\n");
+
+
+    /* END RANDOM STUFF */
 
     /* Tell evaluator that we are done loading circuits so they can start timing */
     int empty = 0;

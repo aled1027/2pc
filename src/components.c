@@ -8,9 +8,9 @@
 #include <assert.h>
 #include <math.h>
 
-bool isFinalCircuitType(CircuitType *type) 
+bool isFinalCircuitType(CircuitType type) 
 {
-    if (*type == AES_FINAL_ROUND) 
+    if (type == AES_FINAL_ROUND) 
         return true;
     return false;
 }
