@@ -283,23 +283,23 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
 
     _start = current_time();
     {
-        int size = function->output.size;
+        int size = function->output_instructions.size;
 
         // Send "output" 
         // output is from the json, and tells which components/wires are used
         // for outputs note that size is not size of the output, but length of
         // the arrays in output
         net_send(fd, &size, sizeof size, 0); 
-        net_send(fd, function->output.gc_id, sizeof(int) * size, 0);
-        net_send(fd, function->output.start_wire_idx, sizeof(int) * size, 0);
-        net_send(fd, function->output.end_wire_idx, sizeof(int) * size, 0);
+        net_send(fd, function->output_instructions.gc_id, sizeof(int) * size, 0);
+        net_send(fd, function->output_instructions.start_wire_idx, sizeof(int) * size, 0);
+        net_send(fd, function->output_instructions.end_wire_idx, sizeof(int) * size, 0);
 
         // 5b. send outputMap
         net_send(fd, &function->m, sizeof function->m, 0);
         for (int j = 0; j < size; j++) {
-            int gc_id = circuitMapping[function->output.gc_id[j]];
-            int start_wire_idx = function->output.start_wire_idx[j];
-            int end_wire_idx = function->output.end_wire_idx[j];
+            int gc_id = circuitMapping[function->output_instructions.gc_id[j]];
+            int start_wire_idx = function->output_instructions.start_wire_idx[j];
+            int end_wire_idx = function->output_instructions.end_wire_idx[j];
             // add 1 because values are inclusive
             int dist = end_wire_idx - start_wire_idx + 1;
 

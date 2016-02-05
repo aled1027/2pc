@@ -284,10 +284,10 @@ loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
         *eval_labels = loadOTLabels(lblName);
 }
 
-static Output*
+static OutputInstructions*
 recvOutput(int outputArrSize, int sockfd) 
 {
-    Output *output = malloc(sizeof(Output));
+    OutputInstructions *output = malloc(sizeof(OutputInstructions));
 
     output->gc_id = malloc(sizeof(int) * outputArrSize);
     output->start_wire_idx = malloc(sizeof(int) * outputArrSize);
@@ -301,7 +301,7 @@ recvOutput(int outputArrSize, int sockfd)
 }
 
 static void
-mapOutputsWithOutputInstructions(const Output *outputInstructions, const int outputInstructionsSize, 
+mapOutputsWithOutputInstructions(const OutputInstructions *outputInstructions, const int outputInstructionsSize, 
                                  int *output, const int noutputs, block **computedOutputMap,
                                  const block *outputMap)
 {
@@ -430,7 +430,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     /* Receive outputmap and outputInstructions */
     _start = current_time();
     int output_arr_size; /* size of output_arr, not num outputs */
-    Output *outputInstructions;
+    OutputInstructions *outputInstructions;
     {
         net_recv(sockfd, &output_arr_size, sizeof(int), 0);
         outputInstructions = recvOutput(output_arr_size, sockfd);

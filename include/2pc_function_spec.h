@@ -59,7 +59,7 @@ typedef struct {
     int *end_wire_idx;
     int size; // size of the arrays
 } 
-Output;
+OutputInstructions;
 
 typedef struct {
     /* The specifiction for a function. 
@@ -73,10 +73,9 @@ typedef struct {
     FunctionComponent components;
     InputMapping input_mapping;
     Instructions instructions;
-    Output output;
+    OutputInstructions output_instructions;
 } 
 FunctionSpec;
-
 
 // json loading functions
 // public interface
@@ -88,22 +87,5 @@ int readBufferIntoInputMapping(InputMapping* input_mapping, const char* buffer);
 void deleteInputMapping(InputMapping *map);
 size_t inputMappingBufferSize(const InputMapping *map);
 void newInputMapping(InputMapping *map, int size);
-
-// private interface - below this should be static:
-// TODO remove from public interface. 
-//int json_load_metadata(json_t *root, FunctionSpec *function);
-//int json_load_components(json_t *root, FunctionSpec* function);
-//int json_load_input_mapping(json_t *root, FunctionSpec* function);
-//int json_load_instructions(json_t* root, FunctionSpec* function, ChainingType chainingType);
-//int json_load_output(json_t *root, FunctionSpec *function);
-//InstructionType get_instruction_type_from_string(const char* type);
-//CircuitType get_circuit_type_from_string(const char* type);
-//void print_metadata(FunctionSpec *function);
-//void print_components(FunctionComponent* components);
-//void print_input_mapping(InputMapping* inputMapping);
-//void print_instructions(Instructions* instr);
-//void print_output(Output *output);
-//
-//
 
 #endif

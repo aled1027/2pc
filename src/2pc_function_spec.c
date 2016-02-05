@@ -59,9 +59,9 @@ freeFunctionSpec(FunctionSpec* function)
     free(function->instructions.instr);
 
     /* Free output */
-    free(function->output.gc_id);
-    free(function->output.start_wire_idx);
-    free(function->output.end_wire_idx);
+    free(function->output_instructions.gc_id);
+    free(function->output_instructions.start_wire_idx);
+    free(function->output_instructions.end_wire_idx);
 
     return SUCCESS;
 }
@@ -140,7 +140,7 @@ int
 json_load_output(json_t *root, FunctionSpec *function) 
 {
     json_t *jOutputs, *jOutput, *jPtr;
-    Output *p_output = &function->output;
+    OutputInstructions *p_output = &function->output_instructions;
 
     jOutputs = json_object_get(root, "output");
     assert(json_is_array(jOutputs));
@@ -242,7 +242,7 @@ print_instructions(Instructions* instr)
 }
 
 void
-print_output(Output *output)
+print_output(OutputInstructions *output)
 {
     printf("Output object size: %d\n", output->size);
     for (int i = 0; i < output->size; i++) {
@@ -523,7 +523,7 @@ print_function(FunctionSpec* function)
     print_components(&function->components);
     print_input_mapping(&function->input_mapping);
     print_instructions(&function->instructions);
-    print_output(&function->output);
+    print_output(&function->output_instructions);
 }
 
 void

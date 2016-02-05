@@ -104,8 +104,8 @@ clean_gcs:
 	mkdir files/garbler_gcs
 	mkdir files/evaluator_gcs
 
-all_test:
-	gdb --args $(BINDIR)/test --test
+run_tests:
+	$(BINDIR)/test --test
 
 
 .PHONEY: clean
