@@ -147,8 +147,8 @@ json_load_output(json_t *root, FunctionSpec *function)
     assert(json_is_array(jOutputs));
     int array_size = json_array_size(jOutputs);
 
-    output_instructions->size = function->m;
-    output_instructions->output_instruction = malloc(output_instructions->size * sizeof(OutputInstruction));
+    output_instructions->n_output_instructions = function->m;
+    output_instructions->output_instruction = malloc(output_instructions->n_output_instructions * sizeof(OutputInstruction));
 
     int idx = 0;
     for (int i = 0; i < array_size; i++) {

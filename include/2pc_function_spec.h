@@ -52,8 +52,7 @@ typedef struct {
 Instructions;
 
 typedef struct {
-    block label0;
-    block label1;
+    block labels[2];
     int gc_id;
     int wire_id;
 }

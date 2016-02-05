@@ -281,6 +281,16 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     _end = current_time();
     fprintf(stderr, "ot correction: %llu\n", _end - _start);
 
+
+    // TODO work for here for outputInstructions new stuff
+    //_start = current_time();
+    //{
+    //}
+    //_end = current_time();
+    //fprintf(stderr, "send output/outputmap: %llu\n", _end - _start);
+
+    
+    /* TODO old output shit -- remove */
     _start = current_time();
     {
         int size = function->output_instructions.size;
@@ -310,6 +320,7 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     }
     _end = current_time();
     fprintf(stderr, "send output/outputmap: %llu\n", _end - _start);
+    /* TODO end old output shit -- remove */
 
     if (num_garb_inputs > 0)
         free(garbLabels);
@@ -317,8 +328,44 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         free(evalLabels);
 }
 
+static int 
+make_real_output_instructions(FunctionSpec* function,
+                              ChainedGarbledCircuit *chained_gcs, int num_chained_gcs,
+                              int *circuitMapping)
+{
+    /* 
+     * Turns the output instructions from json into usable output instructions using the chained_gcs.
+     * Specially, populates function->output_instructions->output_instruction[i].label0 and label1 
+     */
+
+    printf("\n\n Making real output instructions \n\n");
+    OutputInstructions* output_instructions = &function->output_instructions;
+    for (int i = 0; i < output_instructions->n_output_instructions; i++) {
+        OutputInstruction* o = &output_instructions->output_instruction[i];
+        int savedGCId = circuitMapping[o->gc_id];
+        block key_zero = chained_gcs[savedGCId].outputMap[2 * o->wire_id];
+        block key_one = chained_gcs[savedGCId].outputMap[2 * o->wire_id + 1];
+
+        /* TODO check with Alex M on the crypto
+         * - randomness and encryption */
+        block b_zero = zero_block();
+        block b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
+
+        // TODO do actual encrypt / decryption. Ask Alex M.
+        our_encrypt(&b_zero, &key_zero);
+        our_encrypt(&b_one, &key_one);
+
+        uint8_t pa = rand() % 2; // for randomly permuting table (not dong Point and Permute)
+        o->labels[pa] = b_zero;
+        o->labels[!pa] = b_one;
+    }
+    return SUCCESS;
+
+}
+
+
 static int
-garbler_make_real_instructions(FunctionSpec *function,
+make_real_instructions(FunctionSpec *function,
                                ChainedGarbledCircuit *chained_gcs,
                                int num_chained_gcs, int *circuitMapping, 
                                block *offsets, int *noffsets, ChainingType chainingType) 
@@ -570,7 +617,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
         /* +1 because 0th component is inputComponent*/
         circuitMapping = malloc(sizeof(int) * (function.components.totComponents + 1));
         offsets = allocate_blocks(function.instructions.size);
-        if (garbler_make_real_instructions(&function, chained_gcs,
+        if (make_real_instructions(&function, chained_gcs,
                                            num_chained_gcs,
                                            circuitMapping,
                                            offsets,
@@ -582,6 +629,18 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     }
     _end = current_time();
     fprintf(stderr, "make inst: %llu\n", _end - _start);
+
+    _start = current_time();
+    {
+        int res = make_real_output_instructions(&function, chained_gcs, num_chained_gcs, circuitMapping);
+        if (res == FAILURE) {
+            fprintf(stderr, "Could not make output instructions\n");
+            return FAILURE;
+        }
+
+    }
+    _end = current_time();
+    fprintf(stderr, "make output: %llu\n", _end - _start);
 
     /*main function; does core of work*/
     _start = current_time();
