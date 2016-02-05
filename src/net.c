@@ -104,7 +104,7 @@ net_init_server(const char *addr, const char *port)
         return FAILURE;
     }
 
-    fprintf(stderr, "server: waiting for connections...\n");
+    printf("server: waiting for connections...\n");
 
     return sockfd;
 }

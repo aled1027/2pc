@@ -87,7 +87,7 @@ allocate_ints(size_t nints)
     return ret;
 }
 
-long 
+size_t 
 filesize(char *filename) 
 {
     /* returns size of file in bytes */

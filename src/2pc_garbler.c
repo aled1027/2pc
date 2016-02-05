@@ -555,10 +555,10 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
             loadChainedGC(&chained_gcs[i], dir, i, true, chainingType);
         }
 
+        /* load ot info from disk */
         (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
         randLabels = loadOTLabels(lblName);
         
-        /* load ot info from disk */
     }
     _end = current_time();
     fprintf(stderr, "loading: %llu\n", _end - _start);
@@ -592,7 +592,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     
     free(circuitMapping);
     for (int i = 0; i < num_chained_gcs; ++i) {
-        freeChainedGarbledCircuit(&chained_gcs[i], true);
+        freeChainedGarbledCircuit(&chained_gcs[i], true, chainingType);
     }
     free(chained_gcs);
     freeFunctionSpec(&function);

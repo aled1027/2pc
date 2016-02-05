@@ -4,6 +4,41 @@
 
 #include "utils.h"
 
+InstructionType 
+get_instruction_type_from_string(const char* type) 
+{
+    if (strcmp(type, "EVAL") == 0) {
+        return EVAL;
+    } else if (strcmp(type, "CHAIN") == 0) {
+        return CHAIN;
+    } else {
+        return INSTR_ERR;
+    }
+}
+
+CircuitType 
+get_circuit_type_from_string(const char* type) 
+{
+    if (strcmp(type, "22Adder") == 0) {
+        return ADDER22;
+    } else if (strcmp(type, "23Adder") == 0) {
+        return ADDER23;
+    } else if (strcmp(type, "AES_ROUND") == 0) {
+        return AES_ROUND;
+    } else if (strcmp(type, "AES_FINAL_ROUND") == 0) {
+        return AES_FINAL_ROUND;
+    } else if (strcmp(type, "XOR") == 0) {
+        return XOR;
+    } else if (strcmp(type, "FULL_CBC") == 0) {
+        return FULL_CBC;
+    } else if (strcmp(type, "LEVEN_CORE") == 0) {
+        return LEVEN_CORE;
+    } else {
+        fprintf(stderr, "circuit type error when loading json: can't detect %s\n", type);
+        return CIRCUIT_TYPE_ERR;
+    }
+}
+
 int 
 freeFunctionSpec(FunctionSpec* function) 
 {
@@ -28,78 +63,6 @@ freeFunctionSpec(FunctionSpec* function)
     free(function->output.start_wire_idx);
     free(function->output.end_wire_idx);
 
-    return SUCCESS;
-}
-
-void
-print_function(FunctionSpec* function) 
-{
-    print_metadata(function);
-    print_components(&function->components);
-    print_input_mapping(&function->input_mapping);
-    print_instructions(&function->instructions);
-    print_output(&function->output);
-}
-
-int
-load_function_via_json(char* path, FunctionSpec* function, ChainingType chainingType)
-{
-    /* Loading in path
-     * uses jansson.h. See jansson docs for more details
-     * there exists a function to load directly from file, 
-     * but I was getting runtime memory errors when using it.
-     */
-
-    //printf("loading %s\n", path);
-    long fs = filesize(path); 
-    FILE *f = fopen(path, "r"); 
-    if (f == NULL) {
-        printf("Error in opening file %s.\n", path);
-        return -1;
-    }   
-    char *buffer = malloc(fs); 
-    assert(buffer);
-    fread(buffer, sizeof(char), fs, f);
-    buffer[fs-1] = '\0';
-
-    json_t *jRoot;
-    json_error_t error; 
-    jRoot = json_loads(buffer, 0, &error);
-    if (!jRoot) {
-        fprintf(stderr, "error load json on line %d: %s\n", error.line, error.text);
-        return FAILURE;
-    }
-    fclose(f);
-    free(buffer);
-
-
-    // Grab things from the json_t object
-    if (json_load_metadata(jRoot, function) == FAILURE) {
-        fprintf(stderr, "error loading metadata");
-        return FAILURE;
-    }
-
-    if (json_load_components(jRoot, function) == FAILURE) {
-        fprintf(stderr, "error loading json components");
-        return FAILURE;
-    }
-    
-    if (json_load_input_mapping(jRoot, function) == FAILURE) {
-        fprintf(stderr, "error loading json components");
-        return FAILURE;
-    }
-
-    if (json_load_instructions(jRoot, function, chainingType) == FAILURE) {
-        fprintf(stderr, "error loading json instructions");
-        return FAILURE;
-    }
-
-    if (json_load_output(jRoot, function) == FAILURE) {
-        fprintf(stderr, "error loading json output");
-        return FAILURE;
-    }
-
-    json_decref(jRoot); // frees all of the other json_t* objects, everywhere.
     return SUCCESS;
 }
 
@@ -374,41 +337,6 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
     return SUCCESS;
 }
 
-CircuitType 
-get_circuit_type_from_string(const char* type) 
-{
-    if (strcmp(type, "22Adder") == 0) {
-        return ADDER22;
-    } else if (strcmp(type, "23Adder") == 0) {
-        return ADDER23;
-    } else if (strcmp(type, "AES_ROUND") == 0) {
-        return AES_ROUND;
-    } else if (strcmp(type, "AES_FINAL_ROUND") == 0) {
-        return AES_FINAL_ROUND;
-    } else if (strcmp(type, "XOR") == 0) {
-        return XOR;
-    } else if (strcmp(type, "FULL_CBC") == 0) {
-        return FULL_CBC;
-    } else if (strcmp(type, "LEVEN_CORE") == 0) {
-        return LEVEN_CORE;
-    } else {
-        fprintf(stderr, "circuit type error when loading json: can't detect %s\n", type);
-        return CIRCUIT_TYPE_ERR;
-    }
-}
-
-InstructionType 
-get_instruction_type_from_string(const char* type) 
-{
-    if (strcmp(type, "EVAL") == 0) {
-        return EVAL;
-    } else if (strcmp(type, "CHAIN") == 0) {
-        return CHAIN;
-    } else {
-        return INSTR_ERR;
-    }
-}
-
 int 
 json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chainingType) 
 {
@@ -587,6 +515,16 @@ readBufferIntoInputMapping(InputMapping *input_mapping, const char *buffer)
     }
     return p;
 }
+    
+void
+print_function(FunctionSpec* function) 
+{
+    print_metadata(function);
+    print_components(&function->components);
+    print_input_mapping(&function->input_mapping);
+    print_instructions(&function->instructions);
+    print_output(&function->output);
+}
 
 void
 newInputMapping(InputMapping *map, int size)
@@ -606,3 +544,67 @@ deleteInputMapping(InputMapping *map)
     free(map->wire_id);
     free(map->inputter);
 }
+
+int
+load_function_via_json(char* path, FunctionSpec* function, ChainingType chainingType)
+{
+    /* Loading in path
+     * uses jansson.h. See jansson docs for more details
+     * there exists a function to load directly from file, 
+     * but I was getting runtime memory errors when using it.
+     */
+
+    //printf("loading %s\n", path);
+    long fs = filesize(path); 
+    FILE *f = fopen(path, "r"); 
+    if (f == NULL) {
+        printf("Error in opening file %s.\n", path);
+        return -1;
+    }   
+    char *buffer = malloc(fs); 
+    assert(buffer);
+    fread(buffer, sizeof(char), fs, f);
+    buffer[fs-1] = '\0';
+
+    json_t *jRoot;
+    json_error_t error; 
+    jRoot = json_loads(buffer, 0, &error);
+    if (!jRoot) {
+        fprintf(stderr, "error load json on line %d: %s\n", error.line, error.text);
+        return FAILURE;
+    }
+    fclose(f);
+    free(buffer);
+
+
+    // Grab things from the json_t object
+    if (json_load_metadata(jRoot, function) == FAILURE) {
+        fprintf(stderr, "error loading metadata");
+        return FAILURE;
+    }
+
+    if (json_load_components(jRoot, function) == FAILURE) {
+        fprintf(stderr, "error loading json components");
+        return FAILURE;
+    }
+    
+    if (json_load_input_mapping(jRoot, function) == FAILURE) {
+        fprintf(stderr, "error loading json components");
+        return FAILURE;
+    }
+
+    if (json_load_instructions(jRoot, function, chainingType) == FAILURE) {
+        fprintf(stderr, "error loading json instructions");
+        return FAILURE;
+    }
+
+    if (json_load_output(jRoot, function) == FAILURE) {
+        fprintf(stderr, "error loading json output");
+        return FAILURE;
+    }
+
+    json_decref(jRoot); // frees all of the other json_t* objects, everywhere.
+    return SUCCESS;
+}
+
+

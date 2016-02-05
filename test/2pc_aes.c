@@ -58,7 +58,7 @@ aes_garb_off(char *dir, int nchains, ChainingType chainingType)
 
     garbler_offline(dir, chained_gcs, aesNumEvalInputs(), nchains, chainingType);
     for (int i = 0; i < nchains; ++i) {
-        freeChainedGarbledCircuit(&chained_gcs[i], true);
+        freeChainedGarbledCircuit(&chained_gcs[i], true, chainingType);
     }
     free(chained_gcs);
 }

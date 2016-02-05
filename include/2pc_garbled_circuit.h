@@ -25,7 +25,7 @@ typedef struct {
 int generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc);
 
 int
-freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb);
+freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb, ChainingType chainingType);
 
 int
 saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,

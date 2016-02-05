@@ -61,7 +61,7 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
 }
 
 int 
-freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb) 
+freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb, ChainingType chainingType) 
 {
     /* TODO will need to remove offlineChainingOffsets */
     removeGarbledCircuit(&chained_gc->gc); // frees memory in gc
@@ -69,6 +69,8 @@ freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb)
         free(chained_gc->inputLabels);
         free(chained_gc->outputMap);
     }
+    if (chainingType == CHAINING_TYPE_SIMD)
+        free(chained_gc->offlineChainingOffsets);
     return 0;
 }
 
@@ -201,10 +203,8 @@ saveOTSelections(char *fname, int *selections, int n)
 int *
 loadOTSelections(char *fname)
 {
-    int *buf;
-
-    buf = malloc(filesize(fname));
-    if (readFileIntoBuffer((char *) buf, fname) == FAILURE) {
+    int *buf = malloc(filesize(fname));
+    if (readFileIntoBuffer((char *) buf, fname) == FAILURE)  {
         free(buf);
         return NULL;
     }

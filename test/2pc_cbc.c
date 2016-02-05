@@ -70,7 +70,7 @@ void cbc_garb_off(char *dir, ChainingType chainingType)
 
     garbler_offline(dir, chained_gcs, cbcNumEvalInputs(), num_chained_gcs, chainingType);
     for (int i = 0; i < num_chained_gcs; ++i) {
-        freeChainedGarbledCircuit(&chained_gcs[i], true);
+        freeChainedGarbledCircuit(&chained_gcs[i], true, chainingType);
     }
     free(chained_gcs);
 }

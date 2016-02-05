@@ -73,10 +73,10 @@ aes_eval_off:
 	./$(BINDIR)/test --eval-off --type AES
 
 aes_garb_on:
-	./$(BINDIR)/test --garb-on --type AES --times 50
+	./$(BINDIR)/test --garb-on --type AES --times 100
 
 aes_eval_on:
-	./$(BINDIR)/test --eval-on --type AES --times 50
+	./$(BINDIR)/test --eval-on --type AES --times 100
 #########
 # LEVEN #
 #########
@@ -96,7 +96,7 @@ leven_eval_on:
 # EXTRAS #
 ##########
 valg:
-	valgrind --leak-check=full ./$(BINDIR)/$(MISC_TESTS)
+	valgrind --leak-check=full  ./$(BINDIR)/test --eval-on --type AES --times 2
 
 clean_gcs:
 	rm -r files/garbler_gcs

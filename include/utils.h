@@ -44,7 +44,7 @@ arrayPopulateRange(int *arr, int start, int end);
 int *
 allocate_ints(size_t nints);
 
-long 
+size_t 
 filesize(char *filename);
 
 int 

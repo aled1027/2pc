@@ -198,7 +198,7 @@ evaluator_offline(char *dir, const int num_eval_inputs, const int nchains, Chain
     for (int i = 0; i < nchains; i++) {
         chained_gc_comm_recv(sockfd, &cgc, chainingType);
         saveChainedGC(&cgc, dir, false, chainingType);
-        freeChainedGarbledCircuit(&cgc, false);
+        freeChainedGarbledCircuit(&cgc, false, chainingType);
     }
 
 
@@ -244,8 +244,6 @@ recvInstructions(Instructions *insts, const int fd, block **offsets)
 
     
     /* So we know to start counting this */
-    uint8_t a_byte;
-    net_recv(fd, &a_byte, sizeof(a_byte), 0);
 
     uint64_t s, e;
     s = current_time();
@@ -261,7 +259,7 @@ recvInstructions(Instructions *insts, const int fd, block **offsets)
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
 
     e = current_time();
-    printf("recvInstructions total: %llu\n", e - s);
+    fprintf(stderr, "recvInstructions total: %llu\n", e - s);
 }
 
 static void 
@@ -277,9 +275,12 @@ static void
 loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
 {
         char selName[50], lblName[50];
+
         (void) sprintf(selName, "%s/%s", dir, "sel"); /* XXX: security hole */
         (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
+
         *corrections = loadOTSelections(selName);
+
         *eval_labels = loadOTLabels(lblName);
 }
 
@@ -347,11 +348,17 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         /* Load things from disk */
         chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         loadChainedGarbledCircuits(chained_gcs, num_chained_gcs, dir, chainingType);
-        loadOTPreprocessing(&eval_labels, &corrections, dir);
     }
+    loadOTPreprocessing(&eval_labels, &corrections, dir);
 
     _end = current_time();
     fprintf(stderr, "loading: %llu\n", _end - _start);
+
+    _start = current_time();
+    uint8_t a_byte;
+    net_recv(sockfd, &a_byte, sizeof(a_byte), 0);
+    _end = current_time();
+    fprintf(stderr, "waiting: %llu\n", _end - _start);
 
     {
         /* timed inside of function */
@@ -396,16 +403,18 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         /* randLabels and eval_labels are loaded during loading phase */
 
         /* correction based on input */
-        for (int i = 0; i < num_eval_inputs; ++i) {
+
+        for (int i = 0; i < num_eval_inputs; ++i)
             corrections[i] ^= eval_inputs[i];
-        }
 
         recvLabels = malloc(sizeof(block) * 2 * num_eval_inputs);
+        /* valgrind is saying corrections is unitialized, but it seems to be */
         net_send(sockfd, corrections, sizeof(int) * num_eval_inputs, 0);
         net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
 
         /* TODO check if faster if we put these directly into labels[0] */
         for (int i = 0; i < num_eval_inputs; ++i) {
+            assert(eval_inputs[i] == 0 || eval_inputs[i] == 1);
             eval_labels[i] = xorBlocks(eval_labels[i],
                                        recvLabels[2 * i + eval_inputs[i]]);
         }
@@ -464,8 +473,9 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     free(outputInstructions->gc_id);
     free(outputInstructions->start_wire_idx);
     free(outputInstructions->end_wire_idx);
+    free(outputInstructions);
     for (int i = 0; i < num_chained_gcs; ++i) {
-        freeChainedGarbledCircuit(&chained_gcs[i], false);
+        freeChainedGarbledCircuit(&chained_gcs[i], false, chainingType);
         free(labels[i]);
         free(computedOutputMap[i]);
     }
@@ -479,6 +489,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     free(garb_labels);
     free(eval_labels);
     free(function.instructions.instr);
+    free(offsets);
 
     close(sockfd);
 
