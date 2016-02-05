@@ -139,43 +139,78 @@ json_load_components(json_t *root, FunctionSpec *function)
 int
 json_load_output(json_t *root, FunctionSpec *function) 
 {
+
     json_t *jOutputs, *jOutput, *jPtr;
-    OutputInstructions *p_output = &function->output_instructions;
+    OutputInstructions *output_instructions = &function->output_instructions;
 
     jOutputs = json_object_get(root, "output");
     assert(json_is_array(jOutputs));
-    p_output->size = json_array_size(jOutputs);
+    int array_size = json_array_size(jOutputs);
 
-    // allocate memory
-    p_output->gc_id = malloc(sizeof(int) * p_output->size);
-    p_output->start_wire_idx = malloc(sizeof(int) * p_output->size);
-    p_output->end_wire_idx = malloc(sizeof(int) * p_output->size);
-    int sum = 0;
+    output_instructions->size = function->m;
+    output_instructions->output_instruction = malloc(output_instructions->size * sizeof(OutputInstruction));
 
-    // loop over output and extract info
-    for (int i = 0; i < p_output->size; i++) {
+    int idx = 0;
+    for (int i = 0; i < array_size; i++) {
         jOutput = json_array_get(jOutputs, i);
         assert(json_is_object(jOutput));
 
         jPtr = json_object_get(jOutput, "gc_id");
         assert(json_is_integer(jPtr));
-        p_output->gc_id[i] = json_integer_value(jPtr);
+        int gc_id = json_integer_value(jPtr);
 
         jPtr = json_object_get(jOutput, "start_wire_idx");
         assert(json_is_integer(jPtr));
-        p_output->start_wire_idx[i] = json_integer_value(jPtr);
+        int start_wire_idx = json_integer_value(jPtr);
 
         jPtr = json_object_get(jOutput, "end_wire_idx");
         assert(json_is_integer(jPtr));
-        p_output->end_wire_idx[i] = json_integer_value(jPtr);
+        int end_wire_idx = json_integer_value(jPtr);
 
-        sum += p_output->end_wire_idx[i] - p_output->start_wire_idx[i] + 1;
+        /* plus one because inclusive */
+        for (int j = start_wire_idx; j < end_wire_idx + 1; ++j) {
+            output_instructions->output_instruction[i].gc_id = gc_id;
+            output_instructions->output_instruction[i].wire_id = j;
+            ++idx;
+        }
+    }
+
+    /* OLD SHIT */
+    // TODO remove:
+
+    output_instructions->size = json_array_size(jOutputs);
+
+    // allocate memory
+    output_instructions->gc_id = malloc(sizeof(int) * output_instructions->size);
+    output_instructions->start_wire_idx = malloc(sizeof(int) * output_instructions->size);
+    output_instructions->end_wire_idx = malloc(sizeof(int) * output_instructions->size);
+    int sum = 0;
+
+    // loop over output and extract info
+    for (int i = 0; i < output_instructions->size; i++) {
+        jOutput = json_array_get(jOutputs, i);
+        assert(json_is_object(jOutput));
+
+        jPtr = json_object_get(jOutput, "gc_id");
+        assert(json_is_integer(jPtr));
+        output_instructions->gc_id[i] = json_integer_value(jPtr);
+
+        jPtr = json_object_get(jOutput, "start_wire_idx");
+        assert(json_is_integer(jPtr));
+        output_instructions->start_wire_idx[i] = json_integer_value(jPtr);
+
+        jPtr = json_object_get(jOutput, "end_wire_idx");
+        assert(json_is_integer(jPtr));
+        output_instructions->end_wire_idx[i] = json_integer_value(jPtr);
+
+        sum += output_instructions->end_wire_idx[i] - output_instructions->start_wire_idx[i] + 1;
     }
     if (function->m != sum) {
         printf("Output not matching number of outputs indicated by function->m\n");
         printf("m = %d, sum = %d\n", function->m, sum);
         return FAILURE;
     }
+    /* END OLD SHIT */
     return SUCCESS;
 }
 

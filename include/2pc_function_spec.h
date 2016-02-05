@@ -31,9 +31,7 @@ InputMapping;
 
 typedef struct {
     InstructionType type; 
-
     // EVAL:
-    // assume inputs are already plugged into the circuit evCircId.
     int evCircId;
 
     // CHAIN:
@@ -41,7 +39,9 @@ typedef struct {
     int chFromWireId;
     int chToCircId;
     int chToWireId;
-    int chOffsetIdx; // index for block which is offset. If choffsetidx == -1, then zero_block
+    int chOffsetIdx; 
+    // TODO not sure if fact below is still true.
+    // index for block which is offset. If choffsetidx == -1, then zero_block
 } 
 Instruction;
 
@@ -52,12 +52,26 @@ typedef struct {
 Instructions;
 
 typedef struct {
+    block label0;
+    block label1;
+    int gc_id;
+    int wire_id;
+}
+OutputInstruction;
+
+typedef struct {
+    // BEGIN OLD OUTPUT
     // the output is for all i from 0 to size
     // of gc_id[i] from wire start_wire_idx[i] to wire end_wire_idx[i]
     int *gc_id;
     int *start_wire_idx;
     int *end_wire_idx;
     int size; // size of the arrays
+    // END OLD OUTPUT
+
+    OutputInstruction *output_instruction;
+    size_t n_output_instructions;
+
 } 
 OutputInstructions;
 
