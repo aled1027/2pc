@@ -73,10 +73,10 @@ aes_eval_off:
 	./$(BINDIR)/test --eval-off --type AES
 
 aes_garb_on:
-	./$(BINDIR)/test --garb-on --type AES --times 10
+	./$(BINDIR)/test --garb-on --type AES --times 50
 
 aes_eval_on:
-	./$(BINDIR)/test --eval-on --type AES --times 10
+	./$(BINDIR)/test --eval-on --type AES --times 50
 #########
 # LEVEN #
 #########

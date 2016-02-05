@@ -41,7 +41,7 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      * This is because instruction's circuits are id'ed 0,..,n-1
      * whereas saved gc id'ed arbitrarily.
      */
-    int savedCircId;
+    int savedCircId, offsetIdx;
 
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
@@ -50,25 +50,34 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                 savedCircId = circuitMapping[cur->evCircId];
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                          computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
+                break;
+            case CHAIN:
 
-                if (chainingType == CHAINING_TYPE_SIMD && 
-                        !isFinalCircuitType(chained_gcs[savedCircId].type)) {
+                if (chainingType == CHAINING_TYPE_STANDARD || cur->chFromCircId == 0) {
+                    labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
+                            computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
+                            offsets[cur->chOffsetIdx]);
+                } else { /* CHAINING_TYPE_SIMD */
+                    /* TODO if this is slow, there are probably ways to optimize */
+
+                    savedCircId = circuitMapping[cur->chFromCircId];
+                    offsetIdx = cur->chOffsetIdx;
 
                     /* correct computedOutputMap offlineChainingOffsets */
                     /* i.e. correct to enable SIMD trick */
 
                     for (int j = 0; j < chained_gcs[savedCircId].gc.m; ++j) {
-                        computedOutputMap[cur->evCircId][j] = xorBlocks(
-                                computedOutputMap[cur->evCircId][j],
+                        /* offsets from offline phase */
+                        computedOutputMap[cur->chFromCircId][j] = xorBlocks(
+                                computedOutputMap[cur->chFromCircId][j],
                                 chained_gcs[savedCircId].offlineChainingOffsets[j]);
+
+                        /* offsets from online phase */
+                        labels[cur->chToCircId][j] = xorBlocks(
+                                computedOutputMap[cur->chFromCircId][j], 
+                                offsets[offsetIdx]);
                     }
                 }
-                break;
-            case CHAIN:
-                labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
-                       computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
-                       offsets[cur->chOffsetIdx]);
-
                 break;
             default:
                 printf("Error: Instruction %d is not of a valid type\n", i);
@@ -232,14 +241,27 @@ evaluator_offline(char *dir, const int num_eval_inputs, const int nchains, Chain
 static void
 recvInstructions(Instructions *insts, const int fd, block **offsets)
 {
-    net_recv(fd, &insts->size, sizeof(int), 0);
-    insts->instr = malloc(insts->size * sizeof(Instruction));
-    net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
+
+    
+    /* So we know to start counting this */
+    uint8_t a_byte;
+    net_recv(fd, &a_byte, sizeof(a_byte), 0);
+
+    uint64_t s, e;
+    s = current_time();
 
     int noffsets;
+    net_recv(fd, &insts->size, sizeof(int), 0);
     net_recv(fd, &noffsets, sizeof(int), 0);
+
+    insts->instr = malloc(insts->size * sizeof(Instruction));
     *offsets = allocate_blocks(noffsets);
+
+    net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
+
+    e = current_time();
+    printf("recvInstructions total: %llu\n", e - s);
 }
 
 static void 
@@ -331,14 +353,10 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     _end = current_time();
     fprintf(stderr, "loading: %llu\n", _end - _start);
 
-    /* Wait for garbler to load garble circuits, so we know when to start timing */
-
-    _start = current_time();
     {
+        /* timed inside of function */
         recvInstructions(&function.instructions, sockfd, &offsets);
     }
-    _end = current_time();
-    fprintf(stderr, "receive inst: %llu\n", _end - _start);
 
     _start = current_time();
     {

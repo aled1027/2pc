@@ -42,7 +42,7 @@ print_function(FunctionSpec* function)
 }
 
 int
-load_function_via_json(char* path, FunctionSpec* function)
+load_function_via_json(char* path, FunctionSpec* function, ChainingType chainingType)
 {
     /* Loading in path
      * uses jansson.h. See jansson docs for more details
@@ -89,7 +89,7 @@ load_function_via_json(char* path, FunctionSpec* function)
         return FAILURE;
     }
 
-    if (json_load_instructions(jRoot, function) == FAILURE) {
+    if (json_load_instructions(jRoot, function, chainingType) == FAILURE) {
         fprintf(stderr, "error loading json instructions");
         return FAILURE;
     }
@@ -410,7 +410,7 @@ get_instruction_type_from_string(const char* type)
 }
 
 int 
-json_load_instructions(json_t *root, FunctionSpec *function) 
+json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chainingType) 
 {
     Instructions* instructions = &(function->instructions);
 
@@ -423,7 +423,13 @@ json_load_instructions(json_t *root, FunctionSpec *function)
     jPtr = json_object_get(jMetadata, "instructions_size");
     assert(json_is_integer(jPtr));
     int num_instructions = json_integer_value(jPtr);
-    instructions->size = num_instructions + imap->size;
+    if (chainingType == CHAINING_TYPE_STANDARD) {
+        instructions->size = num_instructions + imap->size;
+
+    } else {
+        instructions->size = imap->size + (2 * function->components.totComponents) - 1;
+
+    }
 
     instructions->instr = malloc(sizeof(Instruction)*instructions->size);
     assert(instructions->instr);
@@ -492,13 +498,22 @@ json_load_instructions(json_t *root, FunctionSpec *function)
 
                 assert(from_wire_id_end - from_wire_id_start == to_wire_id_end - to_wire_id_start);
 
-                for (int f = from_wire_id_start, t = to_wire_id_start ; f<=from_wire_id_end; f++, t++) {
-                    // f for from, t for to
-                    instructions->instr[idx].type = instr_type;
+                if (chainingType == CHAINING_TYPE_STANDARD) {
+                    for (int f = from_wire_id_start, t = to_wire_id_start ; f<=from_wire_id_end; f++, t++) {
+                        // f for from, t for to
+                        instructions->instr[idx].type = CHAIN;
+                        instructions->instr[idx].chFromCircId = from_gc_id;
+                        instructions->instr[idx].chFromWireId = f;
+                        instructions->instr[idx].chToCircId = to_gc_id;
+                        instructions->instr[idx].chToWireId = t;
+                        idx++;
+                    }
+                } else { /* CHAINING_TYPE_SIMD */
+                    instructions->instr[idx].type = CHAIN;
                     instructions->instr[idx].chFromCircId = from_gc_id;
-                    instructions->instr[idx].chFromWireId = f;
+                    instructions->instr[idx].chFromWireId = 0;
                     instructions->instr[idx].chToCircId = to_gc_id;
-                    instructions->instr[idx].chToWireId = t;
+                    instructions->instr[idx].chToWireId = 0;
                     idx++;
                 }
                 break;
@@ -507,8 +522,8 @@ json_load_instructions(json_t *root, FunctionSpec *function)
                 return FAILURE;
         }
     }
-    assert(idx == instructions->size);
-    //print_instructions(instructions);
+    if (chainingType == CHAINING_TYPE_STANDARD)
+        assert(idx == instructions->size);
     return SUCCESS;
 }
 

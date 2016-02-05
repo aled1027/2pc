@@ -63,6 +63,7 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
 int 
 freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb) 
 {
+    /* TODO will need to remove offlineChainingOffsets */
     removeGarbledCircuit(&chained_gc->gc); // frees memory in gc
     if (isGarb) {
         free(chained_gc->inputLabels);

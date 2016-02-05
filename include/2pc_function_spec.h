@@ -80,15 +80,16 @@ FunctionSpec;
 
 // json loading functions
 // public interface
-int load_function_via_json(char* path, FunctionSpec *function);
+int load_function_via_json(char* path, FunctionSpec *function, ChainingType chainingType);
 void print_function(FunctionSpec* function);
 int freeFunctionSpec(FunctionSpec* function);
 
 // private interface - below this should be static:
+// TODO remove from public interface. 
 int json_load_metadata(json_t *root, FunctionSpec *function);
 int json_load_components(json_t *root, FunctionSpec* function);
 int json_load_input_mapping(json_t *root, FunctionSpec* function);
-int json_load_instructions(json_t* root, FunctionSpec* function);
+int json_load_instructions(json_t* root, FunctionSpec* function, ChainingType chainingType);
 int json_load_output(json_t *root, FunctionSpec *function);
 InstructionType get_instruction_type_from_string(const char* type);
 CircuitType get_circuit_type_from_string(const char* type);

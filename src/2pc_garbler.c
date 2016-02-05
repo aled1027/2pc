@@ -161,10 +161,12 @@ static void
 sendInstructions(const Instructions *insts, const int fd, const block *offsets, 
         const int noffsets, ChainingType chainingType)
 {
+    uint8_t a_byte = 0;
+    net_send(fd, &a_byte, sizeof(a_byte), 0);
     net_send(fd, &insts->size, sizeof(int), 0);
-    net_send(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
-
     net_send(fd, &noffsets, sizeof(int), 0);
+
+    net_send(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
     net_send(fd, offsets, sizeof(block) * noffsets, 0);
 }
 
@@ -174,7 +176,13 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
            int num_chained_gcs, const int *circuitMapping, const int *inputs,
            const block *offsets, const int noffsets, ChainingType chainingType)
 {
-    /* primary role: send appropriate labels to evaluator and garbled circuits*/
+    /* primary role: send the appropriate data to the evaluator. 
+     * garbler_go sends: 
+     *  - instructions, offsets
+     *  - garbler labels
+     *  - evaluator labels
+     *  - output instruction, outputmap */
+
     InputMapping imap = function->input_mapping;
     int num_eval_inputs = function->num_eval_inputs;
     int num_garb_inputs = function->num_garb_inputs;
@@ -419,14 +427,14 @@ garbler_make_real_instructions(FunctionSpec *function,
             cur = &(function->instructions.instr[i]);
             if (cur->type == CHAIN && cur->chFromCircId != 0) {
                 if (gcChainingMap[cur->chFromCircId][cur->chToCircId] == -1) {
-                /* add approparite offset to offsets */
-                offsets[offsetsIdx] = xorBlocks(
-                        chained_gcs[circuitMapping[cur->chFromCircId]].outputSIMDBlock,
-                        chained_gcs[circuitMapping[cur->chToCircId]].inputSIMDBlock);
-                gcChainingMap[cur->chFromCircId][cur->chToCircId] = offsetsIdx;
-                
-                cur->chOffsetIdx = offsetsIdx;
-                ++offsetsIdx;
+                    /* add approparite offset to offsets */
+                    offsets[offsetsIdx] = xorBlocks(
+                            chained_gcs[circuitMapping[cur->chFromCircId]].outputSIMDBlock,
+                            chained_gcs[circuitMapping[cur->chToCircId]].inputSIMDBlock);
+                    gcChainingMap[cur->chFromCircId][cur->chToCircId] = offsetsIdx;
+                    
+                    cur->chOffsetIdx = offsetsIdx;
+                    ++offsetsIdx;
 
                 } else {
                     /* reference block already in offsets */
@@ -530,7 +538,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     {
         /*load function allocates a bunch of memory for the function*/
         /*this is later freed by freeFunctionSpec*/
-        if (load_function_via_json(function_path, &function) == FAILURE) {
+        if (load_function_via_json(function_path, &function, chainingType) == FAILURE) {
             fprintf(stderr, "Could not load function %s\n", function_path);
             return FAILURE;
         }
