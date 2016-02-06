@@ -303,7 +303,6 @@ recvOutput(int outputArrSize, int sockfd)
 static int
 computeOutputs(const OutputInstructions *ois, int *output, block ** computed_outputmap)
 {
-    printf("In compute outputs!!\n");
     assert(output && "output's memory should be allocated");
 
     for (uint16_t i = 0; i < ois->n_output_instructions; ++i) {
@@ -332,30 +331,6 @@ computeOutputs(const OutputInstructions *ois, int *output, block ** computed_out
     return SUCCESS;
 }
 
-static void
-mapOutputsWithOutputInstructions(const OutputInstructions *outputInstructions, const int outputInstructionsSize, 
-                                 int *output, const int noutputs, block **computedOutputMap,
-                                 const block *outputMap)
-{
-    int output_idx = 0;
-    for (int i = 0; i < outputInstructionsSize; ++i) {
-        int start = outputInstructions->start_wire_idx[i];
-        int end = outputInstructions->end_wire_idx[i];
-        int dist = end - start + 1;
-        int gc_idx = outputInstructions->gc_id[i];
-        int res;
-
-        res = mapOutputs(&outputMap[output_idx * 2],
-                         &computedOutputMap[gc_idx][start],
-                         &output[output_idx], 
-                         dist);
-
-        assert(res == SUCCESS);
-        output_idx += dist;
-    }
-    assert(noutputs == output_idx);
-}
-
 void
 evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                  int num_chained_gcs, uint64_t *tot_time, ChainingType chainingType)
@@ -363,7 +338,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
     block *garb_labels = NULL, *eval_labels = NULL, *recvLabels = NULL, *outputmap = NULL, **labels = NULL, *offsets = NULL;
-    int *corrections = NULL, output_size, *circuitMapping, sockfd;
+    int *corrections = NULL, *circuitMapping, sockfd;
     uint64_t start, end, _start, _end;
     int num_garb_inputs = 0; /* later received from garbler */
 
@@ -472,24 +447,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                 output_instructions.n_output_instructions * sizeof(OutputInstruction), 0);
     }
     _end = current_time();
-    fprintf(stderr, "ot correction: %llu\n", _end - _start);
-
-    /* ---OLD----- OutputInstructions -----=*/
-    /* Receive outputmap and outputInstructions */
-    _start = current_time();
-    int output_arr_size; /* size of output_arr, not num outputs */
-    {
-        net_recv(sockfd, &output_arr_size, sizeof(int), 0);
-        output_instructions = recvOutput(output_arr_size, sockfd);
-
-        /* receive outputmap */
-        net_recv(sockfd, &output_size, sizeof(int), 0);
-        outputmap = allocate_blocks(2 * output_size);
-        net_recv(sockfd, outputmap, 2 * sizeof(block) * output_size, 0);
-    }
-    _end = current_time();
-    fprintf(stderr, "receive output/outputmap: %llu\n", _end - _start);
-    /*------------END OLD-------------------*/
+    fprintf(stderr, "recv_output_instructions: %llu\n", _end - _start);
 
     /* Follow instructions and evaluate */
     _start = current_time();
@@ -507,12 +465,9 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     fprintf(stderr, "evaluate: %llu\n", _end - _start);
 
     _start = current_time();
-    int *output = calloc(sizeof(int), output_size);
+    int *output = calloc(sizeof(int), output_instructions.n_output_instructions);
     {
         computeOutputs(&output_instructions, output, computedOutputMap);
-        /* Map outputs */
-        //mapOutputsWithOutputInstructions(&output_instructions, output_arr_size, 
-        //                                 output, output_size, computedOutputMap, outputmap);
     }
     _end = current_time();
     fprintf(stderr, "map outputs: %llu\n", _end - _start);

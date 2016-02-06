@@ -293,7 +293,6 @@ json_load_output(json_t *root, FunctionSpec *function)
         return FAILURE;
     }
     /* END OLD SHIT */
-    print_output_instructions(&function->output_instructions);
     return SUCCESS;
 
 }

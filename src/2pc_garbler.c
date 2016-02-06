@@ -292,40 +292,7 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
                 function->output_instructions.n_output_instructions * sizeof(OutputInstruction), 0);
     }
     _end = current_time();
-    fprintf(stderr, "new send outputInstructions: %llu\n", _end - _start);
-
-    
-    /* TODO old output shit -- remove */
-    _start = current_time();
-    {
-        int size = function->output_instructions.size;
-
-        // Send "output" 
-        // output is from the json, and tells which components/wires are used
-        // for outputs note that size is not size of the output, but length of
-        // the arrays in output
-        net_send(fd, &size, sizeof size, 0); 
-        net_send(fd, function->output_instructions.gc_id, sizeof(int) * size, 0);
-        net_send(fd, function->output_instructions.start_wire_idx, sizeof(int) * size, 0);
-        net_send(fd, function->output_instructions.end_wire_idx, sizeof(int) * size, 0);
-
-        // 5b. send outputMap
-        net_send(fd, &function->m, sizeof function->m, 0);
-        for (int j = 0; j < size; j++) {
-            int gc_id = circuitMapping[function->output_instructions.gc_id[j]];
-            int start_wire_idx = function->output_instructions.start_wire_idx[j];
-            int end_wire_idx = function->output_instructions.end_wire_idx[j];
-            // add 1 because values are inclusive
-            int dist = end_wire_idx - start_wire_idx + 1;
-
-
-            net_send(fd, &chained_gcs[gc_id].outputMap[start_wire_idx],
-                    sizeof(block) * 2 * dist, 0);
-        }
-    }
-    _end = current_time();
-    fprintf(stderr, "send output/outputmap: %llu\n", _end - _start);
-    /* TODO end old output shit -- remove */
+    fprintf(stderr, "send_output_instructions: %llu\n", _end - _start);
 
     if (num_garb_inputs > 0)
         free(garbLabels);
