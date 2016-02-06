@@ -59,18 +59,8 @@ typedef struct {
 OutputInstruction;
 
 typedef struct {
-    // BEGIN OLD OUTPUT
-    // the output is for all i from 0 to size
-    // of gc_id[i] from wire start_wire_idx[i] to wire end_wire_idx[i]
-    int *gc_id;
-    int *start_wire_idx;
-    int *end_wire_idx;
-    int size; // size of the arrays
-    // END OLD OUTPUT
-
     OutputInstruction *output_instruction;
-    size_t n_output_instructions;
-
+    size_t size;
 } 
 OutputInstructions;
 
@@ -79,8 +69,6 @@ typedef struct {
      * That is, the components, instructions for evaluating and chaining components,
      * and everything else necessary for evaluating a function 
      */
-    char* name; // make 128
-    char* description; // make 128
     int n, m;
     int num_garb_inputs, num_eval_inputs;
     FunctionComponent components;

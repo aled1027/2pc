@@ -284,28 +284,12 @@ loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
         *eval_labels = loadOTLabels(lblName);
 }
 
-static OutputInstructions
-recvOutput(int outputArrSize, int sockfd) 
-{
-    OutputInstructions *output = malloc(sizeof(OutputInstructions));
-
-    output->gc_id = malloc(sizeof(int) * outputArrSize);
-    output->start_wire_idx = malloc(sizeof(int) * outputArrSize);
-    output->end_wire_idx = malloc(sizeof(int) * outputArrSize);
-
-    net_recv(sockfd, output->gc_id, sizeof(int) * outputArrSize, 0);
-    net_recv(sockfd, output->start_wire_idx, sizeof(int) * outputArrSize, 0);
-    net_recv(sockfd, output->end_wire_idx, sizeof(int) * outputArrSize, 0);
-
-    return *output;
-}
-
 static int
 computeOutputs(const OutputInstructions *ois, int *output, block ** computed_outputmap)
 {
     assert(output && "output's memory should be allocated");
 
-    for (uint16_t i = 0; i < ois->n_output_instructions; ++i) {
+    for (uint16_t i = 0; i < ois->size; ++i) {
         OutputInstruction *oi = &ois->output_instruction[i];
 
         // decrypt using comp_block as key
@@ -443,13 +427,13 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     OutputInstructions output_instructions;
     _start = current_time();
     {
-        net_recv(sockfd, &output_instructions.n_output_instructions, 
-                sizeof(output_instructions.n_output_instructions), 0);
+        net_recv(sockfd, &output_instructions.size, 
+                sizeof(output_instructions.size), 0);
         output_instructions.output_instruction = 
-            malloc(output_instructions.n_output_instructions * sizeof(OutputInstruction));
+            malloc(output_instructions.size * sizeof(OutputInstruction));
 
         net_recv(sockfd, output_instructions.output_instruction, 
-                output_instructions.n_output_instructions * sizeof(OutputInstruction), 0);
+                output_instructions.size * sizeof(OutputInstruction), 0);
     }
     _end = current_time();
     fprintf(stderr, "recv_output_instructions: %llu\n", _end - _start);
@@ -470,7 +454,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     fprintf(stderr, "evaluate: %llu\n", _end - _start);
 
     _start = current_time();
-    int *output = calloc(sizeof(int), output_instructions.n_output_instructions);
+    int *output = calloc(sizeof(int), output_instructions.size);
     {
         int res = computeOutputs(&output_instructions, output, computedOutputMap);
         if (res == FAILURE) {

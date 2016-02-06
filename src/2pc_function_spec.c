@@ -127,9 +127,9 @@ print_instructions(Instructions* instr)
 void
 print_output_instructions(OutputInstructions *ois)
 {
-    printf("Num output instructions: %d\n", ois->n_output_instructions);
+    printf("Num output instructions: %d\n", ois->size);
     OutputInstruction *oi;
-    for (int i = 0; i < ois->n_output_instructions; i++) {
+    for (int i = 0; i < ois->size; i++) {
         oi = &ois->output_instruction[i];
         printf("oi[%d] = (gc_id: %d, wire_id: %d ",
                 i,
@@ -223,9 +223,9 @@ json_load_output(json_t *root, FunctionSpec *function)
     assert(json_is_array(jOutputs));
     int array_size = json_array_size(jOutputs);
 
-    output_instructions->n_output_instructions = function->m;
+    output_instructions->size = function->m;
     output_instructions->output_instruction = 
-        malloc(output_instructions->n_output_instructions * sizeof(OutputInstruction));
+        malloc(output_instructions->size * sizeof(OutputInstruction));
 
     int idx = 0;
     for (int i = 0; i < array_size; i++) {

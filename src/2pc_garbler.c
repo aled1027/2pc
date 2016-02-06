@@ -284,12 +284,12 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
 
     _start = current_time();
     {
-        net_send(fd, &function->output_instructions.n_output_instructions, 
-                sizeof(function->output_instructions.n_output_instructions), 0);
+        net_send(fd, &function->output_instructions.size, 
+                sizeof(function->output_instructions.size), 0);
         printf("break here\n");
 
         net_send(fd, function->output_instructions.output_instruction, 
-                function->output_instructions.n_output_instructions * sizeof(OutputInstruction), 0);
+                function->output_instructions.size * sizeof(OutputInstruction), 0);
     }
     _end = current_time();
     fprintf(stderr, "send_output_instructions: %llu\n", _end - _start);
@@ -309,10 +309,8 @@ make_real_output_instructions(FunctionSpec* function,
      * Turns the output instructions from json into usable output instructions using the chained_gcs.
      * Specially, populates function->output_instructions->output_instruction[i].label0 and label1 
      */
-
-    printf("\n\n Making real output instructions \n\n");
     OutputInstructions* output_instructions = &function->output_instructions;
-    for (int i = 0; i < output_instructions->n_output_instructions; i++) {
+    for (int i = 0; i < output_instructions->size; i++) {
         OutputInstruction* o = &output_instructions->output_instruction[i];
         int savedGCId = circuitMapping[o->gc_id];
         block key_zero = chained_gcs[savedGCId].outputMap[2 * o->wire_id];
@@ -324,6 +322,9 @@ make_real_output_instructions(FunctionSpec* function,
         block b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
 
         // TODO do actual encrypt / decryption. Ask Alex M.
+        // TODO could use garbled row reduction, but then we 
+        // wouldn't be able to check that outputs are being computed correctly
+        // Add grr if slow and as last step
         block zero_out = our_encrypt(&b_zero, &key_zero);
         block one_out = our_encrypt(&b_one, &key_one);
 
