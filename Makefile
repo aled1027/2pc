@@ -19,7 +19,7 @@ INCLUDES := $(wildcard $(SRCDIR)/*.h)
 IDIR =include
 
 CC=gcc
-CFLAGS= -O3 -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
+CFLAGS= -g -O0 -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
 # TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
 # Wno-format is for printing uint64_t as llu.
 CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
@@ -73,10 +73,10 @@ aes_eval_off:
 	./$(BINDIR)/test --eval-off --type AES
 
 aes_garb_on:
-	./$(BINDIR)/test --garb-on --type AES --times 100
+	gdb --args ./$(BINDIR)/test --garb-on --type AES --times 2
 
 aes_eval_on:
-	./$(BINDIR)/test --eval-on --type AES --times 100
+	gdb --args ./$(BINDIR)/test --eval-on --type AES --times 2
 #########
 # LEVEN #
 #########

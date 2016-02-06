@@ -282,12 +282,17 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     fprintf(stderr, "ot correction: %llu\n", _end - _start);
 
 
-    // TODO work for here for outputInstructions new stuff
-    //_start = current_time();
-    //{
-    //}
-    //_end = current_time();
-    //fprintf(stderr, "send output/outputmap: %llu\n", _end - _start);
+    _start = current_time();
+    {
+        net_send(fd, &function->output_instructions.n_output_instructions, 
+                sizeof(function->output_instructions.n_output_instructions), 0);
+        printf("break here\n");
+
+        net_send(fd, function->output_instructions.output_instruction, 
+                function->output_instructions.n_output_instructions * sizeof(OutputInstruction), 0);
+    }
+    _end = current_time();
+    fprintf(stderr, "new send outputInstructions: %llu\n", _end - _start);
 
     
     /* TODO old output shit -- remove */

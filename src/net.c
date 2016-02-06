@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <assert.h>
 
 int
 net_send(const int socket, const void *buffer, const size_t length, int flags)
@@ -38,6 +39,7 @@ net_recv(const int socket, void *buffer, size_t length, int flags)
         ssize_t n = recv(socket, buffer + total, bytesleft, flags);
         if (n == -1) {
             perror("recv");
+            assert(false);
             return FAILURE;
         }
         total += n;

@@ -284,7 +284,7 @@ loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
         *eval_labels = loadOTLabels(lblName);
 }
 
-static OutputInstructions*
+static OutputInstructions
 recvOutput(int outputArrSize, int sockfd) 
 {
     OutputInstructions *output = malloc(sizeof(OutputInstructions));
@@ -297,7 +297,7 @@ recvOutput(int outputArrSize, int sockfd)
     net_recv(sockfd, output->start_wire_idx, sizeof(int) * outputArrSize, 0);
     net_recv(sockfd, output->end_wire_idx, sizeof(int) * outputArrSize, 0);
 
-    return output;
+    return *output;
 }
 
 static void
@@ -427,13 +427,28 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     _end = current_time();
     fprintf(stderr, "ot correction: %llu\n", _end - _start);
 
+    /* Receive output instructions */
+    OutputInstructions output_instructions;
+    _start = current_time();
+    {
+        net_recv(sockfd, &output_instructions.n_output_instructions, 
+                sizeof(output_instructions.n_output_instructions), 0);
+        output_instructions.output_instruction = 
+            malloc(output_instructions.n_output_instructions * sizeof(OutputInstruction));
+
+        net_recv(sockfd, output_instructions.output_instruction, 
+                output_instructions.n_output_instructions * sizeof(OutputInstruction), 0);
+    }
+    _end = current_time();
+    fprintf(stderr, "ot correction: %llu\n", _end - _start);
+
+    /* ---OLD----- OutputInstructions -----=*/
     /* Receive outputmap and outputInstructions */
     _start = current_time();
     int output_arr_size; /* size of output_arr, not num outputs */
-    OutputInstructions *outputInstructions;
     {
         net_recv(sockfd, &output_arr_size, sizeof(int), 0);
-        outputInstructions = recvOutput(output_arr_size, sockfd);
+        output_instructions = recvOutput(output_arr_size, sockfd);
 
         /* receive outputmap */
         net_recv(sockfd, &output_size, sizeof(int), 0);
@@ -442,6 +457,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     }
     _end = current_time();
     fprintf(stderr, "receive output/outputmap: %llu\n", _end - _start);
+    /*------------END OLD-------------------*/
 
     /* Follow instructions and evaluate */
     _start = current_time();
@@ -462,7 +478,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     int *output = calloc(sizeof(int), output_size);
     {
         /* Map outputs */
-        mapOutputsWithOutputInstructions(outputInstructions, output_arr_size, 
+        mapOutputsWithOutputInstructions(&output_instructions, output_arr_size, 
                                          output, output_size, computedOutputMap, outputmap);
     }
     _end = current_time();
@@ -470,10 +486,6 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
 
     // 12. clean up
     free(circuitMapping);
-    free(outputInstructions->gc_id);
-    free(outputInstructions->start_wire_idx);
-    free(outputInstructions->end_wire_idx);
-    free(outputInstructions);
     for (int i = 0; i < num_chained_gcs; ++i) {
         freeChainedGarbledCircuit(&chained_gcs[i], false, chainingType);
         free(labels[i]);

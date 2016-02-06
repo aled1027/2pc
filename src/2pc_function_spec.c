@@ -65,6 +65,85 @@ freeFunctionSpec(FunctionSpec* function)
 
     return SUCCESS;
 }
+void 
+print_metadata(FunctionSpec *function)
+{
+    printf("n: %d\n", function->n);
+    printf("m: %d\n", function->m);
+    printf("num_garb_inputs: %d\n", function->num_garb_inputs);
+    printf("num_eval_inputs: %d\n", function->num_eval_inputs);
+}
+
+void
+print_components(FunctionComponent* components) 
+{
+    printf("numComponentsTypes: %d\n", components->numComponentTypes);
+    printf("totComponents: %d\n", components->totComponents);
+    for (int i = 0; i < components->numComponentTypes; i++) {
+        printf("component type: %d\t", components->circuitType[i]);
+        printf("nCircuits: %d\t", components->nCircuits[i]);
+        printf("circuitIds: ");
+        for (int j = 0; j < components->nCircuits[i]; j++) {
+            printf("%d, ", components->circuitIds[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+void 
+print_input_mapping(InputMapping* inputMapping) 
+{
+    printf("InputMapping size: %d\n", inputMapping->size);
+    for (int i = 0; i < inputMapping->size; i++) {
+        char person[40] = "Garbler  ";
+        if (inputMapping->inputter[i] == PERSON_EVALUATOR) 
+            strcpy(person, "Evaluator");
+        printf("%s input %d -> (gc %d, wire %d)\n", person, inputMapping->input_idx[i], inputMapping->gc_id[i], 
+                inputMapping->wire_id[i]);
+    }
+}
+
+void 
+print_instructions(Instructions* instr) 
+{
+    printf("Instructions:\n");
+    for (int i = 0; i < instr->size; i++) {
+        switch(instr->instr[i].type) {
+            case EVAL:
+                printf("EVAL %d\n", instr->instr[i].evCircId);
+                break;
+            case CHAIN:
+                printf("CHAIN (%d, %d) -> (%d, %d) with offset (%d)\n", 
+                        instr->instr[i].chFromCircId, 
+                        instr->instr[i].chFromWireId,
+                        instr->instr[i].chToCircId,
+                        instr->instr[i].chToWireId,
+                        instr->instr[i].chOffsetIdx);
+
+                break;
+            default:
+                printf("Not printing command\n");
+        }
+    }
+}
+
+void
+print_output_instructions(OutputInstructions *ois)
+{
+    printf("Num output instructions: %d\n", ois->n_output_instructions);
+    OutputInstruction *oi;
+    for (int i = 0; i < ois->n_output_instructions; i++) {
+        oi = &ois->output_instruction[i];
+        printf("oi[%d] = (gc_id: %d, wire_id: %d ",
+                i,
+                oi->gc_id,
+                oi->wire_id);
+        print_block(oi->labels[0]);
+        printf(" ");
+        print_block(oi->labels[1]);
+        printf("\n");
+    }
+}
 
 int 
 json_load_metadata(json_t *root, FunctionSpec *function)
@@ -148,7 +227,8 @@ json_load_output(json_t *root, FunctionSpec *function)
     int array_size = json_array_size(jOutputs);
 
     output_instructions->n_output_instructions = function->m;
-    output_instructions->output_instruction = malloc(output_instructions->n_output_instructions * sizeof(OutputInstruction));
+    output_instructions->output_instruction = 
+        malloc(output_instructions->n_output_instructions * sizeof(OutputInstruction));
 
     int idx = 0;
     for (int i = 0; i < array_size; i++) {
@@ -166,11 +246,13 @@ json_load_output(json_t *root, FunctionSpec *function)
         jPtr = json_object_get(jOutput, "end_wire_idx");
         assert(json_is_integer(jPtr));
         int end_wire_idx = json_integer_value(jPtr);
+        printf("start_wire_idx: %d\n", start_wire_idx);
+        printf("end_wire_idx: %d\n", end_wire_idx);
 
         /* plus one because inclusive */
         for (int j = start_wire_idx; j < end_wire_idx + 1; ++j) {
-            output_instructions->output_instruction[i].gc_id = gc_id;
-            output_instructions->output_instruction[i].wire_id = j;
+            output_instructions->output_instruction[idx].gc_id = gc_id;
+            output_instructions->output_instruction[idx].wire_id = j;
             ++idx;
         }
     }
@@ -211,82 +293,11 @@ json_load_output(json_t *root, FunctionSpec *function)
         return FAILURE;
     }
     /* END OLD SHIT */
+    print_output_instructions(&function->output_instructions);
     return SUCCESS;
+
 }
 
-void 
-print_metadata(FunctionSpec *function)
-{
-    printf("n: %d\n", function->n);
-    printf("m: %d\n", function->m);
-    printf("num_garb_inputs: %d\n", function->num_garb_inputs);
-    printf("num_eval_inputs: %d\n", function->num_eval_inputs);
-}
-
-void
-print_components(FunctionComponent* components) 
-{
-    printf("numComponentsTypes: %d\n", components->numComponentTypes);
-    printf("totComponents: %d\n", components->totComponents);
-    for (int i = 0; i < components->numComponentTypes; i++) {
-        printf("component type: %d\t", components->circuitType[i]);
-        printf("nCircuits: %d\t", components->nCircuits[i]);
-        printf("circuitIds: ");
-        for (int j = 0; j < components->nCircuits[i]; j++) {
-            printf("%d, ", components->circuitIds[i][j]);
-        }
-        printf("\n");
-    }
-}
-
-void 
-print_input_mapping(InputMapping* inputMapping) 
-{
-    printf("InputMapping size: %d\n", inputMapping->size);
-    for (int i = 0; i < inputMapping->size; i++) {
-        char person[40] = "Garbler  ";
-        if (inputMapping->inputter[i] == PERSON_EVALUATOR) 
-            strcpy(person, "Evaluator");
-        printf("%s input %d -> (gc %d, wire %d)\n", person, inputMapping->input_idx[i], inputMapping->gc_id[i], 
-                inputMapping->wire_id[i]);
-    }
-}
-
-void 
-print_instructions(Instructions* instr) 
-{
-    printf("Instructions:\n");
-    for (int i = 0; i < instr->size; i++) {
-        switch(instr->instr[i].type) {
-            case EVAL:
-                printf("EVAL %d\n", instr->instr[i].evCircId);
-                break;
-            case CHAIN:
-                printf("CHAIN (%d, %d) -> (%d, %d) with offset (%d)\n", 
-                        instr->instr[i].chFromCircId, 
-                        instr->instr[i].chFromWireId,
-                        instr->instr[i].chToCircId,
-                        instr->instr[i].chToWireId,
-                        instr->instr[i].chOffsetIdx);
-
-                break;
-            default:
-                printf("Not printing command\n");
-        }
-    }
-}
-
-void
-print_output(OutputInstructions *output)
-{
-    printf("Output object size: %d\n", output->size);
-    for (int i = 0; i < output->size; i++) {
-        printf("Output (gc_id: %d, start_wire: %d, end_wire: %d)\n", 
-                output->gc_id[i],
-                output->start_wire_idx[i],
-                output->end_wire_idx[i]);
-    }
-}
 
 int 
 json_load_input_mapping(json_t *root, FunctionSpec* function) 
@@ -558,7 +569,7 @@ print_function(FunctionSpec* function)
     print_components(&function->components);
     print_input_mapping(&function->input_mapping);
     print_instructions(&function->instructions);
-    print_output(&function->output_instructions);
+    print_output_instructions(&function->output_instructions);
 }
 
 void
