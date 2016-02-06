@@ -58,10 +58,7 @@ freeFunctionSpec(FunctionSpec* function)
     /* Free instructions */
     free(function->instructions.instr);
 
-    /* Free output */
-    free(function->output_instructions.gc_id);
-    free(function->output_instructions.start_wire_idx);
-    free(function->output_instructions.end_wire_idx);
+    free(function->output_instructions.output_instruction);
 
     return SUCCESS;
 }
@@ -256,43 +253,6 @@ json_load_output(json_t *root, FunctionSpec *function)
             ++idx;
         }
     }
-
-    /* OLD SHIT */
-    // TODO remove:
-
-    output_instructions->size = json_array_size(jOutputs);
-
-    // allocate memory
-    output_instructions->gc_id = malloc(sizeof(int) * output_instructions->size);
-    output_instructions->start_wire_idx = malloc(sizeof(int) * output_instructions->size);
-    output_instructions->end_wire_idx = malloc(sizeof(int) * output_instructions->size);
-    int sum = 0;
-
-    // loop over output and extract info
-    for (int i = 0; i < output_instructions->size; i++) {
-        jOutput = json_array_get(jOutputs, i);
-        assert(json_is_object(jOutput));
-
-        jPtr = json_object_get(jOutput, "gc_id");
-        assert(json_is_integer(jPtr));
-        output_instructions->gc_id[i] = json_integer_value(jPtr);
-
-        jPtr = json_object_get(jOutput, "start_wire_idx");
-        assert(json_is_integer(jPtr));
-        output_instructions->start_wire_idx[i] = json_integer_value(jPtr);
-
-        jPtr = json_object_get(jOutput, "end_wire_idx");
-        assert(json_is_integer(jPtr));
-        output_instructions->end_wire_idx[i] = json_integer_value(jPtr);
-
-        sum += output_instructions->end_wire_idx[i] - output_instructions->start_wire_idx[i] + 1;
-    }
-    if (function->m != sum) {
-        printf("Output not matching number of outputs indicated by function->m\n");
-        printf("m = %d, sum = %d\n", function->m, sum);
-        return FAILURE;
-    }
-    /* END OLD SHIT */
     return SUCCESS;
 
 }

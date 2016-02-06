@@ -137,13 +137,13 @@ debug(char *s)
     fflush(stderr);
 }
 
-void
+block
 our_encrypt(block *bl, block* key)
 {
     /* encrypt bl using key. output is put back into bl */
-    *bl = xorBlocks(*bl, *key);
-    
-
+    block ret;
+    ret = xorBlocks(*bl, *key);
+    return ret;
     
     // Ideally what it would look like:
     //AES_KEY key;
@@ -151,13 +151,13 @@ our_encrypt(block *bl, block* key)
     //AES_ecb_encrypt_blks(bl, 1, key);
 }
 
-void
+block
 our_decrypt(block *bl, block* key)
 {
     /* encrypt bl using key. output is put back into bl */
-    *bl = xorBlocks(*bl, *key);
-    
-
+    block ret;
+    ret = xorBlocks(*bl, *key);
+    return ret;
     
     // Ideally what it would look like:
     //AES_KEY key;

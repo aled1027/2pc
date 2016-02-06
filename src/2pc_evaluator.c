@@ -310,23 +310,28 @@ computeOutputs(const OutputInstructions *ois, int *output, block ** computed_out
 
         // decrypt using comp_block as key
         block comp_block = computed_outputmap[oi->gc_id][oi->wire_id];
-        block dec_block;
-        our_decrypt(&dec_block, &comp_block);
+        //block dec_block;
+
+        block out0 = our_decrypt(&oi->labels[0], &comp_block);
+        block out1 = our_decrypt(&oi->labels[1], &comp_block);
 
         block b_zero = zero_block();
         block b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
-        assert(!blockEqual(b_zero, b_one));
 
-        if (blockEqual(b_zero, dec_block)) {
+        if (blockEqual(b_zero, out0)) {
             output[i] = 0;
-        } else if (blockEqual(b_one, dec_block)) {
+        } else if (blockEqual(b_one, out0)) {
+            output[i] = 1;
+        } else if (blockEqual(b_zero, out1)) {
+            output[i] = 0;
+        } else if (blockEqual(b_one, out1)) {
             output[i] = 1;
         } else {
             fprintf(stderr, "Could not compute output[%d] from (gc_id: %d, wire_id %d\n",
                     i, oi->gc_id, oi->wire_id);
+            assert(false);
             return FAILURE;
         }
-
     }
     return SUCCESS;
 }
@@ -467,7 +472,11 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     _start = current_time();
     int *output = calloc(sizeof(int), output_instructions.n_output_instructions);
     {
-        computeOutputs(&output_instructions, output, computedOutputMap);
+        int res = computeOutputs(&output_instructions, output, computedOutputMap);
+        if (res == FAILURE) {
+            fprintf(stderr, "computeOutputs failed\n");
+        }
+
     }
     _end = current_time();
     fprintf(stderr, "map outputs: %llu\n", _end - _start);

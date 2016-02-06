@@ -56,8 +56,8 @@ readFileIntoBuffer(char* buffer, char* fileName);
 void
 debug(char *s);
 
-void our_encrypt(block *bl, block* key);
+block our_encrypt(block *bl, block* key);
 
-void our_decrypt(block *bl, block* key);
+block our_decrypt(block *bl, block* key);
 
 #endif

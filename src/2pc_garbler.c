@@ -324,12 +324,12 @@ make_real_output_instructions(FunctionSpec* function,
         block b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
 
         // TODO do actual encrypt / decryption. Ask Alex M.
-        our_encrypt(&b_zero, &key_zero);
-        our_encrypt(&b_one, &key_one);
+        block zero_out = our_encrypt(&b_zero, &key_zero);
+        block one_out = our_encrypt(&b_one, &key_one);
 
         uint8_t pa = rand() % 2; // for randomly permuting table (not dong Point and Permute)
-        o->labels[pa] = b_zero;
-        o->labels[!pa] = b_one;
+        o->labels[pa] = zero_out;
+        o->labels[!pa] = one_out;
     }
     return SUCCESS;
 
