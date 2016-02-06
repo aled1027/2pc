@@ -241,13 +241,6 @@ evaluator_offline(char *dir, const int num_eval_inputs, const int nchains, Chain
 static void
 recvInstructions(Instructions *insts, const int fd, block **offsets)
 {
-
-    
-    /* So we know to start counting this */
-
-    uint64_t s, e;
-    s = current_time();
-
     int noffsets;
     net_recv(fd, &insts->size, sizeof(int), 0);
     net_recv(fd, &noffsets, sizeof(int), 0);
@@ -257,9 +250,6 @@ recvInstructions(Instructions *insts, const int fd, block **offsets)
 
     net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
-
-    e = current_time();
-    fprintf(stderr, "recvInstructions total: %llu\n", e - s);
 }
 
 static void 
@@ -328,7 +318,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     FunctionSpec function;
     block *garb_labels = NULL, *eval_labels = NULL, *recvLabels = NULL, *outputmap = NULL, **labels = NULL, *offsets = NULL;
     int *corrections = NULL, *circuitMapping, sockfd;
-    uint64_t start, end, _start, _end;
+    uint64_t start, end, _start, _end, loading_time;
     int num_garb_inputs = 0; /* later received from garbler */
 
     if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
@@ -337,29 +327,32 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     }
 
     /* start timing after socket connection */
-    start = current_time();
-
     _start = current_time();
     {
         /* Load things from disk */
         chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         loadChainedGarbledCircuits(chained_gcs, num_chained_gcs, dir, chainingType);
+        loadOTPreprocessing(&eval_labels, &corrections, dir);
     }
-    loadOTPreprocessing(&eval_labels, &corrections, dir);
-
     _end = current_time();
-    fprintf(stderr, "loading: %llu\n", _end - _start);
+    loading_time = _end - _start;
+    fprintf(stderr, "loading: %llu\n", loading_time);
 
+    /* waiting to start real stuff */
     _start = current_time();
     uint8_t a_byte;
     net_recv(sockfd, &a_byte, sizeof(a_byte), 0);
     _end = current_time();
     fprintf(stderr, "waiting: %llu\n", _end - _start);
 
+    start = current_time();
+    _start = current_time();
     {
         /* timed inside of function */
         recvInstructions(&function.instructions, sockfd, &offsets);
     }
+    _end = current_time();
+    fprintf(stderr, "recvInstructions: %llu\n", _end - _start);
 
     _start = current_time();
     {
@@ -487,9 +480,9 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     close(sockfd);
 
     end = current_time();
+    fprintf(stderr, "total_without_loading: %llu\n", end - start);
     if (tot_time) {
-        *tot_time = end - start;
+        *tot_time = end - start + loading_time;
     }
 }
-
 

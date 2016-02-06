@@ -19,14 +19,14 @@ INCLUDES := $(wildcard $(SRCDIR)/*.h)
 IDIR =include
 
 CC=gcc
-CFLAGS= -g -O0 -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
+CFLAGS= -O3 -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
 # TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
 # Wno-format is for printing uint64_t as llu.
 CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
 
 #LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson 
 LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson # for Alex L (libmsgpack)
-#LIB+= -DNDDEBUG # removes all "assert()" at compile time
+LIB+= -DNDDEBUG # removes all "assert()" at compile time
 
 AES = 2pc_aes
 CBC = 2pc_cbc
@@ -73,10 +73,10 @@ aes_eval_off:
 	./$(BINDIR)/test --eval-off --type AES
 
 aes_garb_on:
-	gdb --args ./$(BINDIR)/test --garb-on --type AES --times 2
+	./$(BINDIR)/test --garb-on --type AES --times 20
 
 aes_eval_on:
-	gdb --args ./$(BINDIR)/test --eval-on --type AES --times 2
+	./$(BINDIR)/test --eval-on --type AES --times 20
 #########
 # LEVEN #
 #########
