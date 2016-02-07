@@ -484,6 +484,7 @@ static void levenCoreTest()
     printf("\n");
 }
 
+
 static void saveAndLoadTest()
 {
     printf("save and load test\n");

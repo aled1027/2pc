@@ -176,8 +176,12 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext,
     memcpy(min_inputs, D_minus_minus, sizeof(int) * DIntSize);
     memcpy(min_inputs + DIntSize, min_outputs, sizeof(int) * DIntSize);
 
+    /* min_outputs[2] is the switch. If the switch is 1
+     * then 
+     */
     int *min_outputs2 = allocate_ints(DIntSize+1); /* will be filled by MINCircuit */
     MINCircuitWithLEQOutput(gc, gcContext, 2*DIntSize, min_inputs, min_outputs2); 
+    printf("min2: %d %d %d\n", min_outputs2[0], min_outputs2[1], min_outputs2[2]);
 
     /* T */
     int xor_output[2];
@@ -188,6 +192,7 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext,
     XORGate(gc, gcContext, symbol0[1], symbol1[1], xor_output[1]);
     ORGate(gc, gcContext, xor_output[0], xor_output[1], T_output);
 
+
     /* 2-1 MUX */
     int mux_switch = getNextWire(gcContext);
     NOTGate(gc, gcContext, min_outputs2[DIntSize], mux_switch);
@@ -197,6 +202,7 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext,
     mux_input[0] = fixed_one_wire;
     int mux_output;
     MUX21Circuit(gc, gcContext, mux_switch, mux_input[0], mux_input[1], &mux_output);
+    printf("mux_output: %d\n", mux_output);
 
     /* AddOneBit AKA Inc*/
     (void) fixedZeroWire(gc, gcContext);
@@ -204,6 +210,7 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext,
     int *add_outputs = allocate_ints(DIntSize);
     memcpy(add_inputs, min_outputs2, sizeof(int) * DIntSize);
     INCCircuit(gc, gcContext, DIntSize, add_inputs, add_outputs);
+    printf("add_outputs %d %d\n", add_outputs[0], add_outputs[1]);
 
     /* Final MUX (not in paper) */
     /* Final Mux between INCed value and orig value, with switch 
