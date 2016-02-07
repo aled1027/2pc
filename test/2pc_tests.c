@@ -472,7 +472,7 @@ static void leven2Test(int l)
 static void levenCoreTest() 
 {
     int n = 10;
-    int m = 2;
+    int m = 76;
     int q = 200;
     int r = q + n;
     int l = 2;
@@ -496,8 +496,22 @@ static void levenCoreTest()
 
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
 
-    for (int i = 0; i < n; i++)
-        inputs[i] = rand() % 2;
+    //for (int i = 0; i < n; i++)
+    //    inputs[i] = rand() % 2;
+
+    printf("3 0 1 || 0 2\n");
+    printf("desired answer: 1, computed_answer = 0\n");
+    inputs[0] = 1;
+    inputs[1] = 1;
+    inputs[2] = 0;
+    inputs[3] = 0;
+    inputs[4] = 1;
+    inputs[5] = 0;
+    inputs[6] = 0;
+    inputs[7] = 0;
+    inputs[8] = 0;
+    inputs[9] = 1;
+
 
     /* Evaluate */
     block extractedLabels[n];
@@ -509,7 +523,9 @@ static void levenCoreTest()
     removeGarbledCircuit(&gc);
 
     /* Results */
-    checkLevenCore(inputs, outputs, l);
+    //checkLevenCore(inputs, outputs, l);
+
+    printf("t_output: %d\n", outputs[58]);
 }
 
 static void saveAndLoadTest()
@@ -558,6 +574,8 @@ static void saveAndLoadTest()
     for (int i = 0; i < n; i++)
         inputs[i] = rand() % 2;
 
+    
+
     block extractedLabels[n];
     extractLabels(extractedLabels, cgc2.inputLabels, inputs, n);
 
@@ -570,7 +588,7 @@ static void saveAndLoadTest()
 void runAllTests(void)
 { 
     seedRandom(NULL);
-    int nruns = 20; 
+    int nruns = 1; 
 
     // TODO these two tests are failing!
     //for (int i = 0; i < nruns; i++)

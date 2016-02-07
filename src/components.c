@@ -127,6 +127,25 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
     /* removeGarblingContext(&gcContext); */
 }
 
+static int
+TCircuit(GarbledCircuit *gc, GarblingContext *gctxt, int *inp0, int *inp1, int ninputs)
+{
+    /* Perfroms "T" which equal 1 if and only if inp0 == inp1 */
+    /* returns the output wire */
+    assert(ninputs = 4 && "doesnt support other alphabet sizes.. yet");
+    //int split = ninputs / 2;
+
+    int xor_output[2];
+    xor_output[0] = getNextWire(gctxt);
+    xor_output[1] = getNextWire(gctxt);
+
+    int T_output = getNextWire(gctxt);
+    XORGate(gc, gctxt, inp0[0], inp1[0], xor_output[0]);
+    XORGate(gc, gctxt, inp0[1], inp1[1], xor_output[1]);
+    ORGate(gc, gctxt, xor_output[0], xor_output[1], T_output);
+    return T_output;
+}
+
 void
 addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext, 
         int l, int *inputWires, int *outputWires) 
@@ -180,13 +199,16 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext,
     MINCircuitWithLEQOutput(gc, gcContext, 2*DIntSize, min_inputs, min_outputs2); 
 
     /* T */
-    int xor_output[2];
-    xor_output[0] = getNextWire(gcContext);
-    xor_output[1] = getNextWire(gcContext);
-    int T_output = getNextWire(gcContext);
-    XORGate(gc, gcContext, symbol0[0], symbol1[0], xor_output[0]);
-    XORGate(gc, gcContext, symbol0[1], symbol1[1], xor_output[1]);
-    ORGate(gc, gcContext, xor_output[0], xor_output[1], T_output);
+    int T_output = TCircuit(gc, gcContext, symbol0, symbol1, 4);
+
+    //int xor_output[2];
+    //xor_output[0] = getNextWire(gcContext);
+    //xor_output[1] = getNextWire(gcContext);
+    //int T_output = getNextWire(gcContext);
+    //XORGate(gc, gcContext, symbol0[0], symbol1[0], xor_output[0]);
+    //XORGate(gc, gcContext, symbol0[1], symbol1[1], xor_output[1]);
+    //ORGate(gc, gcContext, xor_output[0], xor_output[1], T_output);
+    printf("T_output: %d\n", T_output);
 
     /* 2-1 MUX */
     int mux_switch = getNextWire(gcContext);
@@ -229,8 +251,10 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext,
         ORGate(gc, gcContext, theAndOutput[0], theAndOutput[1], theMuxOutput);
         final[i] = theMuxOutput;
     }
+    printf("final[1] = %d\n", final[1]);
 
-    memcpy(outputWires, final, sizeof(int) * DIntSize);
+    //memcpy(outputWires, final, sizeof(int) * DIntSize);
+    countToN(outputWires, 76);
     
     /* free a ton of pointers */
     free(D_minus_minus);
