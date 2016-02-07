@@ -286,8 +286,6 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     {
         net_send(fd, &function->output_instructions.size, 
                 sizeof(function->output_instructions.size), 0);
-        printf("break here\n");
-
         net_send(fd, function->output_instructions.output_instruction, 
                 function->output_instructions.size * sizeof(OutputInstruction), 0);
     }

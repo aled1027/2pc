@@ -15,6 +15,40 @@
 
 #include "2pc_tests.h"
 
+static int
+convertToDec(const int *bin, int l) 
+{
+    assert(bin && l > 0);
+    int ret = 0;
+    for (int i = 0; i < l; i++) {
+        ret += bin[i] * pow(2, i);
+    }
+    return ret;
+}
+
+static void
+checkLevenCore(const int *inputs, int *output, int l) {
+    assert(l == 2);
+    int n0 = convertToDec(&inputs[0], 2);
+    int n1 = convertToDec(&inputs[2], 2);
+    int n2 = convertToDec(&inputs[4], 2);
+    int n3 = convertToDec(&inputs[6], 2);
+    int n4 = convertToDec(&inputs[8], 2);
+
+    int t = 0;
+    if (n3 != n4) {
+        t = 1;
+    }
+    int desired_answer = MIN3(n0 + 1, n1 + 1, n2 + t);
+    int computed_answer = convertToDec(output, 2);
+
+    if (desired_answer != computed_answer) {
+        printf("test failed\n");
+        printf("%d %d %d || %d %d\n", n0, n1, n2, n3, n4);
+        printf("desired answer: %d, computed_answer = %d\n", desired_answer, computed_answer);
+    }
+}
+
 static int levenshteinDistance(int *s1, int *s2, int l) 
 {
     /* 
@@ -59,7 +93,8 @@ static int lessThanCheck(int *inputs, int nints)
 
 }
 
-static void minCheck(int *inputs, int nints, int *output) {
+static void minCheck(int *inputs, int nints, int *output) 
+{
     /* Inputs is num1 || num2
      * And inputs[0] is ones digit, inputs[1] is 2s digit, and so on
      */
@@ -349,19 +384,21 @@ static void LESTest(int n)
     free(computedOutputMap);
 }
 
-static void levenTest(int l)
+static void leven2Test(int l)
 {
     int DIntSize = (int) floor(log2(l)) + 1;
     int inputsDevotedToD = DIntSize * (l+1);
     int n = inputsDevotedToD + 2*2*l;
     /* int core_n = (3 * DIntSize) + 4; */
     int m = DIntSize;
+    block delta = randomBlock();
 
     /* Build and Garble */
     GarbledCircuit gc;
     int *outputWires = allocate_ints(m);
     block *inputLabels = allocate_blocks(2*n);
     block *outputMap = allocate_blocks(2*m);
+    createInputLabelsWithR(inputLabels, n, delta);
     buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, m);
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
 
@@ -401,6 +438,7 @@ static void levenTest(int l)
     }
     if (failed) {
         printf("Leven test failed\n");
+    }
         int realInputs = n - inputsDevotedToD;
         for (int i = inputsDevotedToD; i < n; i++) { 
             printf("%d", inputs[i]);
@@ -418,7 +456,9 @@ static void levenTest(int l)
         for (int i = 0; i < m; i++) 
             printf("%d", realDistArr[i]);
         printf("\n");
-    }
+        printf("\n");
+    //}
+    //
 
     free(inputs);
     free(inputLabels);
@@ -435,6 +475,7 @@ static void levenCoreTest()
     int m = 2;
     int q = 200;
     int r = q + n;
+    int l = 2;
 
     /* Build and Garble */
     int inputWires[n];
@@ -450,7 +491,7 @@ static void levenCoreTest()
     createInputLabels(inputLabels, n);
 	createEmptyGarbledCircuit(&gc, n, m, q, r);
 	startBuilding(&gc, &gcContext);
-    addLevenshteinCoreCircuit(&gc, &gcContext, 2, inputWires, outputWires);
+    addLevenshteinCoreCircuit(&gc, &gcContext, l, inputWires, outputWires);
 	finishBuilding(&gc, outputWires);
 
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
@@ -468,20 +509,7 @@ static void levenCoreTest()
     removeGarbledCircuit(&gc);
 
     /* Results */
-    printf("core test checking not automated\n");
-
-    printf("Inputs ");
-    for (int i = 0; i < n; i++) { 
-        printf("%d", inputs[i]);
-        if (i % 2)
-            printf(" ");
-    }
-    printf("\n");
-
-    printf("Outputs ");
-    for (int i = 0; i < m; i++) 
-        printf("%d", outputs[i]);
-    printf("\n");
+    checkLevenCore(inputs, outputs, l);
 }
 
 static void saveAndLoadTest()
@@ -542,16 +570,16 @@ static void saveAndLoadTest()
 void runAllTests(void)
 { 
     seedRandom(NULL);
-    int nruns = 50; 
+    int nruns = 20; 
 
     // TODO these two tests are failing!
     //for (int i = 0; i < nruns; i++)
     //    saveAndLoadTest();
 
-    //for (int l = 2; l < 16; l++) { 
+    //for (int l = 3; l < 4; l++) { 
     //    printf("Running leven test for l=%d\n", l); 
     //    for (int i = 0; i < nruns; i++) 
-    //        levenTest(l); 
+    //        leven2Test(l); 
     //    printf("Ran leven test %d times\n", nruns); 
     //}
 
@@ -559,25 +587,25 @@ void runAllTests(void)
         levenCoreTest(); 
     printf("Ran leven core test %d times\n", nruns); 
 
-    printf("Running min test\n"); 
-    for (int i = 0; i < nruns; i++) 
-        minTest(); 
-    printf("Ran min test %d times\n", nruns); 
+    //printf("Running min test\n"); 
+    //for (int i = 0; i < nruns; i++) 
+    //    minTest(); 
+    //printf("Ran min test %d times\n", nruns); 
 
-    printf("Running not gate test\n"); 
-    for (int i = 0; i < nruns; i++) 
-        notGateTest(); 
-    printf("Ran note gate test %d times\n", nruns); 
+    //printf("Running not gate test\n"); 
+    //for (int i = 0; i < nruns; i++) 
+    //    notGateTest(); 
+    //printf("Ran note gate test %d times\n", nruns); 
 
-    printf("Running MUX test\n"); 
-    for (int i = 0; i < nruns; i++) 
-        MUXTest(); 
-    printf("Ran mux test %d times\n", nruns); 
+    //printf("Running MUX test\n"); 
+    //for (int i = 0; i < nruns; i++) 
+    //    MUXTest(); 
+    //printf("Ran mux test %d times\n", nruns); 
 
-    for (int n = 2; n < 16; n+=2) { 
-        printf("Running LES test for n=%d\n", n); 
-        for (int i = 0; i < nruns; i++) 
-          LESTest(n); 
-        printf("Running LES test %d times\n", nruns); 
-    } 
+    //for (int n = 2; n < 16; n+=2) { 
+    //    printf("Running LES test for n=%d\n", n); 
+    //    for (int i = 0; i < nruns; i++) 
+    //      LESTest(n); 
+    //    printf("Running LES test %d times\n", nruns); 
+    //} 
 }  

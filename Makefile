@@ -19,14 +19,15 @@ INCLUDES := $(wildcard $(SRCDIR)/*.h)
 IDIR =include
 
 CC=gcc
-CFLAGS= -O3 -Wall -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
+CFLAGS= -g -Wall -Werror -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
+# TODO add -Wextra -pedantic and fix errors/warnings
 # TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
 # Wno-format is for printing uint64_t as llu.
 CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
 
 #LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson 
 LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson # for Alex L (libmsgpack)
-LIB+= -DNDDEBUG # removes all "assert()" at compile time
+#LIB+= -DNDDEBUG # removes all "assert()" at compile time
 
 AES = 2pc_aes
 CBC = 2pc_cbc
@@ -73,10 +74,10 @@ aes_eval_off:
 	./$(BINDIR)/test --eval-off --type AES
 
 aes_garb_on:
-	./$(BINDIR)/test --garb-on --type AES --times 20
+	./$(BINDIR)/test --garb-on --type AES
 
 aes_eval_on:
-	./$(BINDIR)/test --eval-on --type AES --times 20
+	./$(BINDIR)/test --eval-on --type AES 
 #########
 # LEVEN #
 #########
@@ -105,7 +106,7 @@ clean_gcs:
 	mkdir files/evaluator_gcs
 
 run_tests:
-	$(BINDIR)/test --test
+	gdb --args $(BINDIR)/test --test
 
 
 .PHONEY: clean
