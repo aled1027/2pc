@@ -18,7 +18,7 @@ bool isFinalCircuitType(CircuitType type)
 
 void
 buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap,
-                        int *outputWires, int l, int m)
+                        int *outputWires, int l, int sigma, int m)
 {
     /* The goal of the levenshtein algorithm is
      * populate the l+1 by l+1 D matrix. 
@@ -42,8 +42,8 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
     int DIntSize = (int) floor(log2(l)) + 1;
     int inputsDevotedToD = DIntSize * (l+1);
 
-    int n = inputsDevotedToD + 2*2*l;
-    int core_n = (3 * DIntSize) + 4;
+    int n = inputsDevotedToD + (2 * sigma * l);
+    int core_n = (3 * DIntSize) + 2 * sigma;
     int q = 100000; /* number of gates */ 
     if (l > 20) {
         q = 5000000;
@@ -73,10 +73,10 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
     }
 
     /* Populate a and b (the input strings) wire indices */
-    int a[l*2];
-    int b[l*2];
-    memcpy(a, inputWires + inputsDevotedToD, sizeof(int)*l*2);
-    memcpy(b, inputWires + inputsDevotedToD + l*2, sizeof(int)*l*2);
+    int a[l * sigma];
+    int b[l * sigma];
+    memcpy(a, inputWires + inputsDevotedToD, l * sigma * sizeof(int));
+    memcpy(b, inputWires + inputsDevotedToD + (l * sigma), l * sigma * sizeof(int));
 
     ///* add the core circuits */
     int *coreInputWires = allocate_ints(core_n);
@@ -91,13 +91,13 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
             p += DIntSize;
             memcpy(coreInputWires + p, D[i-1][j], sizeof(int) * DIntSize);
             p += DIntSize;
-            memcpy(coreInputWires + p, &a[(i-1)*2], sizeof(int) * 2);
-            p += 2;
-            memcpy(coreInputWires + p, &b[(j-1)*2], sizeof(int) * 2);
-            p += 2;
+            memcpy(coreInputWires + p, &a[(i-1)*2], sizeof(int) * sigma);
+            p += sigma;
+            memcpy(coreInputWires + p, &b[(j-1)*2], sizeof(int) * sigma);
+            p += sigma;
             assert(p == core_n);
 
-            addLevenshteinCoreCircuit(gc, &gctxt, l, 2, coreInputWires, coreOutputWires);
+            addLevenshteinCoreCircuit(gc, &gctxt, l, sigma, coreInputWires, coreOutputWires);
             /*printf("coreInputWires: (i=%d,j=%d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) -> (%d %d)\n",*/
                     /*i,*/
                     /*j,*/

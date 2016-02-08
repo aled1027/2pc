@@ -15,7 +15,6 @@
 void 
 createSIMDInputLabelsWithR(ChainedGarbledCircuit *cgc, block R)
 {
-    printf("creating input labels simd with R\n");
     block hashBlock;
     cgc->inputSIMDBlock = randomBlock();
 
@@ -30,9 +29,6 @@ createSIMDInputLabelsWithR(ChainedGarbledCircuit *cgc, block R)
                 hashBlock);
 		cgc->inputLabels[2*i + 1] = xorBlocks(R, cgc->inputLabels[i]);
     }
-    printf("in create input\n");
-    print_block(cgc->inputLabels[0]);
-    printf("\n");
 }
 
     int 
