@@ -386,6 +386,7 @@ static void LESTest(int n)
 
 static void leven2Test(int l)
 {
+    int sigma = 2;
     int DIntSize = (int) floor(log2(l)) + 1;
     int inputsDevotedToD = DIntSize * (l+1);
     int n = inputsDevotedToD + 2*2*l;
@@ -399,7 +400,7 @@ static void leven2Test(int l)
     block *inputLabels = allocate_blocks(2*n);
     block *outputMap = allocate_blocks(2*m);
     createInputLabelsWithR(inputLabels, n, delta);
-    buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, m);
+    buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, sigma, m);
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
 
     /* Set Inputs */

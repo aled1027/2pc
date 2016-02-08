@@ -21,8 +21,9 @@ bool isFinalCircuitType(CircuitType type);
 
 void buildMinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap,
                      int *outputWires);
-void buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels,
-                             block *outputMap, int *outputWires, int l, int m);
+
+void buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap,
+                        int *outputWires, int l, int sigma, int m);
 
 void addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gctxt, 
         int l, int sigma, int *inputWires, int *outputWires);

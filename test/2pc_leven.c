@@ -115,6 +115,7 @@ void full_leven_garb()
      * The alphabet is of size 4, i.e. 2 bits, so the actual length
      * of each party's input string is 2*l bits.
      */
+    int sigma = 2;
     int DIntSize = (int) floor(log2(l)) + 1;
     int inputsDevotedToD = DIntSize * (l+1);
     int n = inputsDevotedToD + 2*2*l;
@@ -140,7 +141,7 @@ void full_leven_garb()
     int *outputWires = allocate_ints(m);
     block *inputLabels = allocate_blocks(2*n);
     block *outputMap = allocate_blocks(2*m);
-    buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, m);
+    buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, sigma, m);
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
     
     /* Set input mapping */
