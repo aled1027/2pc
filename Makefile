@@ -6,19 +6,20 @@ BINDIR := bin
 rm = rm --f
 
 JUSTGARBLE = JustGarble
+
 SOURCES := $(wildcard $(SRCDIR)/*.c)
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
-
 TESTSOURCES := $(wildcard $(TESTDIR)/*.c)
 TESTOBJECTS := $(TESTSOURCES:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
-
-JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
+JGSRC := $(wildcard $(JUSTGARBLE)/src/*.c)
+JGOBJECTS  := $(JGSRC:$(JUSTGARBLE)/src/%.c=$(JUSTGARBLE)/src/%.o)
 CIRCUITSRC := $(wildcard $(JUSTGARBLE)/circuit/*.c)
+CIRCUITOBJECTS  := $(CIRCUITSRC:$(JUSTGARBLE)/circuit/%.c=$(JUSTGARBLE)/circuit/%.o)
 
 IDIR =include
 INCLUDES := $(wildcard $(SRCDIR)/*.h) -Iinc -I$(JUSTGARBLE)/include -I$(IDIR)
 
-CC=gcc
+CC=clang
 CFLAGS= -g -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
 # TODO add -Wextra -pedantic and fix errors/warnings
 # TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
@@ -29,24 +30,24 @@ CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno
 LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson # for Alex L (libmsgpack)
 #LIB+= -DNDDEBUG # removes all "assert()" at compile time
 
-AES = 2pc_aes
-CBC = 2pc_cbc
-LEVEN = 2pc_leven
-MISC_TESTS = 2pc_tests
-
-
 ###############
 # COMPILATION #
 ###############
 all: test
 
-test: $(OBJECTS) $(TESTOBJECTS) $(TESTDIR)/2pc_tests.c
-	$(CC) $(SOURCES) $(JUSTGARBLESRC) $(CIRCUITSRC) $(TESTSOURCES) -o $(BINDIR)/test $(LIBS) $(CFLAGS)
+test: $(JGOBJECTS) $(TESTOBJECTS) $(OBJECTS) $(CIRCUITOBJECTS)
+	$(CC) $(OBJECTS) $(JGOBJECTS) $(CIRCUITOBJECTS) $(TESTOBJECTS) -o $(BINDIR)/test $(CFLAGS) $(LIBS)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 $(TESTOBJECTS): $(OBJDIR)/%.o : $(TESTDIR)/%.c
+	$(CC) -c $< -o $@ $(CFLAGS)
+
+$(JGOBJECTS): $(JUSTGARBLE)/src/%.o : $(JUSTGARBLE)/src/%.c
+	$(CC) -c $< -o $@ $(CFLAGS)
+
+$(CIRCUITOBJECTS): $(JUSTGARBLE)/circuit/%.o : $(JUSTGARBLE)/circuit/%.c
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 #################

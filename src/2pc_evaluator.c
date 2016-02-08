@@ -93,7 +93,7 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 }
 
 void evaluator_classic_2pc(const int *input, int *output,
-        const const int num_garb_inputs, int num_eval_inputs,
+        int num_garb_inputs, int num_eval_inputs,
         uint64_t *tot_time) 
 {
     int sockfd, res;
