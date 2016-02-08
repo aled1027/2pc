@@ -15,11 +15,11 @@ TESTOBJECTS := $(TESTSOURCES:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
 JUSTGARBLESRC := $(wildcard $(JUSTGARBLE)/src/*.c)
 CIRCUITSRC := $(wildcard $(JUSTGARBLE)/circuit/*.c)
 
-INCLUDES := $(wildcard $(SRCDIR)/*.h)
 IDIR =include
+INCLUDES := $(wildcard $(SRCDIR)/*.h) -Iinc -I$(JUSTGARBLE)/include -I$(IDIR)
 
 CC=gcc
-CFLAGS= -g -Wall -Werror -Iinc -I$(JUSTGARBLE)/include -I$(IDIR) -maes -msse4 -march=native -std=gnu11
+CFLAGS= -g -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
 # TODO add -Wextra -pedantic and fix errors/warnings
 # TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
 # Wno-format is for printing uint64_t as llu.

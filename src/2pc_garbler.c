@@ -5,6 +5,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "gc_comm.h"
 #include "net.h"

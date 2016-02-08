@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <unistd.h> // sleep
 #include <time.h>
+#include <string.h>
 
 #include "gc_comm.h"
 #include "net.h"
@@ -289,7 +290,6 @@ computeOutputs(const OutputInstructions *ois, int *output, block ** computed_out
 
         // decrypt using comp_block as key
         block comp_block = computed_outputmap[oi->gc_id][oi->wire_id];
-        //block dec_block;
 
         block out0 = our_decrypt(&oi->labels[0], &comp_block);
         block out1 = our_decrypt(&oi->labels[1], &comp_block);

@@ -86,7 +86,7 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
     if ((f = fopen(fname, "w")) == NULL) {
         return FAILURE;
     }
-    saveGarbledCircuit(&chained_gc->gc, f);
+    saveGarbledCircuit(&chained_gc->gc, f); /* TODO is this suppoed to be false? no wires? */
     fwrite(&chained_gc->id, sizeof(int), 1, f);
     fwrite(&chained_gc->type, sizeof(CircuitType), 1, f);
     if (isGarbler) {

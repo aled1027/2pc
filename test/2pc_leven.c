@@ -45,6 +45,7 @@ void leven_garb_off(ChainingType chainingType)
     int coreM = getCoreM();
     int coreQ = getCoreQ();
     int coreR = coreN + coreQ;
+    int sigma = 2;
 
     ChainedGarbledCircuit chainedGCs[numCircuits];
     for (int i = 0; i < numCircuits; i++) {
@@ -60,7 +61,7 @@ void leven_garb_off(ChainingType chainingType)
         createInputLabelsWithR(chainedGCs[i].inputLabels, coreN, delta);
 	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR);
 	    startBuilding(gc, &gcContext);
-        addLevenshteinCoreCircuit(gc, &gcContext, l, inputWires, outputWires);
+        addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
 	    finishBuilding(gc, outputWires);
         garbleCircuit(gc, chainedGCs[i].inputLabels, chainedGCs[i].outputMap,
                       GARBLE_TYPE_STANDARD);

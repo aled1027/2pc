@@ -24,8 +24,20 @@ void buildMinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap,
 void buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels,
                              block *outputMap, int *outputWires, int l, int m);
 
-void addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gcContext, 
-        int l, int *inputWires, int *outputWires);
+void addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gctxt, 
+        int l, int sigma, int *inputWires, int *outputWires);
+/* Makes a "LevenshteinCore" circuit as defined in 
+ * Faster Secure Two-Party Computation Using Garbled Circuits
+ * Page 9, figure 5c. 
+ *
+ * Use an alphabet of size sigma.
+ *
+ * Input = D[i-1][j-1] ||D[i-1][j] || D[i][j-1] || a[i] || b[j] 
+ * |Input| = l-bits || l-bits || l-bits || 2-bits || 2-bits
+ *
+ * Wires are ordered such that 1s digit is first, 2s digit second, and so forth.
+ * This is way in which JustGarble oriented their adders.
+ */
 
 int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext, int n,
 		int* inputs, int* outputs);

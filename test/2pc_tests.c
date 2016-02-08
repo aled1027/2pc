@@ -476,6 +476,7 @@ static void levenCoreTest()
     int q = 200;
     int r = q + n;
     int l = 2;
+    int sigma = 2;
 
     /* Build and Garble */
     int inputWires[n];
@@ -491,7 +492,7 @@ static void levenCoreTest()
     createInputLabels(inputLabels, n);
 	createEmptyGarbledCircuit(&gc, n, m, q, r);
 	startBuilding(&gc, &gcContext);
-    addLevenshteinCoreCircuit(&gc, &gcContext, l, inputWires, outputWires);
+    addLevenshteinCoreCircuit(&gc, &gcContext, l, sigma, inputWires, outputWires);
 	finishBuilding(&gc, outputWires);
 
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
@@ -537,6 +538,7 @@ static void saveAndLoadTest()
     ChainingType chainingType = CHAINING_TYPE_STANDARD;
 
     int l = 2;
+    int sigma = 2;
     int n = 10;
     int m = 2;
     int q = 200;
@@ -557,7 +559,7 @@ static void saveAndLoadTest()
     createInputLabelsWithR(cgc.inputLabels, n, delta);
 	createEmptyGarbledCircuit(gc, n, m, q, r);
 	startBuilding(gc, &gcContext);
-    addLevenshteinCoreCircuit(gc, &gcContext, l, inputWires, outputWires);
+    addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
 	finishBuilding(gc, outputWires);
     garbleCircuit(gc, cgc.inputLabels, cgc.outputMap, GARBLE_TYPE_STANDARD);
 
@@ -588,7 +590,7 @@ static void saveAndLoadTest()
 void runAllTests(void)
 { 
     seedRandom(NULL);
-    int nruns = 1; 
+    int nruns = 100; 
 
     // TODO these two tests are failing!
     //for (int i = 0; i < nruns; i++)
@@ -601,29 +603,29 @@ void runAllTests(void)
     //    printf("Ran leven test %d times\n", nruns); 
     //}
 
+    //for (int i = 0; i < nruns; i++) 
+    //    levenCoreTest(); 
+    //printf("Ran leven core test %d times\n", nruns); 
+
+    printf("Running min test\n"); 
     for (int i = 0; i < nruns; i++) 
-        levenCoreTest(); 
-    printf("Ran leven core test %d times\n", nruns); 
+        minTest(); 
+    printf("Ran min test %d times\n", nruns); 
 
-    //printf("Running min test\n"); 
-    //for (int i = 0; i < nruns; i++) 
-    //    minTest(); 
-    //printf("Ran min test %d times\n", nruns); 
+    printf("Running not gate test\n"); 
+    for (int i = 0; i < nruns; i++) 
+        notGateTest(); 
+    printf("Ran note gate test %d times\n", nruns); 
 
-    //printf("Running not gate test\n"); 
-    //for (int i = 0; i < nruns; i++) 
-    //    notGateTest(); 
-    //printf("Ran note gate test %d times\n", nruns); 
+    printf("Running MUX test\n"); 
+    for (int i = 0; i < nruns; i++) 
+        MUXTest(); 
+    printf("Ran mux test %d times\n", nruns); 
 
-    //printf("Running MUX test\n"); 
-    //for (int i = 0; i < nruns; i++) 
-    //    MUXTest(); 
-    //printf("Ran mux test %d times\n", nruns); 
-
-    //for (int n = 2; n < 16; n+=2) { 
-    //    printf("Running LES test for n=%d\n", n); 
-    //    for (int i = 0; i < nruns; i++) 
-    //      LESTest(n); 
-    //    printf("Running LES test %d times\n", nruns); 
-    //} 
+    for (int n = 2; n < 16; n+=2) { 
+        printf("Running LES test for n=%d\n", n); 
+        for (int i = 0; i < nruns; i++) 
+          LESTest(n); 
+        printf("Running LES test %d times\n", nruns); 
+    } 
 }  

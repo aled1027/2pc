@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <assert.h>
 #include <time.h>
+#include <string.h>
 
 #include "state.h"
 
@@ -79,7 +80,7 @@ arrayPopulateRange(int *arr, int start, int end)
 int *
 allocate_ints(size_t nints)
 {
-    int *ret = malloc(sizeof(int) * nints);
+    int *ret = calloc(nints, sizeof(int));
     if (ret == NULL) {
         perror("allocate_ints");
         exit(EXIT_FAILURE);

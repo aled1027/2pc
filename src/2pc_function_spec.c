@@ -1,6 +1,7 @@
 #include "2pc_function_spec.h"
 
 #include <assert.h>
+#include <string.h>
 
 #include "utils.h"
 
