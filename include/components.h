@@ -43,6 +43,9 @@ void addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gctxt,
 int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext, int n,
 		int* inputs, int* outputs);
 
+int INCCircuitWithSwitch(GarbledCircuit *gc, GarblingContext *ctxt,
+		int the_switch, int n, int *inputs, int *outputs);
+
 void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
         int *inputWires, int *outputWires);
 void buildANDCircuit(GarbledCircuit *gc, int n, int nlayers);

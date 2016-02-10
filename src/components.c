@@ -129,6 +129,42 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
     /* removeGarblingContext(&gcContext); */
 }
 
+int 
+INCCircuitWithSwitch(GarbledCircuit *gc, GarblingContext *ctxt,
+		int the_switch, int n, int *inputs, int *outputs) {
+    /* n does not include the switch. The size of the number */
+
+	for (int i = 0; i < n; i++) {
+		outputs[i] = getNextWire(ctxt);
+    }
+    int carry = getNextWire(ctxt);
+    XORGate(gc, ctxt, the_switch, inputs[0], outputs[0]);
+    ANDGate(gc, ctxt, the_switch, inputs[0], carry);
+
+    /* do first case */
+    int not_switch = getNextWire(ctxt);
+    NOTGate(gc, ctxt, the_switch, not_switch);
+    for (int i = 1; i < n; i++) {
+        /* cout and(xor(x,c),s) */
+        int xor_out = getNextWire(ctxt);
+        int and0 = getNextWire(ctxt);
+        int and1 = getNextWire(ctxt);
+        XORGate(gc, ctxt, carry, inputs[i], xor_out);
+        ANDGate(gc, ctxt, xor_out, the_switch, and0);
+
+        ANDGate(gc, ctxt, not_switch, inputs[i], and1);
+        ORGate(gc, ctxt, and0, and1, outputs[i]);
+        
+        /* carry and(nand(c,x),s)*/
+        int and_out = getNextWire(ctxt);
+        ANDGate(gc, ctxt, carry, inputs[i], and_out);
+        carry = getNextWire(ctxt);
+        ANDGate(gc, ctxt, and_out, the_switch, carry);
+    }
+    return 0;
+}
+
+
 static void
 bitwiseMUX(GarbledCircuit *gc, GarblingContext *gctxt, int the_switch, const int *inps, 
         int ninputs, int *outputs)
