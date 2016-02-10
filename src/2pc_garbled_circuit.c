@@ -84,7 +84,9 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
     if ((f = fopen(fname, "w")) == NULL) {
         return FAILURE;
     }
-    saveGarbledCircuit(&chained_gc->gc, f, isGarbler); /* TODO is this suppoed to be false? no wires? */
+    saveGarbledCircuit(&chained_gc->gc, f, isGarbler); 
+
+    /* ChainedGarbleCircuit fields */
     fwrite(&chained_gc->id, sizeof(int), 1, f);
     fwrite(&chained_gc->type, sizeof(CircuitType), 1, f);
     if (isGarbler) {
@@ -94,10 +96,8 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
             fwrite(&chained_gc->outputSIMDBlock, sizeof(block), 1, f);
             fwrite(&chained_gc->inputSIMDBlock, sizeof(block), 1, f);
         }
-
     }
-    
-    printf("in save\n");
+
     FILE* fp = stdout;
     if (!isGarbler && chainingType == CHAINING_TYPE_SIMD) {
         print_block(fp, chained_gc->offlineChainingOffsets[0]);
@@ -120,6 +120,7 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
         return FAILURE;
     }
     loadGarbledCircuit(gc, f, isGarbler);
+
     fread(&chained_gc->id, sizeof(int), 1, f);
     fread(&chained_gc->type, sizeof(CircuitType), 1, f);
     if (isGarbler) {
@@ -167,7 +168,6 @@ loadOutputMap(char *fname, block* labels)
 {
     labels = NULL;
     (void) posix_memalign((void **) &labels, 128, filesize(fname));
-    printf("filesize(fname): %zu\n", filesize(fname));
     if (readFileIntoBuffer((char *) labels, fname) == FAILURE) {
         free(labels);
         assert(false);
