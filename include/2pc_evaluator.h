@@ -2,6 +2,7 @@
 #define MPC_EVALUATOR_H
 
 #include "2pc_function_spec.h"
+#include <stdint.h>
 
 void
 evaluator_classic_2pc(const int *input, int *output,

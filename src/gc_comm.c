@@ -53,6 +53,7 @@ gc_comm_recv(int sock, GarbledCircuit *gc)
 int
 chained_gc_comm_send(int sock, ChainedGarbledCircuit *chained_gc, ChainingType chainingType)
 {
+    FILE* fp = stdout;
     gc_comm_send(sock, &chained_gc->gc);
     net_send(sock, &chained_gc->id, sizeof(chained_gc->id), 0);
     net_send(sock, &chained_gc->type, sizeof(chained_gc->type), 0);
@@ -62,7 +63,7 @@ chained_gc_comm_send(int sock, ChainedGarbledCircuit *chained_gc, ChainingType c
         assert(chained_gc->offlineChainingOffsets && "offlineChainingOffsets should be allocated");
         net_send(sock, chained_gc->offlineChainingOffsets, sizeof(block) * chained_gc->gc.m, 0);
 
-        print_block(chained_gc->offlineChainingOffsets[0]);
+        print_block(fp, chained_gc->offlineChainingOffsets[0]);
     }
     return 0;
 }

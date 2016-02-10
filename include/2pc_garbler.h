@@ -1,7 +1,9 @@
 #ifndef MPC_GARBLER_H
 #define MPC_GARBLER_H
 
+#include <stdint.h>
 #include "2pc_function_spec.h"
+
 
 void
 garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,

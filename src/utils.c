@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <assert.h>
 #include <time.h>
+#include <string.h>
 
 #include "state.h"
 
@@ -33,7 +34,7 @@ reverse_array(int *arr, size_t nints)
 }
 
 uint64_t 
-current_time(void)
+current_time_ms(void)
 {
     struct timespec tp;
     int res;
@@ -79,7 +80,7 @@ arrayPopulateRange(int *arr, int start, int end)
 int *
 allocate_ints(size_t nints)
 {
-    int *ret = malloc(sizeof(int) * nints);
+    int *ret = calloc(nints, sizeof(int));
     if (ret == NULL) {
         perror("allocate_ints");
         exit(EXIT_FAILURE);
@@ -164,3 +165,46 @@ our_decrypt(block *bl, block* key)
     //AES_set_encrypt_key((unsigned char *) bl, 128, key);
     //AES_ecb_encrypt_blks(bl, 1, key);
 }
+
+void print_gate(Gate *g) 
+{
+    printf("Type: %d, inputs %d %d output: %d\n",
+            g->type,
+            g->input0,
+            g->input0,
+            g->output);
+}
+
+void print_table(GarbledTable *gt)
+{
+    FILE* fp = stdout;
+    print_block(fp, gt->table[0]);
+    printf(" ");
+    print_block(fp, gt->table[1]);
+    printf(" ");
+    print_block(fp, gt->table[2]);
+    printf("\n");
+}
+
+void print_wire(Wire *w)
+{
+    FILE* fp = stdout;
+    print_block(fp, w->label0);
+    printf(" ");
+    print_block(fp, w->label1);
+    printf("\n");
+}
+
+void
+print_gc(GarbledCircuit *gc)
+{
+    //for (int i = 0; i < gc->q; i++) {
+    //    print_gate(&gc->gates[i]);
+    //    print_table(&gc->garbledTable[i]);
+    //}
+    for (int i = 0; i < 80; i++) {
+        print_wire(&gc->wires[i]);
+    }
+
+}
+

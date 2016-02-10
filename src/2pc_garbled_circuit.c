@@ -15,7 +15,6 @@
 void 
 createSIMDInputLabelsWithR(ChainedGarbledCircuit *cgc, block R)
 {
-    printf("creating input labels simd with R\n");
     block hashBlock;
     cgc->inputSIMDBlock = randomBlock();
 
@@ -30,9 +29,6 @@ createSIMDInputLabelsWithR(ChainedGarbledCircuit *cgc, block R)
                 hashBlock);
 		cgc->inputLabels[2*i + 1] = xorBlocks(R, cgc->inputLabels[i]);
     }
-    printf("in create input\n");
-    print_block(cgc->inputLabels[0]);
-    printf("\n");
 }
 
     int 
@@ -40,6 +36,7 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
 {
     block hashBlock;
     int m = cgc->gc.m;
+    FILE* fp = stdout;
 
     cgc->offlineChainingOffsets = allocate_blocks(m);
     cgc->outputSIMDBlock = randomBlock();
@@ -47,6 +44,7 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
     for (int i = 0; i < m; ++i) {
         /* TODO check with Ask Alex M to see about hash function */
         hashBlock = zero_block();
+
         sha1_hash((char *) &hashBlock, sizeof(block), i, 
                 (unsigned char *) &i, sizeof i);
 
@@ -54,7 +52,7 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
                 xorBlocks(cgc->outputSIMDBlock, cgc->outputMap[2*i]),
                 hashBlock);
         if (i == 0)
-            print_block(cgc->offlineChainingOffsets[0]);
+            print_block(fp, cgc->offlineChainingOffsets[0]);
 
     }
     return 0;
@@ -86,7 +84,7 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
     if ((f = fopen(fname, "w")) == NULL) {
         return FAILURE;
     }
-    saveGarbledCircuit(&chained_gc->gc, f);
+    saveGarbledCircuit(&chained_gc->gc, f, isGarbler); /* TODO is this suppoed to be false? no wires? */
     fwrite(&chained_gc->id, sizeof(int), 1, f);
     fwrite(&chained_gc->type, sizeof(CircuitType), 1, f);
     if (isGarbler) {
@@ -100,8 +98,9 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
     }
     
     printf("in save\n");
+    FILE* fp = stdout;
     if (!isGarbler && chainingType == CHAINING_TYPE_SIMD) {
-        print_block(chained_gc->offlineChainingOffsets[0]);
+        print_block(fp, chained_gc->offlineChainingOffsets[0]);
         fwrite(chained_gc->offlineChainingOffsets, sizeof(block), gc->m, f);
     }
     return SUCCESS;

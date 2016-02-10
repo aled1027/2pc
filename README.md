@@ -84,3 +84,10 @@
 - json file not working,
     - make sure that everything is on a single line
     - verify format: try [json online editor](http://www.jsoneditoronline.org/)
+
+## The leven core circuit. (notes for me)
+I am using the leven core circuit from "Faster two party computation using garbled circuits". 
+Let D0, D1, D1, S0, S1 represent the inputs to the circuit.
+
+The output of min2 is the minimum(D0,D1,D2) where the switch, which is plugged into the mux21, should be 0
+if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The point here is that when we add, we always add a 1 if D0 or D1 is the min, but if the min is D2, then one is only added if T = 1, in other words, we add T. 

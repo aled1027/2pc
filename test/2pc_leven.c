@@ -14,9 +14,9 @@
 #include "gates.h"
 
 /* XXX: l < 35 */
-static int l = 2;
-static int numCircuits = 4;
-static char *COMPONENT_FUNCTION_PATH = "functions/leven_2.json"; 
+const int sigma = 2;
+const int l = 2;
+char *COMPONENT_FUNCTION_PATH = "functions/leven_2.json"; 
 
 static int getDIntSize() { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD() { return getDIntSize() * (l+1); }
@@ -25,7 +25,7 @@ int levenNumOutputs() { return getDIntSize(); }
 int levenNumEvalInputs() { return 2*l; }
 int levenNumEvalLabels() { return 2*(l*l); }
 int levenNumGarbInputs() { return getN() - levenNumEvalInputs(); }
-int levenNumCircs() { return numCircuits; }
+int levenNumCircs() { return l * l; }
 static int getCoreN() { return (3 * getDIntSize()) + 4; }
 static int getCoreM() { return getDIntSize(); }
 static int getCoreQ() { return 10000; } // figure out this number
@@ -45,7 +45,9 @@ void leven_garb_off(ChainingType chainingType)
     int coreM = getCoreM();
     int coreQ = getCoreQ();
     int coreR = coreN + coreQ;
+    int sigma = 2;
 
+    int numCircuits = levenNumCircs();
     ChainedGarbledCircuit chainedGCs[numCircuits];
     for (int i = 0; i < numCircuits; i++) {
         /* Initialize */
@@ -60,7 +62,7 @@ void leven_garb_off(ChainingType chainingType)
         createInputLabelsWithR(chainedGCs[i].inputLabels, coreN, delta);
 	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR);
 	    startBuilding(gc, &gcContext);
-        addLevenshteinCoreCircuit(gc, &gcContext, l, inputWires, outputWires);
+        addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
 	    finishBuilding(gc, outputWires);
         garbleCircuit(gc, chainedGCs[i].inputLabels, chainedGCs[i].outputMap,
                       GARBLE_TYPE_STANDARD);
@@ -101,6 +103,7 @@ void leven_garb_on(ChainingType chainingType)
     printf("\n");
 
     uint64_t tot_time;
+    int numCircuits = levenNumCircs();
     garbler_online(functionPath, "files/garbler_gcs", garbInputs, numGarbInputs, 
             numCircuits, &tot_time, chainingType);
     free(garbInputs);
@@ -114,6 +117,7 @@ void full_leven_garb()
      * The alphabet is of size 4, i.e. 2 bits, so the actual length
      * of each party's input string is 2*l bits.
      */
+    int sigma = 2;
     int DIntSize = (int) floor(log2(l)) + 1;
     int inputsDevotedToD = DIntSize * (l+1);
     int n = inputsDevotedToD + 2*2*l;
@@ -139,7 +143,7 @@ void full_leven_garb()
     int *outputWires = allocate_ints(m);
     block *inputLabels = allocate_blocks(2*n);
     block *outputMap = allocate_blocks(2*m);
-    buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, m);
+    buildLevenshteinCircuit(&gc, l, sigma);
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
     
     /* Set input mapping */

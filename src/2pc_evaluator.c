@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <unistd.h> // sleep
 #include <time.h>
+#include <string.h>
+#include "justGarble.h"
 
 #include "gc_comm.h"
 #include "net.h"
@@ -42,14 +44,18 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      * whereas saved gc id'ed arbitrarily.
      */
     int savedCircId, offsetIdx;
+    uint64_t s,e, eval_time = 0;
 
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
         switch(cur->type) {
             case EVAL:
                 savedCircId = circuitMapping[cur->evCircId];
+                s = current_time();
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                          computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
+                e = current_time();
+                eval_time += e - s;
                 break;
             case CHAIN:
 
@@ -84,10 +90,11 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                 return;
         }
     }
+    fprintf(stderr, "evaltime: %llu\n", eval_time);
 }
 
 void evaluator_classic_2pc(const int *input, int *output,
-        const const int num_garb_inputs, int num_eval_inputs,
+        int num_garb_inputs, int num_eval_inputs,
         uint64_t *tot_time) 
 {
     int sockfd, res;
@@ -284,7 +291,6 @@ computeOutputs(const OutputInstructions *ois, int *output, block ** computed_out
 
         // decrypt using comp_block as key
         block comp_block = computed_outputmap[oi->gc_id][oi->wire_id];
-        //block dec_block;
 
         block out0 = our_decrypt(&oi->labels[0], &comp_block);
         block out1 = our_decrypt(&oi->labels[1], &comp_block);
