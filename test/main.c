@@ -240,11 +240,10 @@ go(struct args *args)
     case LEVEN:
         n_garb_inputs = levenNumGarbInputs();
         n_eval_inputs = levenNumEvalInputs();
-        n_eval_labels = levenNumEvalLabels();
         ncircs = levenNumCircs();
         noutputs = levenNumOutputs();
         chainingType = CHAINING_TYPE_STANDARD;
-        fn = "functions/leven_2.json";
+        fn = "doesnt matter, see 2pc_leven";
         type = "LEVEN";
         break;
     default:
@@ -275,7 +274,7 @@ go(struct args *args)
         }
     } else if (args->eval_off) {
         printf("Offline evaluating\n");
-        eval_off(n_eval_labels, ncircs, chainingType);
+        eval_off(n_eval_inputs, ncircs, chainingType);
     } else if (args->garb_on) {
         printf("Online garbling\n");
         if (args->type == LEVEN) {

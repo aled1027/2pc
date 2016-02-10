@@ -14,24 +14,23 @@
 #include "gates.h"
 
 /* XXX: l < 35 */
-const int sigma = 2;
+const int sigma = 8;
 const int l = 2;
-char *COMPONENT_FUNCTION_PATH = "functions/leven_2.json"; 
+char *COMPONENT_FUNCTION_PATH = "functions/leven_8.json"; 
 
 static int getDIntSize() { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD() { return getDIntSize() * (l+1); }
-static int getN() { return getInputsDevotedToD() + (2*2*l); }
+static int getN() { return getInputsDevotedToD() + (2*sigma*l); }
 int levenNumOutputs() { return getDIntSize(); }
-int levenNumEvalInputs() { return 2*l; }
-int levenNumEvalLabels() { return 2*(l*l); }
+int levenNumEvalInputs() { return sigma*l; }
 int levenNumGarbInputs() { return getN() - levenNumEvalInputs(); }
 int levenNumCircs() { return l * l; }
-static int getCoreN() { return (3 * getDIntSize()) + 4; }
+static int getCoreN() { return (3 * getDIntSize()) + (2 * sigma); }
 static int getCoreM() { return getDIntSize(); }
-static int getCoreQ() { return 10000; } // figure out this number
+static int getCoreQ() { return 10000; } // TODO figure out this number
 
-static int getNumGatesPerCore() {return 10; } // figure out this number
-static int getNumCoresForL() { return l * 10; } // figure out this number
+static int getNumGatesPerCore() {return 10; } // TODO figure out this number
+static int getNumCoresForL() { return l * 10; } // TODO figure out this number
 static int getNumGates() { return getNumCoresForL() * getNumGatesPerCore(); }
 
 void leven_garb_off(ChainingType chainingType) 
@@ -45,8 +44,6 @@ void leven_garb_off(ChainingType chainingType)
     int coreM = getCoreM();
     int coreQ = getCoreQ();
     int coreR = coreN + coreQ;
-    int sigma = 2;
-
     int numCircuits = levenNumCircs();
     ChainedGarbledCircuit chainedGCs[numCircuits];
     for (int i = 0; i < numCircuits; i++) {
@@ -77,8 +74,8 @@ void leven_garb_off(ChainingType chainingType)
             generateOfflineChainingOffsets(&chainedGCs[i]);
     }
 
-    int numEvalLabels = levenNumEvalLabels();
-    garbler_offline("files/garbler_gcs", chainedGCs, numEvalLabels, numCircuits, chainingType);
+    int num_eval_inputs = levenNumEvalInputs();
+    garbler_offline("files/garbler_gcs", chainedGCs, num_eval_inputs, numCircuits, chainingType);
 }
 
 void leven_garb_on(ChainingType chainingType)
@@ -123,10 +120,7 @@ void full_leven_garb()
     int n = inputsDevotedToD + 2*2*l;
     int numEvalInputs = 2*l;
     int numGarbInputs = n - numEvalInputs;
-    int m = DIntSize;
-
-    /* Set Inputs */
-    int *inputs = allocate_ints(numGarbInputs);
+    int m = DIntSize; /* Set Inputs */ int *inputs = allocate_ints(numGarbInputs);
 
     /* The first inputsDevotedToD inputs are the numbers 
      * 0 through l+1 encoded in binary */
