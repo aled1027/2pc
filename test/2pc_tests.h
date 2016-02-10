@@ -8,9 +8,10 @@ static void notGateTest();
 static void minTest();
 static void MUXTest();
 static void LESTest(int n);
-static void levenTest(int l);
+static void levenTest(int l, int sigma);
 static void levenCoreTest();
 static void saveAndLoadTest();
+
 void runAllTests(void);
 
 #endif

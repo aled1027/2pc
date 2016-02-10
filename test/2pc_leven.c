@@ -14,9 +14,9 @@
 #include "gates.h"
 
 /* XXX: l < 35 */
-static int l = 2;
-static int numCircuits = 4;
-static char *COMPONENT_FUNCTION_PATH = "functions/leven_2.json"; 
+const int sigma = 2;
+const int l = 2;
+char *COMPONENT_FUNCTION_PATH = "functions/leven_2.json"; 
 
 static int getDIntSize() { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD() { return getDIntSize() * (l+1); }
@@ -25,7 +25,7 @@ int levenNumOutputs() { return getDIntSize(); }
 int levenNumEvalInputs() { return 2*l; }
 int levenNumEvalLabels() { return 2*(l*l); }
 int levenNumGarbInputs() { return getN() - levenNumEvalInputs(); }
-int levenNumCircs() { return numCircuits; }
+int levenNumCircs() { return l * l; }
 static int getCoreN() { return (3 * getDIntSize()) + 4; }
 static int getCoreM() { return getDIntSize(); }
 static int getCoreQ() { return 10000; } // figure out this number
@@ -47,6 +47,7 @@ void leven_garb_off(ChainingType chainingType)
     int coreR = coreN + coreQ;
     int sigma = 2;
 
+    int numCircuits = levenNumCircs();
     ChainedGarbledCircuit chainedGCs[numCircuits];
     for (int i = 0; i < numCircuits; i++) {
         /* Initialize */
@@ -102,6 +103,7 @@ void leven_garb_on(ChainingType chainingType)
     printf("\n");
 
     uint64_t tot_time;
+    int numCircuits = levenNumCircs();
     garbler_online(functionPath, "files/garbler_gcs", garbInputs, numGarbInputs, 
             numCircuits, &tot_time, chainingType);
     free(garbInputs);

@@ -185,38 +185,39 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gctxt,
     int min_inputs[2 * DIntSize];
     memcpy(min_inputs + 0, D_minus_same, sizeof(int) * DIntSize);
     memcpy(min_inputs + DIntSize, D_same_minus, sizeof(int) * DIntSize);
-    int min_outputs[DIntSize + 1]; 
+    int min_outputs[DIntSize]; 
     MINCircuit(gc, gctxt, 2 * DIntSize, min_inputs, min_outputs);
 
     /* Second MIN Circuit: uses input from first min cricuit and D_minus_minus */
-    memcpy(min_inputs, D_minus_minus, sizeof(int) * DIntSize);
+    memcpy(min_inputs,  D_minus_minus, sizeof(int) * DIntSize);
     memcpy(min_inputs + DIntSize, min_outputs, sizeof(int) * DIntSize);
-    int min_outputs2[DIntSize + 1]; /* will be filled by MINCircuit */
+    int min_outputs2[DIntSize + 1]; 
     MINCircuitWithLEQOutput(gc, gctxt, 2 * DIntSize, min_inputs, min_outputs2); 
+    // les output should be 1 if z < x,y else 0 
 
-    int T_output = TCircuit(gc, gctxt, symbol0, symbol1, sigma);
+    int T_output = TCircuit(gc, gctxt, symbol0, symbol1, 2*sigma);
 
     /* 2-1 MUX(switch = determined by secon min, 1, T)*/
+    // TODO change here
     int mux_switch = getNextWire(gctxt);
-    NOTGate(gc, gctxt, min_outputs2[DIntSize], mux_switch);
-    int fixed_one_wire = fixedOneWire(gc, gctxt);
+    mux_switch = min_outputs2[DIntSize];
+    //NOTGate(gc, gctxt, min_outputs2[DIntSize], mux_switch);
+
+    /* TODO FIX THIS HACK FOR FIXED WIRES */
+    //int fixed_one_wire = fixedOneWire(gc, gctxt);
+    int fixed_one_wire = getNextWire(gctxt);
+	NOTGate(gc, gctxt, inputWires[0], fixed_one_wire);
+    /* END HACK */
+
     int mux_output;
     MUX21Circuit(gc, gctxt, mux_switch, fixed_one_wire, T_output, &mux_output);
 
-    /* AddOneBit aka INC */
-    int add_outputs[DIntSize];
-    INCCircuit(gc, gctxt, DIntSize, min_outputs2, add_outputs);
-
-    /* Final MUX (not in paper) */
-    /* Final Mux between INCed value and orig value, with switch 
-     * from the mux_output. */
+    //INCCircuit(gc, gctxt, DIntSize, min_outputs2, add_outputs);
     int final[DIntSize];
-    int bitwise_inps[2*DIntSize + 1];
-    memcpy(bitwise_inps, add_outputs, DIntSize * sizeof(int));
-    memcpy(bitwise_inps + DIntSize, min_outputs2, DIntSize * sizeof(int));
-    bitwiseMUX(gc, gctxt, mux_output, bitwise_inps, 2*DIntSize, final);
-    
+    INCCircuitWithSwitch(gc, gctxt, mux_output, DIntSize, min_outputs2, final);
+
     memcpy(outputWires, final, sizeof(int) * DIntSize);
+    //countToN(outputWires, 67);
 }
 
 int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext, int n,
@@ -232,8 +233,9 @@ int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext
 	LESCircuit(gc, garblingContext, n, inputs, &lesOutput);
 	NOTGate(gc, garblingContext, lesOutput, notOutput);
     int split = n / 2;
-	for (i = 0; i < split; i++)
+	for (i = 0; i < split; i++) {
         MUX21Circuit(gc, garblingContext, lesOutput, inputs[i], inputs[split + i], outputs+i);
+    }
 
     outputs[split] = lesOutput;
 	return 0;

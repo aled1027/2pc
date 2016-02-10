@@ -6,6 +6,7 @@
 #include <unistd.h> // sleep
 #include <time.h>
 #include <string.h>
+#include "justGarble.h"
 
 #include "gc_comm.h"
 #include "net.h"
