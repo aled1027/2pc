@@ -36,6 +36,7 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
 {
     block hashBlock;
     int m = cgc->gc.m;
+    FILE* fp = stdout;
 
     cgc->offlineChainingOffsets = allocate_blocks(m);
     cgc->outputSIMDBlock = randomBlock();
@@ -51,7 +52,7 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
                 xorBlocks(cgc->outputSIMDBlock, cgc->outputMap[2*i]),
                 hashBlock);
         if (i == 0)
-            print_block(cgc->offlineChainingOffsets[0]);
+            print_block(fp, cgc->offlineChainingOffsets[0]);
 
     }
     return 0;
@@ -97,8 +98,9 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
     }
     
     printf("in save\n");
+    FILE* fp = stdout;
     if (!isGarbler && chainingType == CHAINING_TYPE_SIMD) {
-        print_block(chained_gc->offlineChainingOffsets[0]);
+        print_block(fp, chained_gc->offlineChainingOffsets[0]);
         fwrite(chained_gc->offlineChainingOffsets, sizeof(block), gc->m, f);
     }
     return SUCCESS;

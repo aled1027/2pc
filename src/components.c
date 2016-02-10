@@ -119,6 +119,8 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
         }
     }
     memcpy(outputWires, D[l][l], sizeof(int) * DIntSize);
+    printf("d[l][l][0] = %d\n", D[l][l][0]);
+    printf("d[l][l][1] = %d\n", D[l][l][1]);
     finishBuilding(gc, outputWires);
     for (int i = 0; i < l+1; i++)
         for (int j = 0; j < l+1; j++)
@@ -237,11 +239,7 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gctxt,
     int mux_switch = getNextWire(gctxt);
     mux_switch = min_outputs2[DIntSize];
 
-    /* TODO FIX THIS HACK FOR FIXED WIRES */
-    //int fixed_one_wire = fixedOneWire(gc, gctxt);
-    int fixed_one_wire = getNextWire(gctxt);
-	NOTGate(gc, gctxt, inputWires[0], fixed_one_wire);
-    /* END HACK */
+    int fixed_one_wire = fixedOneWire(gc, gctxt);
 
     int mux_output;
     MUX21Circuit(gc, gctxt, mux_switch, fixed_one_wire, T_output, &mux_output);

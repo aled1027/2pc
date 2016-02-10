@@ -34,7 +34,7 @@ reverse_array(int *arr, size_t nints)
 }
 
 uint64_t 
-current_time(void)
+current_time_ms(void)
 {
     struct timespec tp;
     int res;
