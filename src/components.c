@@ -189,11 +189,10 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gctxt,
     MINCircuit(gc, gctxt, 2 * DIntSize, min_inputs, min_outputs);
 
     /* Second MIN Circuit: uses input from first min cricuit and D_minus_minus */
-    memcpy(min_inputs,  D_minus_minus, sizeof(int) * DIntSize);
-    memcpy(min_inputs + DIntSize, min_outputs, sizeof(int) * DIntSize);
+    memcpy(min_inputs, min_outputs, sizeof(int) * DIntSize);
+    memcpy(min_inputs + DIntSize,  D_minus_minus, sizeof(int) * DIntSize);
     int min_outputs2[DIntSize + 1]; 
     MINCircuitWithLEQOutput(gc, gctxt, 2 * DIntSize, min_inputs, min_outputs2); 
-    // les output should be 1 if z < x,y else 0 
 
     int T_output = TCircuit(gc, gctxt, symbol0, symbol1, 2*sigma);
 
@@ -201,7 +200,6 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gctxt,
     // TODO change here
     int mux_switch = getNextWire(gctxt);
     mux_switch = min_outputs2[DIntSize];
-    //NOTGate(gc, gctxt, min_outputs2[DIntSize], mux_switch);
 
     /* TODO FIX THIS HACK FOR FIXED WIRES */
     //int fixed_one_wire = fixedOneWire(gc, gctxt);
@@ -212,16 +210,29 @@ addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gctxt,
     int mux_output;
     MUX21Circuit(gc, gctxt, mux_switch, fixed_one_wire, T_output, &mux_output);
 
-    //INCCircuit(gc, gctxt, DIntSize, min_outputs2, add_outputs);
     int final[DIntSize];
     INCCircuitWithSwitch(gc, gctxt, mux_output, DIntSize, min_outputs2, final);
 
     memcpy(outputWires, final, sizeof(int) * DIntSize);
-    //countToN(outputWires, 67);
+}
+
+int myLEQCircuit(GarbledCircuit *gc, GarblingContext *ctxt, int n,
+        int *inputs, int *outputs)
+{
+
+	int les, eq;
+    int ret = getNextWire(ctxt);
+
+	LESCircuit(gc, ctxt, n, inputs, &les);
+    EQUCircuit(gc, ctxt, n, inputs, &eq);
+    ORGate(gc, ctxt, les, eq, ret);
+    outputs[0] = ret;
+    return 0;
 }
 
 int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext, int n,
-		int* inputs, int* outputs) {
+		int* inputs, int* outputs) 
+{
     /* Essentially copied from JustGarble/src/circuits.c.
      * Different from their MIN circuit because it has output size equal to n/2 + 1
      * where that last bit indicates the output of the LEQ circuit,
@@ -230,7 +241,7 @@ int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext
     int i;
 	int lesOutput;
 	int notOutput = getNextWire(garblingContext);
-	LESCircuit(gc, garblingContext, n, inputs, &lesOutput);
+    myLEQCircuit(gc, garblingContext, n, inputs, &lesOutput);
 	NOTGate(gc, garblingContext, lesOutput, notOutput);
     int split = n / 2;
 	for (i = 0; i < split; i++) {

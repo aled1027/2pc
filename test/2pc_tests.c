@@ -56,7 +56,7 @@ checkLevenCore(const int *inputs, int *output, int l) {
     if (n3 != n4) {
         t = 1;
     }
-    int desired_answer = MIN3(n0 + 1, n1 + 1, n2 + t);
+    int desired_answer = MIN3(n0 + t, n1 + 1, n2 + 1);
     int computed_answer = convertToDec(output, 2);
 
     if (desired_answer != computed_answer) {
@@ -491,9 +491,6 @@ static void levenTest(int l, int sigma)
     free(outputs);
 }
 
-//static void leven8Test(int l
-
-
 static void levenCoreTest() 
 {
     int l = 2;
@@ -503,8 +500,8 @@ static void levenCoreTest()
     int n = 10;
     //int m = DIntSize;
     int m = 2;
-    //int m = 67;
-    int q = 200;
+    //int m = 75;
+    int q = 300;
     int r = q + n;
 
     /* Build and Garble */
@@ -533,14 +530,14 @@ static void levenCoreTest()
 
     //inputs[0] = 0;
     //inputs[1] = 1;
-    //inputs[2] = 1;
-    //inputs[3] = 0;
-    //inputs[4] = 1;
-    //inputs[5] = 1;
-    //inputs[6] = 1;
-    //inputs[7] = 1;
-    //inputs[8] = 1;
-    //inputs[9] = 1;
+    //inputs[2] = 0;
+    //inputs[3] = 1;
+    //inputs[4] = 0;
+    //inputs[5] = 0;
+    //inputs[6] = 0;
+    //inputs[7] = 0;
+    //inputs[8] = 0;
+    //inputs[9] = 0;
 
     assert(inputs[0] == 0 && "need this for fixed wire hack");
 
@@ -552,8 +549,6 @@ static void levenCoreTest()
     evaluate(&gc, extractedLabels, computedOutputMap, GARBLE_TYPE_STANDARD);
     mapOutputs(outputMap, computedOutputMap, outputs, m);
     removeGarbledCircuit(&gc);
-    //printf("outputs[0] = %d\n", outputs[0]);
-    //printf("outputs[1] = %d\n", outputs[1]);
 
     /* Results */
     checkLevenCore(inputs, outputs, l);
@@ -616,7 +611,8 @@ static void saveAndLoadTest()
     printf("outputs %d %d\n", outputs[0], outputs[1]);
 }
 
-void incWithSwitchTest() {
+void incWithSwitchTest() 
+{
     int n = 9;
     int m = n - 1;
     int q = 200;
@@ -650,7 +646,6 @@ void incWithSwitchTest() {
     evaluate(&gc, extractedLabels, computedOutputMap, GARBLE_TYPE_STANDARD);
     mapOutputs(outputMap, computedOutputMap, outputs, m);
     removeGarbledCircuit(&gc);
-
     checkIncWithSwitch(inputs, outputs, n);
 }
 
@@ -679,8 +674,8 @@ void runAllTests(void)
     //    printf("Ran leven test %d times\n", nruns); 
     //}
 
-    //for (int i = 0; i < nruns; i++) 
-    //    incWithSwitchTest(); 
+    for (int i = 0; i < nruns; i++) 
+        incWithSwitchTest(); 
 
     printf("Ran leven core test %d times\n", nruns); 
     for (int i = 0; i < nruns; i++) 
