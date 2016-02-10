@@ -34,7 +34,7 @@ checkIncWithSwitch(const int *inputs, int *outputs, int n)
 
     if (the_switch && x+1 == y) {
 
-    } else if (!the_switch && x == y) {
+    } else if ((!the_switch && x == y) || y == 0) {
 
     } else {
         printf("failed!!!!\n");
@@ -44,7 +44,8 @@ checkIncWithSwitch(const int *inputs, int *outputs, int n)
 }
 
 static void
-checkLevenCore(const int *inputs, int *output, int l) {
+checkLevenCore(const int *inputs, int *output, int l) 
+{
     assert(l == 2);
     int n0 = convertToDec(&inputs[0], 2);
     int n1 = convertToDec(&inputs[2], 2);
@@ -410,23 +411,21 @@ static void levenTest(int l, int sigma)
     int inputsDevotedToD = DIntSize * (l+1);
     int n = inputsDevotedToD + sigma*sigma*l;
     int m = DIntSize;
-    block delta = randomBlock();
     int outputs[m];
+    block delta = randomBlock();
 
     /* Build and Garble */
     GarbledCircuit gc;
-    int *outputWires = allocate_ints(m);
     block *inputLabels = allocate_blocks(2*n);
     block *outputMap = allocate_blocks(2*m);
+
     createInputLabelsWithR(inputLabels, n, delta);
-    buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, sigma, m);
+    buildLevenshteinCircuit(&gc, l, sigma);
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
 
-    /* Set Inputs */
+    // Set Inputs 
+    // The first inputsDevotedToD inputs are the numbers  0 through l+1 encoded in binary 
     int *inputs = allocate_ints(n);
-    /* The first inputsDevotedToD inputs are the numbers 
-     * 0 through l+1 encoded in binary 
-     */
     for (int i = 0; i < l + 1; i++) {
         convertToBinary(i, inputs + (DIntSize * i), DIntSize);
     }
@@ -434,41 +433,12 @@ static void levenTest(int l, int sigma)
     for (int i = inputsDevotedToD; i < n; i++) {
         inputs[i] = rand() % 2;
     }
-    inputs[inputsDevotedToD + 0] = 0;
-    inputs[inputsDevotedToD + 1] = 0;
-    inputs[inputsDevotedToD + 2] = 0;
-    inputs[inputsDevotedToD + 3] = 1;
-
-    inputs[inputsDevotedToD + 4] = 1;
-    inputs[inputsDevotedToD + 5] = 1;
-    inputs[inputsDevotedToD + 6] = 1;
-    inputs[inputsDevotedToD + 7] = 1;
-
+    
     /* Evaluate */
     block *extractedLabels = allocate_blocks(n);
     extractLabels(extractedLabels, inputLabels, inputs, n);
     block *computedOutputMap = allocate_blocks(m);
     evaluate(&gc, extractedLabels, computedOutputMap, GARBLE_TYPE_STANDARD);
-    mapOutputs(outputMap, computedOutputMap, outputs, m);
-
-    removeGarbledCircuit(&gc);
-
-    /* Results */
-
-    /* Compute what the results should be */
-    int realDist = levenshteinDistance(inputs + inputsDevotedToD, inputs + inputsDevotedToD + 2*l, l);
-    int realDistArr[DIntSize];
-    convertToBinary(realDist, realDistArr, DIntSize);
-
-    /* Automated check */
-    bool failed = false;
-    for (int i = 0; i < m; i++) {
-        if (outputs[i] != realDistArr[i])
-            failed = true;
-    }
-    if (failed) {
-        printf("Leven test failed\n");
-    }
 
     int realInputs = n - inputsDevotedToD;
     for (int i = inputsDevotedToD; i < n; i++) { 
@@ -477,6 +447,28 @@ static void levenTest(int l, int sigma)
             printf("\n");
     }
     printf("\n");
+
+    mapOutputs(outputMap, computedOutputMap, outputs, m);
+
+    removeGarbledCircuit(&gc);
+
+    /* Results */
+    int realDist = levenshteinDistance(inputs + inputsDevotedToD, inputs + inputsDevotedToD + 2*l, l);
+    int realDistArr[DIntSize];
+    convertToBinary(realDist, realDistArr, DIntSize);
+
+    /* Automated check */
+    bool failed = false;
+    for (int i = 0; i < m; i++) { 
+        if (outputs[i] != realDistArr[i]) {
+            failed = true;
+        }
+    }
+
+    if (failed) {
+        printf("Leven test failed\n");
+    }
+    
 
     printf("Outputs ");
     for (int i = 0; i < m; i++) 
@@ -491,7 +483,6 @@ static void levenTest(int l, int sigma)
 
     free(inputs);
     free(inputLabels);
-    free(outputWires);
     free(outputMap);
     free(extractedLabels);
     free(computedOutputMap);
@@ -501,14 +492,12 @@ static void levenCoreTest()
 {
     int l = 2;
     int sigma = 2;
-    //int DIntSize = (int) floor(log2(l)) + 1;
+    int DIntSize = (int) floor(log2(l)) + 1;
 
     int n = 10;
-    //int m = DIntSize;
-    int m = 2;
-    //int m = 75;
-    int q = 300;
-    int r = q + n;
+    int m = DIntSize;
+    int q = 500;
+    int r = n = q;
 
     /* Build and Garble */
     int inputWires[n];
@@ -640,7 +629,6 @@ void incWithSwitchTest()
     removeGarbledCircuit(&gc);
     checkIncWithSwitch(inputs, outputs, n);
 }
-
 
 void runAllTests(void)
 { 

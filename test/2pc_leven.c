@@ -143,7 +143,7 @@ void full_leven_garb()
     int *outputWires = allocate_ints(m);
     block *inputLabels = allocate_blocks(2*n);
     block *outputMap = allocate_blocks(2*m);
-    buildLevenshteinCircuit(&gc, inputLabels, outputMap, outputWires, l, sigma, m);
+    buildLevenshteinCircuit(&gc, l, sigma);
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
     
     /* Set input mapping */

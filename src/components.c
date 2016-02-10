@@ -17,8 +17,7 @@ bool isFinalCircuitType(CircuitType type)
 }
 
 void
-buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap,
-                        int *outputWires, int l, int sigma, int m)
+buildLevenshteinCircuit(GarbledCircuit *gc, int l, int sigma)
 {
     /* The goal of the levenshtein algorithm is
      * populate the l+1 by l+1 D matrix. 
@@ -43,31 +42,29 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
     int inputsDevotedToD = DIntSize * (l+1);
 
     int n = inputsDevotedToD + (2 * sigma * l);
-    int core_n = (3 * DIntSize) + 2 * sigma;
+    int m = DIntSize;
+    int core_n = (3 * DIntSize) + (2 * sigma);
     int q = 100000; /* number of gates */ 
     if (l > 20) {
         q = 5000000;
     }
     int r = n + q; /* number of wires */
+    int inputWires[n];
+    countToN(inputWires, n);
 
     GarblingContext gctxt;
 	createEmptyGarbledCircuit(gc, n, m, q, r);
 	startBuilding(gc, &gctxt);
 
-    int *inputWires = allocate_ints(n);
-    countToN(inputWires, n);
-
     ///* Populate D's 0th row and column with wire indices from inputs*/
     int *D[l+1][l+1];
     for (int i = 0; i < l+1; i++) {
         for (int j = 0; j < l+1; j++) {
-            D[i][j] = allocate_ints(l);
+            D[i][j] = allocate_ints(DIntSize);
             if (i == 0) {
                 memcpy(D[0][j], inputWires + (j*DIntSize), sizeof(int) * DIntSize);
-                //printf("Giving D[0][%d] inputWires: %d\n", j, D[0][j][0]);
             } else if (j == 0) {
                 memcpy(D[i][0], inputWires + (i*DIntSize), sizeof(int) * DIntSize);
-                //printf("Giving D[%d][0] inputWires: %d\n", i, D[i][0][0]);
             }
         }
     }
@@ -78,12 +75,10 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
     memcpy(a, inputWires + inputsDevotedToD, l * sigma * sizeof(int));
     memcpy(b, inputWires + inputsDevotedToD + (l * sigma), l * sigma * sizeof(int));
 
-    ///* add the core circuits */
-    int *coreInputWires = allocate_ints(core_n);
-    int *coreOutputWires = allocate_ints(DIntSize);
+    /* dynamically add levenshtein core circuits */
     for (int i = 1; i < l + 1; i++) {
         for (int j = 1; j < l + 1; j++) {
-            /* Set inputs for levenshtein core */
+            int coreInputWires[core_n];
             int p = 0;
             memcpy(coreInputWires + p, D[i-1][j-1], sizeof(int) * DIntSize);
             p += DIntSize;
@@ -91,43 +86,47 @@ buildLevenshteinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap
             p += DIntSize;
             memcpy(coreInputWires + p, D[i-1][j], sizeof(int) * DIntSize);
             p += DIntSize;
-            memcpy(coreInputWires + p, &a[(i-1)*2], sizeof(int) * sigma);
+            memcpy(coreInputWires + p, &a[(i-1)*sigma], sizeof(int) * sigma);
             p += sigma;
-            memcpy(coreInputWires + p, &b[(j-1)*2], sizeof(int) * sigma);
+            memcpy(coreInputWires + p, &b[(j-1)*sigma], sizeof(int) * sigma);
             p += sigma;
             assert(p == core_n);
 
+        
+            int coreOutputWires[DIntSize];
             addLevenshteinCoreCircuit(gc, &gctxt, l, sigma, coreInputWires, coreOutputWires);
-            /*printf("coreInputWires: (i=%d,j=%d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) -> (%d %d)\n",*/
-                    /*i,*/
-                    /*j,*/
-                    /*coreInputWires[0],*/
-                    /*coreInputWires[1],*/
-                    /*coreInputWires[2],*/
-                    /*coreInputWires[3],*/
-                    /*coreInputWires[4],*/
-                    /*coreInputWires[5],*/
-                    /*coreInputWires[6],*/
-                    /*coreInputWires[7],*/
-                    /*coreInputWires[8],*/
-                    /*coreInputWires[9],*/
-                    /*coreOutputWires[0],*/
-                    /*coreOutputWires[1]);*/
+            printf("coreInputWires: (i=%d,j=%d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) -> (%d %d)\n",
+                  i,
+                  j,
+                  coreInputWires[0],
+                  coreInputWires[1],
+                  coreInputWires[2],
+                  coreInputWires[3],
+                  coreInputWires[4],
+                  coreInputWires[5],
+                  coreInputWires[6],
+                  coreInputWires[7],
+                  coreInputWires[8],
+                  coreInputWires[9],
+                  coreOutputWires[0],
+                  coreOutputWires[1]);
 
-            /* Save coreOutputWires to D[i][j] */
+            // Save coreOutputWires to D[i][j] 
             memcpy(D[i][j], coreOutputWires, sizeof(int) * DIntSize);
         }
     }
-    memcpy(outputWires, D[l][l], sizeof(int) * DIntSize);
-    printf("d[l][l][0] = %d\n", D[l][l][0]);
-    printf("d[l][l][1] = %d\n", D[l][l][1]);
-    finishBuilding(gc, outputWires);
-    for (int i = 0; i < l+1; i++)
-        for (int j = 0; j < l+1; j++)
+
+    int output_wires[m];
+    memcpy(output_wires, D[l][l], sizeof(int) * DIntSize);
+    printf("outputwires %d %d\n", output_wires[0], output_wires[1]);
+
+    finishBuilding(gc, output_wires);
+
+    for (int i = 0; i < l+1; i++) {
+        for (int j = 0; j < l+1; j++) {
             free(D[i][j]);
-    free(inputWires);
-    free(coreInputWires);
-    free(coreOutputWires);
+        }
+    }
     /* removeGarblingContext(&gcContext); */
 }
 
