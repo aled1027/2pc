@@ -144,9 +144,7 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
         }
     }
 
-    FILE* fp = stdout;
     if (!isGarbler && chainingType == CHAINING_TYPE_SIMD) {
-        print_block(fp, chained_gc->offlineChainingOffsets[0]);
         fwrite(chained_gc->offlineChainingOffsets, sizeof(block), gc->m, f);
     }
     return SUCCESS;

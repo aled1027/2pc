@@ -52,7 +52,6 @@ aes_garb_off(char *dir, int nchains, ChainingType chainingType)
 
     if (chainingType == CHAINING_TYPE_SIMD) {
         for (int i = 0; i < nchains; i++) {
-            printf("break here\n");
             generateOfflineChainingOffsets(&chained_gcs[i]);
         }
     }

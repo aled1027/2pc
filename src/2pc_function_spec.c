@@ -384,8 +384,6 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
     if (chainingType == CHAINING_TYPE_STANDARD) {
         instructions->size = num_instructions + imap->size;
     } else {
-        // TODO bug here simd_instructions_size
-        //instructions->size = imap->size + (2 * function->components.totComponents) - 1;
         instructions->size = imap->size + loop_size;
     }
 

@@ -439,16 +439,6 @@ make_real_instructions(FunctionSpec *function,
          * maps (gc-id, gc-id, simd-idx) --> offset-idx */
 
         // hardcoding 3 as the max number of simd_info.input_blocks
-
-        //for (int i = 0; i < num_chained_gcs; i++) {
-        //    ChainedGarbledCircuit *c = &chained_gcs[i];
-        //    for (int j = 0; j < c->gc.n; j++) {
-        //        printf("cgc[%d], simd_idx[%d] = %d\n", i, j, c->simd_info.iblock_map[j]);
-        //    }
-        //}
-
-
-        printf("before core chaining, offsetsIdx = %d\n", offsetsIdx);
         int gcChainingMap[num_chained_gcs+1][num_chained_gcs+1][3]; 
         for (int i = 0; i < num_chained_gcs+1; i++) {
             for (int j = 0; j < num_chained_gcs+1; j++) {
@@ -465,8 +455,6 @@ make_real_instructions(FunctionSpec *function,
                     .simd_info.iblock_map[cur->chToWireId];
 
                 if (gcChainingMap[cur->chFromCircId][cur->chToCircId][simd_idx] == -1) {
-                    //printf("new offset for %d %d %d\n", cur->chFromCircId, cur->chToCircId, simd_idx);
-
                     /* add approparite offset to offsets */
                     offsets[offsetsIdx] = xorBlocks(
                             chained_gcs[circuitMapping[cur->chToCircId]].simd_info.input_blocks[simd_idx],
@@ -478,7 +466,6 @@ make_real_instructions(FunctionSpec *function,
                     ++offsetsIdx;
 
                 } else {
-                    //printf("old offset for %d %d %d\n", cur->chFromCircId, cur->chToCircId, simd_idx);
                     /* reference block already in offsets */
                     cur->chOffsetIdx = gcChainingMap[cur->chFromCircId][cur->chToCircId][simd_idx];
                 }
@@ -486,31 +473,6 @@ make_real_instructions(FunctionSpec *function,
         }
     }
     *noffsets = offsetsIdx;
-    printf("offsetsIdx = %d\n", offsetsIdx);
-    printf("\n");
-    printf("\n");
-
-    FILE* fp = stdout;
-    print_block(fp, chained_gcs[0].inputLabels[0]);
-    printf("\n");
-    print_block(fp, chained_gcs[0].inputLabels[1]);
-    printf("\n");
-    print_block(fp, chained_gcs[0].inputLabels[2]);
-    printf("\n");
-    print_block(fp, chained_gcs[0].inputLabels[3]);
-    printf("\n");
-    printf("\n");
-
-    printf("outputmap:\n");
-    print_block(fp, chained_gcs[0].outputMap[0]);
-    printf("\n");
-    print_block(fp, chained_gcs[0].outputMap[1]);
-    printf("\n");
-    print_block(fp, chained_gcs[0].outputMap[2]);
-    printf("\n");
-    print_block(fp, chained_gcs[0].outputMap[3]);
-    printf("\n");
-    printf("\n");
 
     return SUCCESS;
 }
