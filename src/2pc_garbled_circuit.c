@@ -17,26 +17,64 @@ createSIMDInputLabelsWithR(ChainedGarbledCircuit *cgc, block R)
 {
     block hashBlock;
     //cgc->inputSIMDBlock = randomBlock();
+    SimdInformation *si = &cgc->simd_info;
 
-    cgc->num_input_simd_blocks = 1;
-    cgc->input_simd_blocks = allocate_blocks(cgc->num_input_simd_blocks);
-    cgc->input_simd_blocks[0] = randomBlock();
+    si->num_iblocks = 1;
+    si->input_blocks = allocate_blocks(si->num_iblocks);
+    si->input_blocks[0] = randomBlock();
+
+    assert(cgc->gc.n > 0);
+    si->iblock_map = malloc(cgc->gc.n * sizeof(unsigned));
 
     int n = cgc->gc.n;
     for (int i = 0; i < n; i++) {
+        si->iblock_map[i] = 0;
         hashBlock = zero_block();
         sha1_hash((char *) &hashBlock, sizeof(block), i, 
             (unsigned char *) &i, sizeof i);
 
         cgc->inputLabels[2*i] = xorBlocks(
                 //cgc->inputSIMDBlock, 
-                cgc->input_simd_blocks[0], 
+                si->input_blocks[0], 
                 hashBlock);
 		cgc->inputLabels[2*i + 1] = xorBlocks(R, cgc->inputLabels[i]);
     }
 }
 
-    int 
+void 
+createSIMDInputLabelsWithRForLeven(ChainedGarbledCircuit *cgc, block R, int l)
+{
+    // TODO unfininished
+    block hashBlock;
+
+    unsigned d_int_size = (unsigned) floor(log2(l)) + 1;
+    SimdInformation *si  = &cgc->simd_info;
+
+    si->num_iblocks = 3;
+    si->input_blocks = allocate_blocks(si->num_iblocks);
+
+    assert(cgc->gc.n > 0);
+    si->iblock_map = malloc(cgc->gc.n * sizeof(unsigned));
+
+    unsigned idx = 0;
+    for (unsigned i = 0; i < si->num_iblocks; i++) {
+        si->input_blocks[i] = randomBlock();
+        for (unsigned j = 0; j < d_int_size; j++) {
+            si->iblock_map[idx] = j;
+            hashBlock = zero_block();
+            sha1_hash((char *) &hashBlock, sizeof(block), i, 
+                (unsigned char *) &i, sizeof i);
+
+            cgc->inputLabels[2*i] = xorBlocks(
+                    si->input_blocks[i], 
+                    hashBlock);
+		    cgc->inputLabels[2*i + 1] = xorBlocks(R, cgc->inputLabels[i]);
+            ++idx;
+        }
+    }
+}
+
+int 
 generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
 {
     block hashBlock;
@@ -44,7 +82,7 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
     FILE* fp = stdout;
 
     cgc->offlineChainingOffsets = allocate_blocks(m);
-    cgc->output_simd_block = randomBlock();
+    cgc->simd_info.output_block = randomBlock();
 
     for (int i = 0; i < m; ++i) {
         /* TODO check with Ask Alex M to see about hash function */
@@ -54,7 +92,7 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
                 (unsigned char *) &i, sizeof i);
 
         cgc->offlineChainingOffsets[i] = xorBlocks(
-                xorBlocks(cgc->output_simd_block, cgc->outputMap[2*i]),
+                xorBlocks(cgc->simd_info.output_block, cgc->outputMap[2*i]),
                 hashBlock);
         if (i == 0)
             print_block(fp, cgc->offlineChainingOffsets[0]);
@@ -98,9 +136,10 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
         fwrite(chained_gc->inputLabels, sizeof(block), 2 * gc->n, f);
         fwrite(chained_gc->outputMap, sizeof(block), 2 * gc->m, f);
         if (chainingType == CHAINING_TYPE_SIMD) {
-            fwrite(&chained_gc->output_simd_block, sizeof(block), 1, f);
-            fwrite(&chained_gc->num_input_simd_blocks, sizeof(int), 1, f);
-            fwrite(chained_gc->input_simd_blocks, sizeof(block), chained_gc->num_input_simd_blocks, f);
+            fwrite(&chained_gc->simd_info.output_block, sizeof(block), 1, f);
+            fwrite(&chained_gc->simd_info.num_iblocks, sizeof(int), 1, f);
+            fwrite(chained_gc->simd_info.input_blocks, 
+                    sizeof(block), chained_gc->simd_info.num_iblocks, f);
         }
     }
 
@@ -136,10 +175,11 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
         fread(chained_gc->outputMap, sizeof(block), 2 * gc->m, f);
 
         if (chainingType == CHAINING_TYPE_SIMD) {
-            fread(&chained_gc->output_simd_block, sizeof(block), 1, f);
-            fread(&chained_gc->num_input_simd_blocks, sizeof(unsigned), 1, f);
-            chained_gc->input_simd_blocks = allocate_blocks(chained_gc->num_input_simd_blocks);
-            fread(&chained_gc->input_simd_blocks[0], sizeof(block), 1, f);
+            fread(&chained_gc->simd_info.output_block, sizeof(block), 1, f);
+            fread(&chained_gc->simd_info.num_iblocks, sizeof(unsigned), 1, f);
+            chained_gc->simd_info.input_blocks = allocate_blocks(chained_gc->simd_info.num_iblocks);
+            fread(chained_gc->simd_info.input_blocks, sizeof(block),
+                    chained_gc->simd_info.num_iblocks, f);
         }
     }
 

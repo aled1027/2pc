@@ -448,8 +448,8 @@ make_real_instructions(FunctionSpec *function,
                 if (gcChainingMap[cur->chFromCircId][cur->chToCircId] == -1) {
                     /* add approparite offset to offsets */
                     offsets[offsetsIdx] = xorBlocks(
-                            chained_gcs[circuitMapping[cur->chFromCircId]].output_simd_block,
-                            chained_gcs[circuitMapping[cur->chToCircId]].input_simd_blocks[0]);
+                            chained_gcs[circuitMapping[cur->chFromCircId]].simd_info.output_block,
+                            chained_gcs[circuitMapping[cur->chToCircId]].simd_info.input_blocks[0]);
                     gcChainingMap[cur->chFromCircId][cur->chToCircId] = offsetsIdx;
                     
                     cur->chOffsetIdx = offsetsIdx;

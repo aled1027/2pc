@@ -12,16 +12,22 @@ typedef enum {
 } ChainingType;
 
 typedef struct {
+    // the iblock_map is needed so that make_real_instructions knows which 
+    // input_block to use. 
+    unsigned num_iblocks;
+    unsigned *iblock_map; // maps input_idx \to input_blocks_idx. size is equal to gc.n 
+    block *input_blocks;
+    block output_block;
+} SimdInformation;
+
+typedef struct {
     GarbledCircuit gc;
     int id;
     CircuitType type;
     block *inputLabels;
     block *outputMap;
     block *offlineChainingOffsets; /* for SIMD chaining operation */
-
-    unsigned num_input_simd_blocks;
-    block *input_simd_blocks;
-    block output_simd_block; /* only garbler uses */
+    SimdInformation simd_info;
 } ChainedGarbledCircuit; 
 
 int generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc);
