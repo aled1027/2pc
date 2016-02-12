@@ -358,20 +358,21 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
     jPtr = json_object_get(jMetadata, "instructions_size");
     assert(json_is_integer(jPtr));
     int num_instructions = json_integer_value(jPtr);
-    if (chainingType == CHAINING_TYPE_STANDARD) {
-        instructions->size = num_instructions + imap->size;
-
-    } else {
-        instructions->size = imap->size + (2 * function->components.totComponents) - 1;
-
-    }
-
-    instructions->instr = malloc(sizeof(Instruction)*instructions->size);
-    assert(instructions->instr);
-
     jInstructions = json_object_get(root, "instructions");
     assert(json_is_array(jInstructions));
     int loop_size = json_array_size(jInstructions); 
+    if (chainingType == CHAINING_TYPE_STANDARD) {
+        instructions->size = num_instructions + imap->size;
+    } else {
+        // TODO bug here simd_instructions_size
+        //instructions->size = imap->size + (2 * function->components.totComponents) - 1;
+        instructions->size = imap->size + loop_size;
+    }
+
+    printf("mallocing %zu for instructions\n", instructions->size * sizeof(Instruction));
+    instructions->instr = malloc(instructions->size * sizeof(Instruction));
+    assert(instructions->instr);
+
 
     /* Add chaining for "InputComponent" as specified by InputMapping,
      * which shold be already loaded from the json file */
@@ -457,8 +458,8 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
                 return FAILURE;
         }
     }
-    if (chainingType == CHAINING_TYPE_STANDARD)
-        assert(idx == instructions->size);
+    //if (chainingType == CHAINING_TYPE_STANDARD)
+    assert(idx == instructions->size);
     return SUCCESS;
 }
 
