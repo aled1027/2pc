@@ -15,27 +15,24 @@
 
 /* XXX: l < 35 */
 const int sigma = 8;
-const int l = 2;
+const int l = 30; // if you change this, you need to change the json as well (use the script)
 char *COMPONENT_FUNCTION_PATH = "functions/leven_8.json"; 
 
 static int getDIntSize() { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD() { return getDIntSize() * (l+1); }
 static int getN() { return getInputsDevotedToD() + (2*sigma*l); }
 int levenNumOutputs() { return getDIntSize(); }
-int levenNumEvalInputs() { return sigma*l; }
+int levenNumEvalInputs() { return sigma * l; }
 int levenNumGarbInputs() { return getN() - levenNumEvalInputs(); }
 int levenNumCircs() { return l * l; }
 static int getCoreN() { return (3 * getDIntSize()) + (2 * sigma); }
 static int getCoreM() { return getDIntSize(); }
 static int getCoreQ() { return 10000; } // TODO figure out this number
 
-static int getNumGatesPerCore() {return 10; } // TODO figure out this number
-static int getNumCoresForL() { return l * 10; } // TODO figure out this number
-static int getNumGates() { return getNumCoresForL() * getNumGatesPerCore(); }
-
 void leven_garb_off(ChainingType chainingType) 
 {
     printf("Running leven garb offline\n");
+    printf("l = %d, sigma = %d\n", l, sigma);
 
     block delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
@@ -56,7 +53,11 @@ void leven_garb_off(ChainingType chainingType)
         GarbledCircuit *gc = &chainedGCs[i].gc;
 
         /* Garble */
+        
         createInputLabelsWithR(chainedGCs[i].inputLabels, coreN, delta);
+        //createSIMDInputLabelsForLevenshtein(&chainedGCs[i], l, delta);
+
+
 	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR);
 	    startBuilding(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
@@ -81,6 +82,7 @@ void leven_garb_off(ChainingType chainingType)
 void leven_garb_on(ChainingType chainingType)
 {
     printf("Running leven garb online\n");
+    printf("l = %d, sigma = %d\n", l, sigma);
     char *functionPath = COMPONENT_FUNCTION_PATH;
     int DIntSize = getDIntSize();
     int inputsDevotedToD = getInputsDevotedToD();

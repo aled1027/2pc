@@ -240,6 +240,7 @@ go(struct args *args)
     case LEVEN:
         n_garb_inputs = levenNumGarbInputs();
         n_eval_inputs = levenNumEvalInputs();
+        n_eval_labels = n_eval_inputs;
         ncircs = levenNumCircs();
         noutputs = levenNumOutputs();
         chainingType = CHAINING_TYPE_STANDARD;
@@ -284,6 +285,7 @@ go(struct args *args)
         }
     } else if (args->eval_on) {
         printf("Online evaluating\n");
+        printf("using n_eval_inputs = %d\n", n_eval_inputs);
         eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, chainingType);
     } else if (args->garb_full) {
         printf("Full garbling\n");
