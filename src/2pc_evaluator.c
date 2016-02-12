@@ -15,7 +15,7 @@
 #include "utils.h"
 
 static int
-new_choice_reader(const void *choices, const int idx)
+new_choice_reader(const void *choices, int idx)
 {
     int *c = (int *) choices;
     return c[idx];
@@ -186,7 +186,7 @@ void evaluator_classic_2pc(const int *input, int *output,
 }
 
 void
-evaluator_offline(char *dir, const int num_eval_inputs, const int nchains, ChainingType chainingType)
+evaluator_offline(char *dir, int num_eval_inputs, int nchains, ChainingType chainingType)
 {
     int sockfd;
     struct state state;
@@ -246,7 +246,7 @@ evaluator_offline(char *dir, const int num_eval_inputs, const int nchains, Chain
 }
 
 static void
-recvInstructions(Instructions *insts, const int fd, block **offsets)
+recvInstructions(Instructions *insts, int fd, block **offsets)
 {
     int noffsets;
     net_recv(fd, &insts->size, sizeof(int), 0);

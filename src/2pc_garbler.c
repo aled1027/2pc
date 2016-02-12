@@ -83,7 +83,7 @@ extract_labels_cgc(block *garbLabels, block *evalLabels,
 
 void 
 garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
-                    const block *output_map, const int num_garb_inputs, const int num_eval_inputs,
+                    const block *output_map, int num_garb_inputs, int num_eval_inputs,
                     const int *inputs, uint64_t *tot_time)
 {
     /* Does 2PC in the classic way, without components. */
@@ -159,14 +159,15 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
 }
 
 static void
-sendInstructions(const Instructions *insts, const int fd, const block *offsets, 
-        const int noffsets, ChainingType chainingType)
+sendInstructions(const Instructions *insts, int fd, const block *offsets, 
+        int noffsets, ChainingType chainingType)
 {
     uint8_t a_byte = 0;
     net_send(fd, &a_byte, sizeof(a_byte), 0);
     net_send(fd, &insts->size, sizeof(int), 0);
     net_send(fd, &noffsets, sizeof(int), 0);
 
+    printf("sending %d offsets\n", noffsets);
     net_send(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
     net_send(fd, offsets, sizeof(block) * noffsets, 0);
 }
@@ -175,7 +176,7 @@ static void
 garbler_go(int fd, const FunctionSpec *function, const char *dir,
            const ChainedGarbledCircuit *chained_gcs, const block *randLabels,
            int num_chained_gcs, const int *circuitMapping, const int *inputs,
-           const block *offsets, const int noffsets, ChainingType chainingType)
+           const block *offsets, int noffsets, ChainingType chainingType)
 {
     /* primary role: send the appropriate data to the evaluator. 
      * garbler_go sends: 
@@ -475,7 +476,7 @@ make_real_instructions(FunctionSpec *function,
 
 void
 garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
-                const int num_eval_inputs, const int num_chained_gcs, ChainingType chainingType)
+                int num_eval_inputs, int num_chained_gcs, ChainingType chainingType)
 {
     int serverfd, fd;
     struct state state;
