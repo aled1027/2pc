@@ -143,6 +143,7 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
             fwrite(&chained_gc->simd_info.num_iblocks, sizeof(int), 1, f);
             fwrite(chained_gc->simd_info.input_blocks, 
                     sizeof(block), chained_gc->simd_info.num_iblocks, f);
+            fwrite(chained_gc->simd_info.iblock_map, sizeof(int), chained_gc->gc.n, f);
         }
     }
 
@@ -183,6 +184,8 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
             chained_gc->simd_info.input_blocks = allocate_blocks(chained_gc->simd_info.num_iblocks);
             fread(chained_gc->simd_info.input_blocks, sizeof(block),
                     chained_gc->simd_info.num_iblocks, f);
+            chained_gc->simd_info.iblock_map = allocate_ints(chained_gc->gc.n);
+            fread(chained_gc->simd_info.iblock_map, sizeof(int), chained_gc->gc.n, f);
         }
     }
 

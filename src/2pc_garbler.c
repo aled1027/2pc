@@ -437,27 +437,34 @@ make_real_instructions(FunctionSpec *function,
 
         /* gcChainingMap tracks which component is mapping to which component. 
          * In particular, maps gc-id \times gc-id to offset idx */
-        int gcChainingMap[num_chained_gcs+1][num_chained_gcs+1];
+
+        // hardcoding 3 as the max number of simd_info.input_blocks
+        int gcChainingMap[num_chained_gcs+1][num_chained_gcs+1][3]; 
         for (int i = 0; i < num_chained_gcs+1; i++)
             for (int j = 0; j < num_chained_gcs+1; j++)
-                gcChainingMap[i][j] = -1;
+                for (int k = 0; k < 3; k++)
+                    gcChainingMap[i][j][k] = -1;
         
         for (int i = 0; i < num_instructions; ++i) {
             cur = &(function->instructions.instr[i]);
             if (cur->type == CHAIN && cur->chFromCircId != 0) {
-                if (gcChainingMap[cur->chFromCircId][cur->chToCircId] == -1) {
+                int simd_idx = chained_gcs[circuitMapping[cur->chFromCircId]]
+                    .simd_info.iblock_map[cur->chFromWireId];
+
+
+                if (gcChainingMap[cur->chFromCircId][cur->chToCircId][simd_idx] == -1) {
                     /* add approparite offset to offsets */
                     offsets[offsetsIdx] = xorBlocks(
                             chained_gcs[circuitMapping[cur->chFromCircId]].simd_info.output_block,
-                            chained_gcs[circuitMapping[cur->chToCircId]].simd_info.input_blocks[0]);
-                    gcChainingMap[cur->chFromCircId][cur->chToCircId] = offsetsIdx;
+                            chained_gcs[circuitMapping[cur->chToCircId]].simd_info.input_blocks[simd_idx]);
+                    gcChainingMap[cur->chFromCircId][cur->chToCircId][simd_idx] = offsetsIdx;
                     
                     cur->chOffsetIdx = offsetsIdx;
                     ++offsetsIdx;
 
                 } else {
                     /* reference block already in offsets */
-                    cur->chOffsetIdx = gcChainingMap[cur->chFromCircId][cur->chToCircId];
+                    cur->chOffsetIdx = gcChainingMap[cur->chFromCircId][cur->chToCircId][simd_idx];
                 }
             }
         }
