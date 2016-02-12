@@ -48,14 +48,40 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
+        //print_instruction(cur);
         switch(cur->type) {
             case EVAL:
                 savedCircId = circuitMapping[cur->evCircId];
+
                 s = current_time_ms();
+
+                printf("savedCircId = %d\n", savedCircId);
+                //printf("cur->evCircId = %d\n", cur->evCircId);
+                
+                if (savedCircId == 0) {
+                    FILE* fp = stdout;
+                    printf("\n");
+                    print_block(fp, labels[0][0]);
+                    printf("\n");
+                    print_block(fp, labels[0][1]);
+                    printf("\n");
+                    printf("\n");
+                }
+
+
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->evCircId], 
                          computedOutputMap[cur->evCircId], GARBLE_TYPE_STANDARD);
                 e = current_time_ms();
                 eval_time += e - s;
+
+                FILE* fp = stdout;
+                printf("Output Blocks 0 and 1\n");
+                print_block(fp, computedOutputMap[1][0]);
+                printf("\n");
+                print_block(fp, computedOutputMap[1][1]);
+                printf("\n");
+                printf("\n");
+
                 break;
             case CHAIN:
 
@@ -63,25 +89,34 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                     labels[cur->chToCircId][cur->chToWireId] = xorBlocks(
                             computedOutputMap[cur->chFromCircId][cur->chFromWireId], 
                             offsets[cur->chOffsetIdx]);
-                } else { /* CHAINING_TYPE_SIMD */
-                    /* TODO if this is slow, there are probably ways to optimize */
 
+                } else { 
+                    /* CHAINING_TYPE_SIMD */
                     savedCircId = circuitMapping[cur->chFromCircId];
                     offsetIdx = cur->chOffsetIdx;
 
-                    /* correct computedOutputMap offlineChainingOffsets */
-                    /* i.e. correct to enable SIMD trick */
+                    int j,k;
+                    for (j = cur->chFromWireId, k = cur->chToWireId; 
+                            j < cur->chFromWireId + cur->chWireDist;
+                            ++j, ++k) {
 
-                    for (int j = 0; j < chained_gcs[savedCircId].gc.m; ++j) {
-                        /* offsets from offline phase */
-                        computedOutputMap[cur->chFromCircId][j] = xorBlocks(
+                        /* correct computedOutputMap offlineChainingOffsets */
+                        /* i.e. correct to enable SIMD trick */
+
+                        labels[cur->chToCircId][k] = zero_block();
+
+                        /* fix with offline chaining offset */
+                        labels[cur->chToCircId][k] = xorBlocks(
                                 computedOutputMap[cur->chFromCircId][j],
                                 chained_gcs[savedCircId].offlineChainingOffsets[j]);
 
-                        /* offsets from online phase */
-                        labels[cur->chToCircId][j] = xorBlocks(
-                                computedOutputMap[cur->chFromCircId][j], 
+                        labels[cur->chToCircId][k] = xorBlocks(
+                                labels[cur->chToCircId][k],
                                 offsets[offsetIdx]);
+
+                        //FILE* fp = stdout;
+                        //print_block(fp, offsets[offsetIdx]);
+                        //printf("\n");
                     }
                 }
                 break;
@@ -254,6 +289,7 @@ recvInstructions(Instructions *insts, int fd, block **offsets)
 
     insts->instr = malloc(insts->size * sizeof(Instruction));
     *offsets = allocate_blocks(noffsets);
+    printf("received %d noffsets\n", noffsets);
 
     net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);

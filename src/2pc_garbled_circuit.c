@@ -74,6 +74,7 @@ createSIMDInputLabelsWithRForLeven(ChainedGarbledCircuit *cgc, block R, int l)
     for (; idx < cgc->gc.n; idx++) {
         cgc->inputLabels[2*idx] = randomBlock();
         cgc->inputLabels[2*idx + 1] = xorBlocks(R, cgc->inputLabels[2*idx]);
+        si->iblock_map[idx] = 0;
     }
 }
 
@@ -82,7 +83,6 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
 {
     block hashBlock;
     int m = cgc->gc.m;
-    FILE* fp = stdout;
 
     cgc->offlineChainingOffsets = allocate_blocks(m);
     cgc->simd_info.output_block = randomBlock();
@@ -97,9 +97,6 @@ generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc)
         cgc->offlineChainingOffsets[i] = xorBlocks(
                 xorBlocks(cgc->simd_info.output_block, cgc->outputMap[2*i]),
                 hashBlock);
-        if (i == 0)
-            print_block(fp, cgc->offlineChainingOffsets[0]);
-
     }
     return 0;
 }

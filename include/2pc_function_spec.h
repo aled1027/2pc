@@ -40,6 +40,8 @@ typedef struct {
     int chToCircId;
     int chToWireId;
     int chOffsetIdx; 
+    int chWireDist;
+
     // TODO not sure if fact below is still true.
     // index for block which is offset. If choffsetidx == -1, then zero_block
 } 
@@ -88,5 +90,7 @@ int readBufferIntoInputMapping(InputMapping* input_mapping, const char* buffer);
 void deleteInputMapping(InputMapping *map);
 size_t inputMappingBufferSize(const InputMapping *map);
 void newInputMapping(InputMapping *map, int size);
+
+void print_instruction(Instruction *in);
 
 #endif

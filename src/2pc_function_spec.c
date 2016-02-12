@@ -101,6 +101,26 @@ print_input_mapping(InputMapping* inputMapping)
     }
 }
 
+void print_instruction(Instruction *in)
+{
+    switch(in->type) {
+        case EVAL:
+            printf("EVAL %d\n", in->evCircId);
+            break;
+        case CHAIN:
+            printf("CHAIN (%d, %d) -> (%d, %d) with offset (%d) and dist (%d)\n", 
+                    in->chFromCircId, 
+                    in->chFromWireId,
+                    in->chToCircId,
+                    in->chToWireId,
+                    in->chOffsetIdx,
+                    in->chWireDist);
+            break;
+        default:
+            printf("Not printing command\n");
+    }
+}
+
 void 
 print_instructions(Instructions* instr) 
 {
@@ -383,6 +403,7 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
                             imap->input_idx[i] : imap->input_idx[i] + function->num_garb_inputs;
         instructions->instr[i].chToCircId = imap->gc_id[i];
         instructions->instr[i].chToWireId = imap->wire_id[i];
+        instructions->instr[i].chWireDist = 1;
         /*printf("chaining from circId 0 wire_id %d\n", instructions->instr[i].chFromWireId);*/
     }
 
@@ -447,9 +468,10 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
                 } else { /* CHAINING_TYPE_SIMD */
                     instructions->instr[idx].type = CHAIN;
                     instructions->instr[idx].chFromCircId = from_gc_id;
-                    instructions->instr[idx].chFromWireId = 0;
+                    instructions->instr[idx].chFromWireId = from_wire_id_start;
                     instructions->instr[idx].chToCircId = to_gc_id;
-                    instructions->instr[idx].chToWireId = 0;
+                    instructions->instr[idx].chToWireId = to_wire_id_start;
+                    instructions->instr[idx].chWireDist = from_wire_id_end - from_wire_id_start + 1;
                     idx++;
                 }
                 break;
@@ -458,7 +480,6 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
                 return FAILURE;
         }
     }
-    //if (chainingType == CHAINING_TYPE_STANDARD)
     assert(idx == instructions->size);
     return SUCCESS;
 }
