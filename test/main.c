@@ -243,7 +243,8 @@ go(struct args *args)
         n_eval_labels = n_eval_inputs;
         ncircs = levenNumCircs();
         noutputs = levenNumOutputs();
-        chainingType = CHAINING_TYPE_STANDARD;
+        //chainingType = CHAINING_TYPE_STANDARD;
+        chainingType = CHAINING_TYPE_SIMD;
         fn = "doesnt matter, see 2pc_leven";
         type = "LEVEN";
         break;

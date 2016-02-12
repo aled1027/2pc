@@ -14,8 +14,8 @@ typedef enum {
 typedef struct {
     // the iblock_map is needed so that make_real_instructions knows which 
     // input_block to use. 
-    unsigned num_iblocks;
-    unsigned *iblock_map; // maps input_idx \to input_blocks_idx. size is equal to gc.n 
+    int num_iblocks;
+    int *iblock_map; // maps input_idx \to input_blocks_idx. size is equal to gc.n 
     block *input_blocks;
     block output_block;
 } SimdInformation;
@@ -52,4 +52,6 @@ int *loadOTSelections(char *fname);
 
 
 void createSIMDInputLabelsWithR(ChainedGarbledCircuit *cgc, block R);
+void 
+createSIMDInputLabelsWithRForLeven(ChainedGarbledCircuit *cgc, block R, int l);
 #endif

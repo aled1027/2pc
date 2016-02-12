@@ -210,5 +210,5 @@ def generateLevenJSON(l):
     print(s)
 
 if __name__=='__main__':
-    l = 2
+    l = 5
     generateLevenJSON(l)

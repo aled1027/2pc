@@ -24,7 +24,7 @@ createSIMDInputLabelsWithR(ChainedGarbledCircuit *cgc, block R)
     si->input_blocks[0] = randomBlock();
 
     assert(cgc->gc.n > 0);
-    si->iblock_map = malloc(cgc->gc.n * sizeof(unsigned));
+    si->iblock_map = malloc(cgc->gc.n * sizeof(int));
 
     int n = cgc->gc.n;
     for (int i = 0; i < n; i++) {
@@ -37,40 +37,43 @@ createSIMDInputLabelsWithR(ChainedGarbledCircuit *cgc, block R)
                 //cgc->inputSIMDBlock, 
                 si->input_blocks[0], 
                 hashBlock);
-		cgc->inputLabels[2*i + 1] = xorBlocks(R, cgc->inputLabels[i]);
+		cgc->inputLabels[2*i + 1] = xorBlocks(R, cgc->inputLabels[2*i]);
     }
 }
 
 void 
 createSIMDInputLabelsWithRForLeven(ChainedGarbledCircuit *cgc, block R, int l)
 {
-    // TODO unfininished
-    block hashBlock;
 
-    unsigned d_int_size = (unsigned) floor(log2(l)) + 1;
+    int d_int_size = (int) floor(log2(l)) + 1;
     SimdInformation *si  = &cgc->simd_info;
 
     si->num_iblocks = 3;
     si->input_blocks = allocate_blocks(si->num_iblocks);
 
     assert(cgc->gc.n > 0);
-    si->iblock_map = malloc(cgc->gc.n * sizeof(unsigned));
+    si->iblock_map = malloc(cgc->gc.n * sizeof(int));
 
-    unsigned idx = 0;
-    for (unsigned i = 0; i < si->num_iblocks; i++) {
+    int idx = 0;
+    for (int i = 0; i < si->num_iblocks; i++) {
         si->input_blocks[i] = randomBlock();
-        for (unsigned j = 0; j < d_int_size; j++) {
-            si->iblock_map[idx] = j;
-            hashBlock = zero_block();
-            sha1_hash((char *) &hashBlock, sizeof(block), i, 
-                (unsigned char *) &i, sizeof i);
+        for (int j = 0; j < d_int_size; j++) {
+            si->iblock_map[idx] = i;
+            block hashBlock = zero_block();
+            sha1_hash((char *) &hashBlock, sizeof(block), j, 
+                (unsigned char *) &j, sizeof j);
 
-            cgc->inputLabels[2*i] = xorBlocks(
+            cgc->inputLabels[2*idx] = xorBlocks(
                     si->input_blocks[i], 
                     hashBlock);
-		    cgc->inputLabels[2*i + 1] = xorBlocks(R, cgc->inputLabels[i]);
+		    cgc->inputLabels[2*idx + 1] = xorBlocks(R, cgc->inputLabels[2*idx]);
             ++idx;
         }
+    }
+
+    for (; idx < cgc->gc.n; idx++) {
+        cgc->inputLabels[2*idx] = randomBlock();
+        cgc->inputLabels[2*idx + 1] = xorBlocks(R, cgc->inputLabels[2*idx]);
     }
 }
 
@@ -176,7 +179,7 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
 
         if (chainingType == CHAINING_TYPE_SIMD) {
             fread(&chained_gc->simd_info.output_block, sizeof(block), 1, f);
-            fread(&chained_gc->simd_info.num_iblocks, sizeof(unsigned), 1, f);
+            fread(&chained_gc->simd_info.num_iblocks, sizeof(int), 1, f);
             chained_gc->simd_info.input_blocks = allocate_blocks(chained_gc->simd_info.num_iblocks);
             fread(chained_gc->simd_info.input_blocks, sizeof(block),
                     chained_gc->simd_info.num_iblocks, f);

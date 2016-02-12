@@ -1,0 +1,222 @@
+type:time
+loading: 5876127
+waiting: 3403375
+recvInstructions: 71241
+receive circmap: 7349
+receive labels: 87017
+ot correction: 249578
+recv_output_instructions: 970613
+evaluate: 1806514
+map outputs: 11134
+total_without_loading: 4259201
+total: 10135328
+loading: 4961641
+waiting: 3079606
+recvInstructions: 40476
+receive circmap: 5217
+receive labels: 36483
+ot correction: 239802
+recv_output_instructions: 894792
+evaluate: 1645378
+map outputs: 11909
+total_without_loading: 3983880
+total: 8945521
+loading: 4981555
+waiting: 3277327
+recvInstructions: 32706
+receive circmap: 8066
+receive labels: 43922
+ot correction: 172975
+recv_output_instructions: 125411
+evaluate: 1660542
+map outputs: 11663
+total_without_loading: 3088983
+total: 8070538
+loading: 4960086
+waiting: 765935
+recvInstructions: 49164
+receive circmap: 6421
+receive labels: 26095
+ot correction: 222691
+recv_output_instructions: 141031
+evaluate: 1586025
+map outputs: 11708
+total_without_loading: 3036588
+total: 7996674
+loading: 5085381
+waiting: 494707
+recvInstructions: 32395
+receive circmap: 7540
+receive labels: 47814
+ot correction: 122366
+recv_output_instructions: 183960
+evaluate: 1668924
+map outputs: 11909
+total_without_loading: 3104247
+total: 8189628
+loading: 3307951
+waiting: 588626
+recvInstructions: 32676
+receive circmap: 8552
+receive labels: 75696
+ot correction: 158283
+recv_output_instructions: 140028
+evaluate: 1604826
+map outputs: 11272
+total_without_loading: 3102215
+total: 6410166
+loading: 5069575
+waiting: 535956
+recvInstructions: 32511
+receive circmap: 15295
+receive labels: 25026
+ot correction: 158639
+recv_output_instructions: 133382
+evaluate: 1658400
+map outputs: 11061
+total_without_loading: 3029800
+total: 8099375
+loading: 5048467
+waiting: 562271
+recvInstructions: 42553
+receive circmap: 4264
+receive labels: 26270
+ot correction: 223002
+recv_output_instructions: 141202
+evaluate: 1621952
+map outputs: 11919
+total_without_loading: 3088029
+total: 8136496
+loading: 5116232
+waiting: 538634
+recvInstructions: 33042
+receive circmap: 7183
+receive labels: 25638
+ot correction: 222661
+recv_output_instructions: 196371
+evaluate: 1702538
+map outputs: 11467
+total_without_loading: 2727346
+total: 7843578
+loading: 3371843
+waiting: 2321763
+recvInstructions: 35179
+receive circmap: 4455
+receive labels: 32701
+ot correction: 167949
+recv_output_instructions: 139276
+evaluate: 1600091
+map outputs: 13654
+total_without_loading: 2560074
+total: 5931917
+loading: 3387519
+waiting: 2287492
+recvInstructions: 39508
+receive circmap: 6531
+receive labels: 102998
+ot correction: 231173
+recv_output_instructions: 192599
+evaluate: 1558551
+map outputs: 11968
+total_without_loading: 2681808
+total: 6069327
+loading: 3330910
+waiting: 2328584
+recvInstructions: 33764
+receive circmap: 6887
+receive labels: 25373
+ot correction: 229468
+recv_output_instructions: 192920
+evaluate: 1558050
+map outputs: 11006
+total_without_loading: 2569621
+total: 5900531
+loading: 3316699
+waiting: 2280364
+recvInstructions: 34176
+receive circmap: 7308
+receive labels: 24310
+ot correction: 236943
+recv_output_instructions: 195991
+evaluate: 1587159
+map outputs: 10830
+total_without_loading: 2630397
+total: 5947096
+loading: 3339780
+waiting: 2581910
+recvInstructions: 36458
+receive circmap: 4791
+receive labels: 27067
+ot correction: 131962
+recv_output_instructions: 156813
+evaluate: 1606061
+map outputs: 11463
+total_without_loading: 2466326
+total: 5806106
+loading: 3111079
+waiting: 2342453
+recvInstructions: 37601
+receive circmap: 5568
+receive labels: 17838
+ot correction: 193541
+recv_output_instructions: 85343
+evaluate: 1529449
+map outputs: 11522
+total_without_loading: 2423242
+total: 5534321
+loading: 2801446
+waiting: 2508799
+recvInstructions: 53599
+receive circmap: 5393
+receive labels: 36599
+ot correction: 230221
+recv_output_instructions: 60165
+evaluate: 1550631
+map outputs: 10880
+total_without_loading: 2482328
+total: 5283774
+loading: 4537696
+waiting: 2040139
+recvInstructions: 42012
+receive circmap: 6010
+receive labels: 31351
+ot correction: 102305
+recv_output_instructions: 149444
+evaluate: 2167758
+map outputs: 12333
+total_without_loading: 3033364
+total: 7571060
+loading: 4204683
+waiting: 1982579
+recvInstructions: 98619
+receive circmap: 5232
+receive labels: 26516
+ot correction: 118127
+recv_output_instructions: 164332
+evaluate: 2365796
+map outputs: 13539
+total_without_loading: 3350414
+total: 7555097
+loading: 5017266
+waiting: 1973093
+recvInstructions: 68382
+receive circmap: 26184
+receive labels: 33282
+ot correction: 110838
+recv_output_instructions: 163209
+evaluate: 2451443
+map outputs: 13163
+total_without_loading: 3517330
+total: 8534596
+loading: 5091898
+waiting: 1998787
+recvInstructions: 50423
+receive circmap: 8723
+receive labels: 34949
+ot correction: 120299
+recv_output_instructions: 165486
+evaluate: 2332753
+map outputs: 13263
+total_without_loading: 3365246
+total: 8457144
+avg time: 7320913

@@ -15,7 +15,7 @@
 
 /* XXX: l < 35 */
 const int sigma = 8;
-const int l = 30; // if you change this, you need to change the json as well (use the script)
+const int l = 5; // if you change this, you need to change the json as well (use the script)
 char *COMPONENT_FUNCTION_PATH = "functions/leven_8.json"; 
 
 static int getDIntSize() { return (int) floor(log2(l)) + 1; }
@@ -54,14 +54,19 @@ void leven_garb_off(ChainingType chainingType)
 
         /* Garble */
         
-        createInputLabelsWithR(chainedGCs[i].inputLabels, coreN, delta);
-        //createSIMDInputLabelsForLevenshtein(&chainedGCs[i], l, delta);
 
 
 	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR);
 	    startBuilding(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
 	    finishBuilding(gc, outputWires);
+
+        if (chainingType == CHAINING_TYPE_SIMD) {
+            createSIMDInputLabelsWithRForLeven(&chainedGCs[i], delta, l);
+        } else {
+            createInputLabelsWithR(chainedGCs[i].inputLabels, coreN, delta);
+        }
+
         garbleCircuit(gc, chainedGCs[i].inputLabels, chainedGCs[i].outputMap,
                       GARBLE_TYPE_STANDARD);
 
