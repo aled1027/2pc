@@ -115,15 +115,9 @@ buildLevenshteinCircuit(GarbledCircuit *gc, int l, int sigma)
             memcpy(D[i][j], coreOutputWires, sizeof(int) * DIntSize);
         }
     }
-
     int output_wires[m];
     memcpy(output_wires, D[l][l], sizeof(int) * DIntSize);
-    printf("outputwires %d %d\n", output_wires[0], output_wires[1]);
-
     finishBuilding(gc, output_wires);
-
-    // TODO 
-    /* removeGarblingContext(&gcContext); */
 }
 
 int 
