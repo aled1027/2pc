@@ -18,8 +18,10 @@ typedef struct {
     block *inputLabels;
     block *outputMap;
     block *offlineChainingOffsets; /* for SIMD chaining operation */
-    block inputSIMDBlock; /* only garbler uses */
-    block outputSIMDBlock; /* only garbler uses */
+
+    unsigned num_input_simd_blocks;
+    block *input_simd_blocks;
+    block output_simd_block; /* only garbler uses */
 } ChainedGarbledCircuit; 
 
 int generateOfflineChainingOffsets(ChainedGarbledCircuit *cgc);
