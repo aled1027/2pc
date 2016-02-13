@@ -528,14 +528,11 @@ void buildAESCircuit(GarbledCircuit *gc)
 
 		ShiftRows(gc, &garblingContext, subBytesOutputs, shiftRowsOutputs);
 
-        // TODO double check this. I don't this coded correctly
-        // final is being set to the 9th round's output
-        // and addkey inputs shouldn't be happening in final round
-        // etc.
-		for (i = 0; i < 4; i++) {
-			if (round == roundLimit - 1)
+        if (round != roundLimit - 1) {
+		    for (i = 0; i < 4; i++) {
 				MixColumns(gc, &garblingContext,
                            shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
+            }
 		}
 
 		for (i = 0; i < 128; i++) {
