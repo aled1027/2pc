@@ -480,8 +480,7 @@ buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalRound, block* delt
         
     ShiftRows(gc, &garblingContext, subBytesOutputs, shiftRowsOutputs);
 
-    if (true) {
-    // if (!isFinalRound) { // TODO UNCOMMENT
+    if (!isFinalRound) { 
         for (int i = 0; i < 4; i++) { 
             // fixed justGarble bug in their construction
 	    	MixColumns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
