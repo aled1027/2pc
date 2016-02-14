@@ -28,9 +28,6 @@ reverse_array(int *arr, size_t nints);
 uint64_t
 current_time_ns(void);
 
-/* uint64_t */
-/* nanoSecondsToMilliseconds(uint64_t nanoseconds); */
-
 void *
 ot_malloc(size_t size);
 
@@ -55,10 +52,7 @@ readFileIntoBuffer(char* buffer, char* fileName);
 void
 debug(char *s);
 
-block our_encrypt(block *bl, block* key);
-
-block our_decrypt(block *bl, block* key);
-
-void print_gc(GarbledCircuit *gc);
+void
+print_gc(GarbledCircuit *gc);
 
 #endif

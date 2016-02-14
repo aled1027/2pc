@@ -1,4 +1,5 @@
 #include "2pc_garbler.h"
+
 #include <assert.h> 
 #include <stdio.h>
 #include <stdbool.h>
@@ -6,6 +7,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/rand.h>
 
 #include "gc_comm.h"
 #include "net.h"
@@ -309,28 +311,30 @@ make_real_output_instructions(FunctionSpec* function,
      * using the chained_gcs.  Specially, populates
      * function->output_instructions->output_instruction[i].label0 and label1
      */
+    unsigned char *rand;
     OutputInstructions* output_instructions = &function->output_instructions;
+
+    rand = calloc((output_instructions->size + 8) / 8, sizeof(char));
+    if (rand == NULL)
+        return FAILURE;
+    (void) RAND_bytes(rand, (output_instructions->size + 8) / 8);
     for (int i = 0; i < output_instructions->size; i++) {
+        AES_KEY key;
+        bool choice = rand[(i / 8) & (1 << (i % 8))] ? true : false;
         OutputInstruction* o = &output_instructions->output_instruction[i];
         int savedGCId = circuitMapping[o->gc_id];
         block key_zero = chained_gcs[savedGCId].outputMap[2 * o->wire_id];
         block key_one = chained_gcs[savedGCId].outputMap[2 * o->wire_id + 1];
 
-        /* TODO check with Alex M on the crypto
-         * - randomness and encryption */
         block b_zero = zero_block();
         block b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
 
-        // TODO do actual encrypt / decryption. Ask Alex M.
-        // TODO could use garbled row reduction, but then we 
-        // wouldn't be able to check that outputs are being computed correctly
-        // Add grr if slow and as last step
-        block zero_out = our_encrypt(&b_zero, &key_zero);
-        block one_out = our_encrypt(&b_one, &key_one);
-
-        uint8_t pa = rand() % 2; // for randomly permuting table (not dong Point and Permute)
-        o->labels[pa] = zero_out;
-        o->labels[!pa] = one_out;
+        AES_set_encrypt_key(key_zero, &key);
+        AES_ecb_encrypt_blks(&b_zero, 1, &key);
+        AES_set_encrypt_key(key_one, &key);
+        AES_ecb_encrypt_blks(&b_one, 1, &key);
+        o->labels[choice] = b_zero;
+        o->labels[!choice] = b_one;
     }
     return SUCCESS;
 

@@ -289,32 +289,33 @@ loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
 }
 
 static int
-computeOutputs(const OutputInstructions *ois, int *output, block ** computed_outputmap)
+computeOutputs(const OutputInstructions *ois, int *output,
+               block **computed_outputmap)
 {
     assert(output && "output's memory should be allocated");
 
     for (uint16_t i = 0; i < ois->size; ++i) {
+        AES_KEY key;
+        block out[2], b_zero, b_one;
         OutputInstruction *oi = &ois->output_instruction[i];
 
         // decrypt using comp_block as key
         block comp_block = computed_outputmap[oi->gc_id][oi->wire_id];
 
-        block out0 = our_decrypt(&oi->labels[0], &comp_block);
-        block out1 = our_decrypt(&oi->labels[1], &comp_block);
+        AES_set_decrypt_key(comp_block, &key);
+        out[0] = oi->labels[0];
+        out[1] = oi->labels[1];
+        AES_ecb_decrypt_blks(out, 2, &key);
 
-        block b_zero = zero_block();
-        block b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
+        b_zero = zero_block();
+        b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
 
-        if (blockEqual(b_zero, out0)) {
+        if (equal_blocks(out[0], b_zero) || equal_blocks(out[1], b_zero)) {
             output[i] = 0;
-        } else if (blockEqual(b_one, out0)) {
-            output[i] = 1;
-        } else if (blockEqual(b_zero, out1)) {
-            output[i] = 0;
-        } else if (blockEqual(b_one, out1)) {
+        } else if (equal_blocks(out[0], b_one) || equal_blocks(out[1], b_one)) {
             output[i] = 1;
         } else {
-            fprintf(stderr, "Could not compute output[%d] from (gc_id: %d, wire_id %d\n",
+            fprintf(stderr, "Could not compute output[%d] from (gc_id: %d, wire_id: %d)\n",
                     i, oi->gc_id, oi->wire_id);
             assert(false);
             return FAILURE;
