@@ -6,9 +6,6 @@
 #include <stdint.h> 
 #include "justGarble.h"
 
-#define BILLION 1000000000L
-
-
 #define SUCCESS 0
 #define FAILURE -1
 
@@ -20,6 +17,8 @@
 #define MIN3(a, b, c) \
     ((a) < (b) ? ((a) < (c) ? (a) : (c)) : ((b) < (c) ? (b) : (c)))
 
+#define current_time_ current_time_ns
+
 void 
 convertToBinary(int x, int *arr, int narr);
 
@@ -27,10 +26,10 @@ void
 reverse_array(int *arr, size_t nints);
 
 uint64_t
-current_time_ms(void);
+current_time_ns(void);
 
-uint64_t
-nanoSecondsToMilliseconds(uint64_t nanoseconds);
+/* uint64_t */
+/* nanoSecondsToMilliseconds(uint64_t nanoseconds); */
 
 void *
 ot_malloc(size_t size);

@@ -265,8 +265,8 @@ json_load_output(json_t *root, FunctionSpec *function)
         jPtr = json_object_get(jOutput, "end_wire_idx");
         assert(json_is_integer(jPtr));
         int end_wire_idx = json_integer_value(jPtr);
-        printf("start_wire_idx: %d\n", start_wire_idx);
-        printf("end_wire_idx: %d\n", end_wire_idx);
+        /* printf("start_wire_idx: %d\n", start_wire_idx); */
+        /* printf("end_wire_idx: %d\n", end_wire_idx); */
 
         /* plus one because inclusive */
         for (int j = start_wire_idx; j < end_wire_idx + 1; ++j) {

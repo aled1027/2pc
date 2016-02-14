@@ -34,7 +34,7 @@ reverse_array(int *arr, size_t nints)
 }
 
 uint64_t 
-current_time_ms(void)
+current_time_ns(void)
 {
     struct timespec tp;
     int res;
@@ -46,13 +46,12 @@ current_time_ms(void)
     }
 
     return BILLION * tp.tv_sec + tp.tv_nsec;
-    /*return nanoSecondsToMilliseconds(BILLION * tp.tv_sec + tp.tv_nsec);*/
 }
 
-uint64_t
-nanoSecondsToMilliseconds(uint64_t nanoseconds) {
-    return nanoseconds / 1000000;
-}
+/* uint64_t */
+/* nanoSecondsToMilliseconds(uint64_t nanoseconds) { */
+/*     return nanoseconds / 1000000; */
+/* } */
 
 void *
 ot_malloc(size_t size)
