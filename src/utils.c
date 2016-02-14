@@ -45,7 +45,7 @@ current_time_ns(void)
         return 0;
     }
 
-    return BILLION * tp.tv_sec + tp.tv_nsec;
+    return 1000000000 * tp.tv_sec + tp.tv_nsec;
 }
 
 /* uint64_t */
