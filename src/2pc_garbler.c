@@ -179,8 +179,6 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
      *  - garbler labels
      *  - evaluator labels
      *  - output instruction, outputmap */
-
-    InputMapping imap = function->input_mapping;
     int num_eval_inputs = function->num_eval_inputs;
     int num_garb_inputs = function->num_garb_inputs;
     block *garbLabels, *evalLabels;
@@ -189,21 +187,11 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     uint64_t _start, _end;
 
     _start = current_time_();
+
     {
-        buffer = malloc(sizeof(int) + sizeof(Instruction) * function->instructions.size
-                        + sizeof(int) + sizeof(block) * noffsets);
-        p += addToBuffer(buffer + p, &function->instructions.size, sizeof(int));
-        p += addToBuffer(buffer + p, &noffsets, sizeof noffsets);
-        p += addToBuffer(buffer + p, function->instructions.instr,
-                         sizeof(Instruction) * function->instructions.size);
-        p += addToBuffer(buffer + p, offsets, sizeof(block) * noffsets);
-
-        int size = function->components.totComponents + 1;
-        buffer = realloc(buffer, p + sizeof size + sizeof(int) * size);
-        p += addToBuffer(buffer + p, &size, sizeof size);
-        p += addToBuffer(buffer + p, circuitMapping, sizeof(int) * size);
-
         bool *usedGarbInputIdx, *usedEvalInputIdx;
+        InputMapping imap = function->input_mapping;
+
         evalLabels = allocate_blocks(2 * num_eval_inputs);
         garbLabels = allocate_blocks(num_garb_inputs);
         usedGarbInputIdx = calloc(sizeof(bool), num_garb_inputs);
@@ -232,22 +220,9 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         }
         free(usedGarbInputIdx);
         free(usedEvalInputIdx);
-
-        buffer = realloc(buffer, p + sizeof num_garb_inputs
-                         + (num_garb_inputs ? sizeof(block) * num_garb_inputs
-                            : 0));
-        p += addToBuffer(buffer + p, &num_garb_inputs, sizeof num_garb_inputs);
-        if (num_garb_inputs) {
-            p += addToBuffer(buffer + p, garbLabels, sizeof(block) * num_garb_inputs);
-        }
-        net_send(fd, buffer, p, 0);
     }
-    _end = current_time_();
-    fprintf(stderr, "send labels: %llu\n", (_end - _start));
 
-    /* Send evaluator's labels via OT correct */
-    /* OT correction */
-    _start = current_time_();
+    /* Send evaluator's labels via OT correction */
     if (num_eval_inputs > 0) {
         int *corrections = malloc(sizeof(int) * num_eval_inputs);
         net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
@@ -259,28 +234,61 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
             evalLabels[2 * i + 1] = xorBlocks(evalLabels[2 * i + 1],
                                               randLabels[2 * i + !corrections[i]]);
         }
-
-        net_send(fd, evalLabels, sizeof(block) * 2 * num_eval_inputs, 0);
         free(corrections);
+
+        buffer = realloc(NULL, sizeof(block) * 2 * num_eval_inputs);
+        p += addToBuffer(buffer + p, evalLabels, sizeof(block) * 2 * num_eval_inputs);
+    } else {
+        buffer = malloc(0);
     }
-    _end = current_time_();
-    fprintf(stderr, "ot correction: %llu\n", (_end - _start));
 
-
-    _start = current_time_();
     {
-        net_send(fd, &function->output_instructions.size, 
-                sizeof(function->output_instructions.size), 0);
-        net_send(fd, function->output_instructions.output_instruction, 
-                function->output_instructions.size * sizeof(OutputInstruction), 0);
+        buffer = realloc(buffer, p
+                         + sizeof(int) + sizeof(Instruction) * function->instructions.size
+                         + sizeof(int) + sizeof(block) * noffsets);
+        p += addToBuffer(buffer + p, &function->instructions.size, sizeof(int));
+        p += addToBuffer(buffer + p, &noffsets, sizeof noffsets);
+        p += addToBuffer(buffer + p, function->instructions.instr,
+                         sizeof(Instruction) * function->instructions.size);
+        p += addToBuffer(buffer + p, offsets, sizeof(block) * noffsets);
     }
-    _end = current_time_();
-    fprintf(stderr, "send_output_instructions: %llu\n", (_end - _start));
+
+    {
+        int size = function->components.totComponents + 1;
+        buffer = realloc(buffer, p + sizeof size + sizeof(int) * size);
+        p += addToBuffer(buffer + p, &size, sizeof size);
+        p += addToBuffer(buffer + p, circuitMapping, sizeof(int) * size);
+
+
+        buffer = realloc(buffer, p + sizeof num_garb_inputs
+                         + (num_garb_inputs ? sizeof(block) * num_garb_inputs
+                            : 0));
+        p += addToBuffer(buffer + p, &num_garb_inputs, sizeof num_garb_inputs);
+        if (num_garb_inputs) {
+            p += addToBuffer(buffer + p, garbLabels, sizeof(block) * num_garb_inputs);
+        }
+    }
+
+    {
+        buffer = realloc(buffer, p + sizeof function->output_instructions.size
+                         + function->output_instructions.size * sizeof(OutputInstruction));
+        p += addToBuffer(buffer + p, &function->output_instructions.size,
+                         sizeof(function->output_instructions.size));
+        p += addToBuffer(buffer + p,
+                         function->output_instructions.output_instruction,
+                         function->output_instructions.size * sizeof(OutputInstruction));
+    }
+    /* Send everything */
+    net_send(fd, buffer, p, 0);
 
     if (num_garb_inputs > 0)
         free(garbLabels);
     if (num_eval_inputs > 0)
         free(evalLabels);
+    free(buffer);
+
+    _end = current_time_();
+    fprintf(stderr, "garbler go: %llu\n", (_end - _start));
 }
 
 static int 

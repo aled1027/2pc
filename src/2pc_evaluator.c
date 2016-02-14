@@ -329,7 +329,8 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
 {
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
-    block *garb_labels = NULL, *eval_labels = NULL, *recvLabels = NULL, *outputmap = NULL, **labels = NULL, *offsets = NULL;
+    block *garb_labels = NULL, *eval_labels = NULL, *recvLabels = NULL,
+        *outputmap = NULL, **labels = NULL, *offsets = NULL;
     int *corrections = NULL, *circuitMapping, sockfd;
     uint64_t start, end, _start, _end, loading_time;
     int num_garb_inputs = 0; /* later received from garbler */
@@ -346,17 +347,37 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         loadChainedGarbledCircuits(chained_gcs, num_chained_gcs, dir, chainingType);
         loadOTPreprocessing(&eval_labels, &corrections, dir);
+        labels = malloc(sizeof(block *) * (num_chained_gcs + 1));
     }
     _end = current_time_();
     loading_time = _end - _start;
     fprintf(stderr, "loading: %llu\n", (_end - _start));
 
-    /* waiting to start real stuff */
-    /* _start = current_time_(); */
-    /* uint8_t a_byte; */
-    /* net_recv(sockfd, &a_byte, sizeof(a_byte), 0); */
-    /* _end = current_time_(); */
-    /* fprintf(stderr, "waiting: %llu\n", (_end - _start)); */
+    /* Receive eval labels: OT correction */
+    _start = current_time_();
+    if (num_eval_inputs > 0) {
+        /* randLabels and eval_labels are loaded during loading phase */
+        /* correction based on input */
+        for (int i = 0; i < num_eval_inputs; ++i)
+            corrections[i] ^= eval_inputs[i];
+
+        recvLabels = malloc(sizeof(block) * 2 * num_eval_inputs);
+        /* valgrind is saying corrections is unitialized, but it seems to be */
+        net_send(sockfd, corrections, sizeof(int) * num_eval_inputs, 0);
+        net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
+
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            assert(eval_inputs[i] == 0 || eval_inputs[i] == 1);
+            eval_labels[i] = xorBlocks(eval_labels[i],
+                                       recvLabels[2 * i + eval_inputs[i]]);
+        }
+        free(recvLabels);
+        free(corrections);
+    }
+    _end = current_time_();
+    fprintf(stderr, "ot correction: %llu\n", (_end - _start));
+
+
 
     start = current_time_();
     _start = current_time_();
@@ -382,51 +403,19 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     {
         /* receive garb labels */
         net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
-        labels = malloc(sizeof(block *) * (num_chained_gcs + 1));
 
-        /* the first num_garb_inputs of labels[0] are the garb_labels, 
-         * the rest are the eval_labels */
-        labels[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
         for (int i = 1; i < num_chained_gcs + 1; i++) {
             labels[i] = allocate_blocks(chained_gcs[i-1].gc.n);
         }
 
         /* receive garbler labels */
+        garb_labels = allocate_blocks(sizeof(block) * num_garb_inputs);
         if (num_garb_inputs > 0) {
-            net_recv(sockfd, &labels[0][0], sizeof(block) * num_garb_inputs, 0);
+            net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
         }
     }
     _end = current_time_();
     fprintf(stderr, "receive labels: %llu\n", (_end - _start));
-
-    /* Receive eval labels: OT correction */
-    _start = current_time_();
-    if (num_eval_inputs > 0) {
-        /* randLabels and eval_labels are loaded during loading phase */
-
-        /* correction based on input */
-
-        for (int i = 0; i < num_eval_inputs; ++i)
-            corrections[i] ^= eval_inputs[i];
-
-        recvLabels = malloc(sizeof(block) * 2 * num_eval_inputs);
-        /* valgrind is saying corrections is unitialized, but it seems to be */
-        net_send(sockfd, corrections, sizeof(int) * num_eval_inputs, 0);
-        net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
-
-        for (int i = 0; i < num_eval_inputs; ++i) {
-            assert(eval_inputs[i] == 0 || eval_inputs[i] == 1);
-            eval_labels[i] = xorBlocks(eval_labels[i],
-                                       recvLabels[2 * i + eval_inputs[i]]);
-        }
-
-        memcpy(&labels[0][num_garb_inputs], eval_labels, sizeof(block) * num_eval_inputs);
-
-        free(recvLabels);
-        free(corrections);
-    }
-    _end = current_time_();
-    fprintf(stderr, "ot correction: %llu\n", (_end - _start));
 
     /* Receive output instructions */
     OutputInstructions output_instructions;
@@ -448,7 +437,11 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     block** computedOutputMap = malloc(sizeof(block*) * (num_chained_gcs + 1));
     {
         computedOutputMap[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
-        memcpy(computedOutputMap[0], labels[0], sizeof(block) * (num_garb_inputs + num_eval_inputs));
+        labels[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
+        memcpy(&computedOutputMap[0][0], garb_labels, sizeof(block) * num_garb_inputs);
+        memcpy(&computedOutputMap[0][num_garb_inputs], eval_labels, sizeof(block) * num_eval_inputs);
+        memcpy(&labels[0][0], garb_labels, sizeof(block) * num_garb_inputs);
+        memcpy(&labels[0][num_garb_inputs], eval_labels, sizeof(block) * num_eval_inputs);
         for (int i = 1; i < num_chained_gcs + 1; i++) {
             computedOutputMap[i] = allocate_blocks(chained_gcs[i-1].gc.m);
         }
