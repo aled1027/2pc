@@ -11,6 +11,11 @@
 #include <sys/socket.h>
 #include <assert.h>
 
+#define BACKLOG 5
+
+size_t g_bytes_sent;
+size_t g_bytes_received;
+
 int
 net_send(const int socket, const void *buffer, const size_t length, int flags)
 {
@@ -26,6 +31,7 @@ net_send(const int socket, const void *buffer, const size_t length, int flags)
         total += n;
         bytesleft -= n;
     }
+    g_bytes_sent += length;
     return SUCCESS;
 }
 
@@ -45,6 +51,7 @@ net_recv(const int socket, void *buffer, size_t length, int flags)
         total += n;
         bytesleft -= n;
     }
+    g_bytes_received += length;
     return SUCCESS;
 }
 
@@ -106,7 +113,7 @@ net_init_server(const char *addr, const char *port)
         return FAILURE;
     }
 
-    printf("server: waiting for connections...\n");
+    /* printf("server: waiting for connections...\n"); */
 
     return sockfd;
 }
@@ -156,7 +163,7 @@ net_init_client(const char *addr, const char *port)
 
     inet_ntop(p->ai_family, net_get_in_addr((struct sockaddr *) p->ai_addr),
               s, sizeof s);
-    printf("client: connecting to %s\n", s);
+    /* printf("client: connecting to %s\n", s); */
 
     freeaddrinfo(servinfo);
 

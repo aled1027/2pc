@@ -260,7 +260,6 @@ recvInstructions(Instructions *insts, int fd, block **offsets)
 
     insts->instr = malloc(insts->size * sizeof(Instruction));
     *offsets = allocate_blocks(noffsets);
-    printf("received %d noffsets\n", noffsets);
 
     net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
@@ -353,11 +352,11 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     fprintf(stderr, "loading: %llu\n", (_end - _start));
 
     /* waiting to start real stuff */
-    _start = current_time_();
-    uint8_t a_byte;
-    net_recv(sockfd, &a_byte, sizeof(a_byte), 0);
-    _end = current_time_();
-    fprintf(stderr, "waiting: %llu\n", (_end - _start));
+    /* _start = current_time_(); */
+    /* uint8_t a_byte; */
+    /* net_recv(sockfd, &a_byte, sizeof(a_byte), 0); */
+    /* _end = current_time_(); */
+    /* fprintf(stderr, "waiting: %llu\n", (_end - _start)); */
 
     start = current_time_();
     _start = current_time_();

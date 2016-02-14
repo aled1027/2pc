@@ -3,7 +3,8 @@
 
 #include <netinet/in.h>
 
-#define BACKLOG 5
+extern size_t g_bytes_sent;
+extern size_t g_bytes_received;
 
 int
 net_send(int socket, const void *buffer, size_t length, int flags);

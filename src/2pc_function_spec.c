@@ -387,7 +387,7 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
         instructions->size = imap->size + loop_size;
     }
 
-    printf("mallocing %zu for instructions\n", instructions->size * sizeof(Instruction));
+    /* printf("mallocing %zu for instructions\n", instructions->size * sizeof(Instruction)); */
     instructions->instr = malloc(instructions->size * sizeof(Instruction));
     assert(instructions->instr);
 

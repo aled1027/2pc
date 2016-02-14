@@ -84,20 +84,13 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials, Chainin
     tot_time = malloc(sizeof(uint64_t) * ntrials);
 
     for (int i = 0; i < ntrials; i++) {
-        //printf("inputs: ");
-        //for (int j = 0; j < ninputs; j++) {
-        //    inputs[j] = rand() % 2; 
-        //    printf("%d", inputs[j]);
-        //}
-        //printf("\n");
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i], chainingType);
         fprintf(stderr, "total: %llu\n", tot_time[i]);
         sum += tot_time[i];
     }
 
-    printf("%llu trials\n", ntrials);
-    fprintf(stderr, "avg_time: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
+    fprintf(stderr, "GARB average: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
 
     free(inputs);
     free(tot_time);
@@ -113,19 +106,16 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials, ChainingType chainin
 
     for (int i = 0; i < ntrials; i++) {
         sleep(1); // uncomment this if getting hung up
-        //printf("inputs: ");
-        //for (int j = 0; j < ninputs; j++) {
-        //    inputs[j] = rand() % 2;
-        //    printf("%d", inputs[j]);
-        //}
-        //printf("\n");
-        evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i], chainingType);
+        for (int j = 0; j < ninputs; j++) {
+           inputs[j] = rand() % 2;
+        }
+        evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i],
+                         chainingType);
         fprintf(stderr, "total: %llu\n", tot_time[i]);
         sum += tot_time[i];
     }
 
-    printf("%llu trials\n", ntrials);
-    fprintf(stderr, "avg time: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
+    fprintf(stderr, "EVAL average: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
 
     free(inputs);
     free(tot_time);
@@ -286,7 +276,6 @@ go(struct args *args)
         }
     } else if (args->eval_on) {
         printf("Online evaluating\n");
-        printf("using n_eval_inputs = %d\n", n_eval_inputs);
         eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, chainingType);
     } else if (args->garb_full) {
         printf("Full garbling\n");

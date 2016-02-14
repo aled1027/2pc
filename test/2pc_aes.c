@@ -20,7 +20,6 @@ int aesNumOutputs() { return 128; }
 void
 aes_garb_off(char *dir, int nchains, ChainingType chainingType)
 {
-    printf("Running garb offline\n");
     ChainedGarbledCircuit *chained_gcs = calloc(nchains, sizeof(ChainedGarbledCircuit));
 
     block delta = randomBlock();

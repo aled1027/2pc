@@ -160,17 +160,11 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
     *tot_time = end - start;
 }
 
-static void
-sendInstructions(const Instructions *insts, int fd, const block *offsets, 
-        int noffsets, ChainingType chainingType)
+static inline size_t
+addToBuffer(char *buffer, const void *item, size_t length)
 {
-    uint8_t a_byte = 0;
-    net_send(fd, &a_byte, sizeof(a_byte), 0);
-    net_send(fd, &insts->size, sizeof(int), 0);
-    net_send(fd, &noffsets, sizeof(int), 0);
-
-    net_send(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
-    net_send(fd, offsets, sizeof(block) * noffsets, 0);
+    (void) memcpy(buffer, item, length);
+    return length;
 }
 
 static void
@@ -190,34 +184,30 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     int num_eval_inputs = function->num_eval_inputs;
     int num_garb_inputs = function->num_garb_inputs;
     block *garbLabels, *evalLabels;
+    char *buffer;
+    size_t p = 0;
     uint64_t _start, _end;
 
     _start = current_time_();
     {
-        sendInstructions(&function->instructions, fd, offsets, noffsets, chainingType);
-    }
-    _end = current_time_();
-    fprintf(stderr, "send inst: %llu\n", (_end - _start));
+        buffer = malloc(sizeof(int) + sizeof(Instruction) * function->instructions.size
+                        + sizeof(int) + sizeof(block) * noffsets);
+        p += addToBuffer(buffer + p, &function->instructions.size, sizeof(int));
+        p += addToBuffer(buffer + p, &noffsets, sizeof noffsets);
+        p += addToBuffer(buffer + p, function->instructions.instr,
+                         sizeof(Instruction) * function->instructions.size);
+        p += addToBuffer(buffer + p, offsets, sizeof(block) * noffsets);
 
-    // 3. send circuitMapping
-    _start = current_time_();
-    {
         int size = function->components.totComponents + 1;
-        net_send(fd, &size, sizeof(int), 0);
-        net_send(fd, circuitMapping, sizeof(int) * size, 0);
-    }
-    _end = current_time_();
-    fprintf(stderr, "send circmap: %llu\n", (_end - _start));
+        buffer = realloc(buffer, p + sizeof size + sizeof(int) * size);
+        p += addToBuffer(buffer + p, &size, sizeof size);
+        p += addToBuffer(buffer + p, circuitMapping, sizeof(int) * size);
 
-    _start = current_time_();
-    {
         bool *usedGarbInputIdx, *usedEvalInputIdx;
-
         evalLabels = allocate_blocks(2 * num_eval_inputs);
         garbLabels = allocate_blocks(num_garb_inputs);
         usedGarbInputIdx = calloc(sizeof(bool), num_garb_inputs);
         usedEvalInputIdx = calloc(sizeof(bool), num_eval_inputs);
-
         for (int i = 0; i < imap.size; i++) {
             block *label = &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]];
             int input_idx = imap.input_idx[i];
@@ -243,10 +233,14 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         free(usedGarbInputIdx);
         free(usedEvalInputIdx);
 
-        net_send(fd, &num_garb_inputs, sizeof(int), 0);
-        if (num_garb_inputs > 0) {
-            net_send(fd, garbLabels, sizeof(block) * num_garb_inputs, 0);
+        buffer = realloc(buffer, p + sizeof num_garb_inputs
+                         + (num_garb_inputs ? sizeof(block) * num_garb_inputs
+                            : 0));
+        p += addToBuffer(buffer + p, &num_garb_inputs, sizeof num_garb_inputs);
+        if (num_garb_inputs) {
+            p += addToBuffer(buffer + p, garbLabels, sizeof(block) * num_garb_inputs);
         }
+        net_send(fd, buffer, p, 0);
     }
     _end = current_time_();
     fprintf(stderr, "send labels: %llu\n", (_end - _start));
@@ -259,23 +253,11 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
 
         for (int i = 0; i < num_eval_inputs; ++i) {
-            switch (corrections[i]) {
-            case 0:
-                evalLabels[2 * i] =
-                    xorBlocks(evalLabels[2 * i], randLabels[2 * i]);
-                evalLabels[2 * i + 1] =
-                    xorBlocks(evalLabels[2 * i + 1], randLabels[2 * i + 1]);
-                break;
-            case 1:
-                evalLabels[2 * i] =
-                    xorBlocks(evalLabels[2 * i], randLabels[2 * i + 1]);
-                evalLabels[2 * i + 1] =
-                    xorBlocks(evalLabels[2 * i + 1], randLabels[2 * i]);
-                break;
-            default:
-                assert(0);
-                abort();
-            }
+            assert(corrections[i] == 0 || corrections[i] == 1);
+            evalLabels[2 * i] = xorBlocks(evalLabels[2 * i],
+                                          randLabels[2 * i + corrections[i]]);
+            evalLabels[2 * i + 1] = xorBlocks(evalLabels[2 * i + 1],
+                                              randLabels[2 * i + !corrections[i]]);
         }
 
         net_send(fd, evalLabels, sizeof(block) * 2 * num_eval_inputs, 0);
@@ -337,7 +319,6 @@ make_real_output_instructions(FunctionSpec* function,
         o->labels[!choice] = b_one;
     }
     return SUCCESS;
-
 }
 
 
@@ -593,10 +574,9 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
         /* load ot info from disk */
         (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
         randLabels = loadOTLabels(lblName);
-        
     }
     _end = current_time_();
-    fprintf(stderr, "loading: %llu\n", (_end - _start));
+    fprintf(stderr, "load components: %llu\n", (_end - _start));
 
     /* Tell evaluator that we are done loading circuits so they can start timing */
     
@@ -605,12 +585,9 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
         /* +1 because 0th component is inputComponent*/
         circuitMapping = malloc(sizeof(int) * (function.components.totComponents + 1));
         offsets = allocate_blocks(function.instructions.size);
-        if (make_real_instructions(&function, chained_gcs,
-                                           num_chained_gcs,
-                                           circuitMapping,
-                                           offsets,
-                                           &noffsets,
-                                           chainingType) == FAILURE) {
+        if (make_real_instructions(&function, chained_gcs, num_chained_gcs,
+                                   circuitMapping, offsets, &noffsets,
+                                   chainingType) == FAILURE) {
             fprintf(stderr, "Could not make instructions\n");
             return FAILURE;
         }
@@ -620,7 +597,8 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
 
     _start = current_time_();
     {
-        int res = make_real_output_instructions(&function, chained_gcs, num_chained_gcs, circuitMapping);
+        int res = make_real_output_instructions(&function, chained_gcs,
+                                                num_chained_gcs, circuitMapping);
         if (res == FAILURE) {
             fprintf(stderr, "Could not make output instructions\n");
             return FAILURE;
@@ -631,11 +609,8 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     fprintf(stderr, "make output: %llu\n", (_end - _start));
 
     /*main function; does core of work*/
-    _start = current_time_();
-    garbler_go(fd, &function, dir, chained_gcs, randLabels, num_chained_gcs, circuitMapping,
-               inputs, offsets, noffsets, chainingType);
-    _end = current_time_();
-    fprintf(stderr, "garbler_go: %llu\n", (_end - _start));
+    garbler_go(fd, &function, dir, chained_gcs, randLabels, num_chained_gcs,
+               circuitMapping, inputs, offsets, noffsets, chainingType);
     
     free(circuitMapping);
     for (int i = 0; i < num_chained_gcs; ++i) {
