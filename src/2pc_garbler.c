@@ -305,9 +305,12 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     free(buffer);
 
     end = current_time_();
+    fprintf(stderr, "Total (post connection): %llu\n", end - start);
+    fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
+    fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
+
     if (tot_time)
         *tot_time += end - start;
-    fprintf(stderr, "Total (post connection): %llu\n", end - start);
 }
 
 static int 
@@ -366,7 +369,7 @@ make_real_instructions(FunctionSpec *function,
     num_component_types = function->components.numComponentTypes;
     circuitMapping[0] = 0;
 
-    // loop over type of circuit
+    /* construct circuit mapping */
     for (int i = 0; i < num_component_types; i++) {
         CircuitType needed_type = function->components.circuitType[i];
         int num_needed = function->components.nCircuits[i];
@@ -394,10 +397,11 @@ make_real_instructions(FunctionSpec *function,
     
 
     /* Part 2: Set chaining offsets */
-    /* This is done in two loops. The first loop does everything for the input 
-     * mapping. The second loop does everything for regular chaining. While clearly
-     * not the most efficient, as it could all be done in a single loop, that would require
-     * a lot of jumping, and is not the most readable/maintainable code.*/
+    /* This is done in two loops. The first loop does everything for the input
+     * mapping. The second loop does everything for regular chaining. While
+     * clearly not the most efficient, as it could all be done in a single loop,
+     * that would require a lot of jumping, and is not the most
+     * readable/maintainable code.*/
 
     /* Add input component chaining offsets */
     int *imapCirc = allocate_ints(function->n);
@@ -405,13 +409,14 @@ make_real_instructions(FunctionSpec *function,
     for (int i = 0; i < function->n; ++i)
         imapCirc[i] = -1;
 
+    Instruction *cur;
     int offsetsIdx = 1;
     int num_instructions = function->instructions.size;
     offsets[0] = zero_block();
-    Instruction *cur;
-
     for (int i = 0; i < num_instructions; ++i) {
+
         cur = &(function->instructions.instr[i]);
+        /* Chain input/output wires */
         if (cur->type == CHAIN && cur->ch.fromCircId == 0) {
             int idx = cur->ch.fromWireId;
             if (imapCirc[idx] == -1) {
@@ -433,7 +438,6 @@ make_real_instructions(FunctionSpec *function,
     free(imapWire);
 
     if (chainingType == CHAINING_TYPE_STANDARD) {
-        Instruction *cur;
         for (int i = 0; i < num_instructions; ++i) {
             cur = &(function->instructions.instr[i]);
             if (cur->type == CHAIN && cur->ch.fromCircId != 0) {

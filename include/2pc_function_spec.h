@@ -48,17 +48,6 @@ typedef struct {
         EvalInstruction ev;
         ChainInstruction ch;
     };
-    /* // EVAL: */
-    /* int evCircId; */
-
-    /* // CHAIN: */
-    /* int chFromCircId; */
-    /* int chFromWireId; */
-    /* int chToCircId; */
-    /* int chToWireId; */
-    /* int chOffsetIdx;  */
-    /* int chWireDist; */
-
     // TODO not sure if fact below is still true.
     // index for block which is offset. If choffsetidx == -1, then zero_block
 } 

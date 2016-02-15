@@ -48,7 +48,7 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
-        //print_instruction(cur);
+        /* print_instruction(cur); */
         switch(cur->type) {
             case EVAL:
 
@@ -71,10 +71,9 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                     savedCircId = circuitMapping[cur->ch.fromCircId];
                     offsetIdx = cur->ch.offsetIdx;
 
-                    int j,k;
-                    for (j = cur->ch.fromWireId, k = cur->ch.toWireId; 
-                            j < cur->ch.fromWireId + cur->ch.wireDist;
-                            ++j, ++k) {
+                    for (int j = cur->ch.fromWireId, k = cur->ch.toWireId; 
+                         j < cur->ch.fromWireId + cur->ch.wireDist;
+                         ++j, ++k) {
 
                         /* correct computedOutputMap offlineChainingOffsets */
                         /* i.e. correct to enable SIMD trick */
@@ -255,45 +254,38 @@ static void
 recvInstructions(int fd, Instructions *insts, block **offsets)
 {
     int noffsets;
-    uint64_t start, end;
-    start = current_time_();
+
     net_recv(fd, &insts->size, sizeof(int), 0);
     net_recv(fd, &noffsets, sizeof(int), 0);
-    end = current_time_();
-    fprintf(stderr, "\tFirst: %llu\n", end - start);
 
     insts->instr = malloc(insts->size * sizeof(Instruction));
     *offsets = allocate_blocks(noffsets);
 
-    fprintf(stderr, "instructions size: %d\n", insts->size);
-    fprintf(stderr, "instructions tot bytes %d\n", insts->size * sizeof(Instruction));
+/* <<<<<<< Updated upstream */
+/*     fprintf(stderr, "instructions size: %d\n", insts->size); */
+/*     fprintf(stderr, "instructions tot bytes %d\n", insts->size * sizeof(Instruction)); */
 
 
-    /* ADDING HERE */
-    // for aes, insts->size = 1427
+/*     /\* ADDING HERE *\/ */
+/*     // for aes, insts->size = 1427 */
     
-    for (int i = 0; i < 1000; i+=100) {
-        start = current_time_();
-        net_recv(fd, &insts->instr[i], 100 * sizeof(Instruction), 0);
-        end = current_time_();
-        fprintf(stderr, "\tSecond split time (%d): %llu\n", i, end - start);
-    }
+/*     for (int i = 0; i < 1000; i+=100) { */
+/*         start = current_time_(); */
+/*         net_recv(fd, &insts->instr[i], 100 * sizeof(Instruction), 0); */
+/*         end = current_time_(); */
+/*         fprintf(stderr, "\tSecond split time (%d): %llu\n", i, end - start); */
+/*     } */
 
-    start = current_time_();
-    net_recv(fd, &insts->instr[1000], 427 * sizeof(Instruction), 0);
-    end = current_time_();
-    fprintf(stderr, "\tSecond final 427: %llu\n", end - start);
+/* ======= */
+/* >>>>>>> Stashed changes */
+    /* start = current_time_(); */
+    /* net_recv(fd, &insts->instr[1000], 427 * sizeof(Instruction), 0); */
+    /* end = current_time_(); */
+    /* fprintf(stderr, "\tSecond final 427: %llu\n", end - start); */
 
     /* END ADDING HERE */
-    //net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
-    //fprintf(stderr, "\tSecond: %llu\n", end - start);
-
-
-
-    start = current_time_();
+    net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
-    end = current_time_();
-    fprintf(stderr, "\tThird: %llu\n", end - start);
 }
 
 static void 
@@ -365,6 +357,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     int *corrections = NULL, *circuitMapping, sockfd;
     uint64_t start, end, _start, _end, loading_time;
     int num_garb_inputs = 0; /* later received from garbler */
+    size_t tmp;
 
     /* start timing after socket connection */
     _start = current_time_();
@@ -406,10 +399,12 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         fprintf(stderr, "OT correction (send): %llu\n", _end - _start);
         _start = current_time_();
         {
+            tmp = g_bytes_received;
             net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
         }
         _end = current_time_();
         fprintf(stderr, "OT correction (receive): %llu\n", _end - _start);
+        fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
         for (int i = 0; i < num_eval_inputs; ++i) {
             eval_labels[i] = xorBlocks(eval_labels[i],
@@ -425,16 +420,19 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     _start = current_time_();
     {
         int size;
+        tmp = g_bytes_received;
         net_recv(sockfd, &size, sizeof(int), 0);
         circuitMapping = malloc(sizeof(int) * size);
         net_recv(sockfd, circuitMapping, sizeof(int) * size, 0);
     }
     _end = current_time_();
     fprintf(stderr, "Receive circuit map: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
     /* receive garbler labels */
     _start = current_time_();
     {
+        tmp = g_bytes_received;
         net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
         if (num_garb_inputs > 0) {
             garb_labels = allocate_blocks(sizeof(block) * num_garb_inputs);
@@ -443,11 +441,13 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     }
     _end = current_time_();
     fprintf(stderr, "Receive garbler labels: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
     /* Receive output instructions */
     OutputInstructions output_instructions;
     _start = current_time_();
     {
+        tmp = g_bytes_received;
         net_recv(sockfd, &output_instructions.size, 
                 sizeof(output_instructions.size), 0);
         output_instructions.output_instruction = 
@@ -458,13 +458,16 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     }
     _end = current_time_();
     fprintf(stderr, "Receive output instructions: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
     _start = current_time_();
     {
+        tmp = g_bytes_received;
         recvInstructions(sockfd, &function.instructions, &offsets);
     }
     _end = current_time_();
     fprintf(stderr, "Receive instructions: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
     /* Done with socket, so close */
     close(sockfd);
@@ -522,9 +525,10 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
 
     end = current_time_();
     fprintf(stderr, "Total (post connection): %llu\n", end - start);
-    if (tot_time) {
+    fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
+    fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
+    if (tot_time)
         *tot_time = end - start + loading_time;
-    }
     return SUCCESS;
 }
 

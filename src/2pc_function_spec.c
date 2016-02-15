@@ -101,7 +101,8 @@ print_input_mapping(InputMapping* inputMapping)
     }
 }
 
-void print_instruction(Instruction *in)
+void
+print_instruction(Instruction *in)
 {
     switch(in->type) {
         case EVAL:

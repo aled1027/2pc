@@ -13,8 +13,8 @@
 
 #define BACKLOG 5
 
-size_t g_bytes_sent;
-size_t g_bytes_received;
+size_t g_bytes_sent = 0;
+size_t g_bytes_received = 0;
 
 int
 net_send(const int socket, const void *buffer, const size_t length, int flags)
@@ -55,7 +55,7 @@ net_recv(const int socket, void *buffer, size_t length, int flags)
     return SUCCESS;
 }
 
-void *
+static void *
 net_get_in_addr(struct sockaddr *sa)
 {
     if (sa->sa_family == AF_INET)
@@ -155,6 +155,14 @@ net_init_client(const char *addr, const char *port)
         }
         break;
     }
+
+    /* { */
+    /*     int size = 1024 * 1024 * 1024; */
+    /*     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof size) == -1) { */
+    /*         perror("setsockopt"); */
+    /*         return FAILURE; */
+    /*     } */
+    /* } */
 
     if (p == NULL) {
         fprintf(stderr, "client: failed to connect\n");
