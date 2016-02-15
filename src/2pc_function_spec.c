@@ -105,16 +105,16 @@ void print_instruction(Instruction *in)
 {
     switch(in->type) {
         case EVAL:
-            printf("EVAL %d\n", in->evCircId);
+            printf("EVAL %d\n", in->ev.circId);
             break;
         case CHAIN:
             printf("CHAIN (%d, %d) -> (%d, %d) with offset (%d) and dist (%d)\n", 
-                    in->chFromCircId, 
-                    in->chFromWireId,
-                    in->chToCircId,
-                    in->chToWireId,
-                    in->chOffsetIdx,
-                    in->chWireDist);
+                    in->ch.fromCircId, 
+                    in->ch.fromWireId,
+                    in->ch.toCircId,
+                    in->ch.toWireId,
+                    in->ch.offsetIdx,
+                    in->ch.wireDist);
             break;
         default:
             printf("Not printing command\n");
@@ -128,15 +128,15 @@ print_instructions(Instructions* instr)
     for (int i = 0; i < instr->size; i++) {
         switch(instr->instr[i].type) {
             case EVAL:
-                printf("EVAL %d\n", instr->instr[i].evCircId);
+                printf("EVAL %d\n", instr->instr[i].ev.circId);
                 break;
             case CHAIN:
                 printf("CHAIN (%d, %d) -> (%d, %d) with offset (%d)\n", 
-                        instr->instr[i].chFromCircId, 
-                        instr->instr[i].chFromWireId,
-                        instr->instr[i].chToCircId,
-                        instr->instr[i].chToWireId,
-                        instr->instr[i].chOffsetIdx);
+                        instr->instr[i].ch.fromCircId, 
+                        instr->instr[i].ch.fromWireId,
+                        instr->instr[i].ch.toCircId,
+                        instr->instr[i].ch.toWireId,
+                        instr->instr[i].ch.offsetIdx);
 
                 break;
             default:
@@ -396,12 +396,12 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
      * which shold be already loaded from the json file */
     for (int i = 0; i < imap->size; ++i) {
         instructions->instr[i].type = CHAIN;
-        instructions->instr[i].chFromCircId = 0;
-        instructions->instr[i].chFromWireId = (imap->inputter[i] == PERSON_GARBLER) ? 
+        instructions->instr[i].ch.fromCircId = 0;
+        instructions->instr[i].ch.fromWireId = (imap->inputter[i] == PERSON_GARBLER) ? 
                             imap->input_idx[i] : imap->input_idx[i] + function->num_garb_inputs;
-        instructions->instr[i].chToCircId = imap->gc_id[i];
-        instructions->instr[i].chToWireId = imap->wire_id[i];
-        instructions->instr[i].chWireDist = 1;
+        instructions->instr[i].ch.toCircId = imap->gc_id[i];
+        instructions->instr[i].ch.toWireId = imap->wire_id[i];
+        instructions->instr[i].ch.wireDist = 1;
         /*printf("chaining from circId 0 wire_id %d\n", instructions->instr[i].chFromWireId);*/
     }
 
@@ -420,7 +420,7 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
                 instructions->instr[idx].type = instr_type;
                 jPtr = json_object_get(jInstr, "gc_id");
                 assert(json_is_integer(jPtr));
-                instructions->instr[idx].evCircId = json_integer_value(jPtr);
+                instructions->instr[idx].ev.circId = json_integer_value(jPtr);
                 idx++;
                 break;
             case CHAIN:
@@ -457,19 +457,19 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
                     for (int f = from_wire_id_start, t = to_wire_id_start ; f<=from_wire_id_end; f++, t++) {
                         // f for from, t for to
                         instructions->instr[idx].type = CHAIN;
-                        instructions->instr[idx].chFromCircId = from_gc_id;
-                        instructions->instr[idx].chFromWireId = f;
-                        instructions->instr[idx].chToCircId = to_gc_id;
-                        instructions->instr[idx].chToWireId = t;
+                        instructions->instr[idx].ch.fromCircId = from_gc_id;
+                        instructions->instr[idx].ch.fromWireId = f;
+                        instructions->instr[idx].ch.toCircId = to_gc_id;
+                        instructions->instr[idx].ch.toWireId = t;
                         idx++;
                     }
                 } else { /* CHAINING_TYPE_SIMD */
                     instructions->instr[idx].type = CHAIN;
-                    instructions->instr[idx].chFromCircId = from_gc_id;
-                    instructions->instr[idx].chFromWireId = from_wire_id_start;
-                    instructions->instr[idx].chToCircId = to_gc_id;
-                    instructions->instr[idx].chToWireId = to_wire_id_start;
-                    instructions->instr[idx].chWireDist = from_wire_id_end - from_wire_id_start + 1;
+                    instructions->instr[idx].ch.fromCircId = from_gc_id;
+                    instructions->instr[idx].ch.fromWireId = from_wire_id_start;
+                    instructions->instr[idx].ch.toCircId = to_gc_id;
+                    instructions->instr[idx].ch.toWireId = to_wire_id_start;
+                    instructions->instr[idx].ch.wireDist = from_wire_id_end - from_wire_id_start + 1;
                     idx++;
                 }
                 break;
