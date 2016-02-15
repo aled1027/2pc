@@ -255,23 +255,12 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
 
     _start = current_time_();
     {
-        buffer = realloc(buffer, p
-                         + sizeof(int) + sizeof(Instruction) * function->instructions.size
-                         + sizeof(int) + sizeof(block) * noffsets);
-        p += addToBuffer(buffer + p, &function->instructions.size, sizeof(int));
-        p += addToBuffer(buffer + p, &noffsets, sizeof noffsets);
-        p += addToBuffer(buffer + p, function->instructions.instr,
-                         sizeof(Instruction) * function->instructions.size);
-        p += addToBuffer(buffer + p, offsets, sizeof(block) * noffsets);
-    }
-
-    {
         int size = function->components.totComponents + 1;
         buffer = realloc(buffer, p + sizeof size + sizeof(int) * size);
         p += addToBuffer(buffer + p, &size, sizeof size);
         p += addToBuffer(buffer + p, circuitMapping, sizeof(int) * size);
-
-
+    }
+    {
         buffer = realloc(buffer, p + sizeof num_garb_inputs
                          + (num_garb_inputs ? sizeof(block) * num_garb_inputs
                             : 0));
@@ -280,7 +269,6 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
             p += addToBuffer(buffer + p, garbLabels, sizeof(block) * num_garb_inputs);
         }
     }
-
     {
         buffer = realloc(buffer, p + sizeof function->output_instructions.size
                          + function->output_instructions.size * sizeof(OutputInstruction));
@@ -289,6 +277,16 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         p += addToBuffer(buffer + p,
                          function->output_instructions.output_instruction,
                          function->output_instructions.size * sizeof(OutputInstruction));
+    }
+    {
+        buffer = realloc(buffer, p
+                         + sizeof(int) + sizeof(Instruction) * function->instructions.size
+                         + sizeof(int) + sizeof(block) * noffsets);
+        p += addToBuffer(buffer + p, &function->instructions.size, sizeof(int));
+        p += addToBuffer(buffer + p, &noffsets, sizeof noffsets);
+        p += addToBuffer(buffer + p, function->instructions.instr,
+                         sizeof(Instruction) * function->instructions.size);
+        p += addToBuffer(buffer + p, offsets, sizeof(block) * noffsets);
     }
     _end = current_time_();
     fprintf(stderr, "Fill buffer: %llu\n", _end - _start);
@@ -414,19 +412,19 @@ make_real_instructions(FunctionSpec *function,
 
     for (int i = 0; i < num_instructions; ++i) {
         cur = &(function->instructions.instr[i]);
-        if (cur->type == CHAIN && cur->chFromCircId == 0) {
-            int idx = cur->chFromWireId;
+        if (cur->type == CHAIN && cur->ch.fromCircId == 0) {
+            int idx = cur->ch.fromWireId;
             if (imapCirc[idx] == -1) {
                 /* this input has not been used */
-                imapCirc[idx] = cur->chToCircId;
-                imapWire[idx] = cur->chToWireId;
-                cur->chOffsetIdx = 0;
+                imapCirc[idx] = cur->ch.toCircId;
+                imapWire[idx] = cur->ch.toWireId;
+                cur->ch.offsetIdx = 0;
             } else {
                 /* this idx has been used */
                 offsets[offsetsIdx] = xorBlocks(
                     chained_gcs[circuitMapping[imapCirc[idx]]].inputLabels[2*imapWire[idx]],
-                    chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
-                cur->chOffsetIdx = offsetsIdx;
+                    chained_gcs[circuitMapping[cur->ch.toCircId]].inputLabels[2*cur->ch.toWireId]); 
+                cur->ch.offsetIdx = offsetsIdx;
                 ++offsetsIdx;
             }
         }
@@ -438,12 +436,12 @@ make_real_instructions(FunctionSpec *function,
         Instruction *cur;
         for (int i = 0; i < num_instructions; ++i) {
             cur = &(function->instructions.instr[i]);
-            if (cur->type == CHAIN && cur->chFromCircId != 0) {
+            if (cur->type == CHAIN && cur->ch.fromCircId != 0) {
                 offsets[offsetsIdx] = xorBlocks(
-                    chained_gcs[circuitMapping[cur->chFromCircId]].outputMap[2*cur->chFromWireId],
-                    chained_gcs[circuitMapping[cur->chToCircId]].inputLabels[2*cur->chToWireId]); 
+                    chained_gcs[circuitMapping[cur->ch.fromCircId]].outputMap[2*cur->ch.fromWireId],
+                    chained_gcs[circuitMapping[cur->ch.toCircId]].inputLabels[2*cur->ch.toWireId]); 
 
-                cur->chOffsetIdx = offsetsIdx;
+                cur->ch.offsetIdx = offsetsIdx;
                 ++offsetsIdx;
             }
         }
@@ -465,24 +463,24 @@ make_real_instructions(FunctionSpec *function,
         
         for (int i = 0; i < num_instructions; ++i) {
             cur = &(function->instructions.instr[i]);
-            if (cur->type == CHAIN && cur->chFromCircId != 0) {
-                int simd_idx = chained_gcs[circuitMapping[cur->chToCircId]]
-                    .simd_info.iblock_map[cur->chToWireId];
+            if (cur->type == CHAIN && cur->ch.fromCircId != 0) {
+                int simd_idx = chained_gcs[circuitMapping[cur->ch.toCircId]]
+                    .simd_info.iblock_map[cur->ch.toWireId];
 
-                if (gcChainingMap[cur->chFromCircId][cur->chToCircId][simd_idx] == -1) {
+                if (gcChainingMap[cur->ch.fromCircId][cur->ch.toCircId][simd_idx] == -1) {
                     /* add approparite offset to offsets */
                     offsets[offsetsIdx] = xorBlocks(
-                            chained_gcs[circuitMapping[cur->chToCircId]].simd_info.input_blocks[simd_idx],
-                            chained_gcs[circuitMapping[cur->chFromCircId]].simd_info.output_block);
+                            chained_gcs[circuitMapping[cur->ch.toCircId]].simd_info.input_blocks[simd_idx],
+                            chained_gcs[circuitMapping[cur->ch.fromCircId]].simd_info.output_block);
 
-                    gcChainingMap[cur->chFromCircId][cur->chToCircId][simd_idx] = offsetsIdx;
+                    gcChainingMap[cur->ch.fromCircId][cur->ch.toCircId][simd_idx] = offsetsIdx;
                     
-                    cur->chOffsetIdx = offsetsIdx;
+                    cur->ch.offsetIdx = offsetsIdx;
                     ++offsetsIdx;
 
                 } else {
                     /* reference block already in offsets */
-                    cur->chOffsetIdx = gcChainingMap[cur->chFromCircId][cur->chToCircId][simd_idx];
+                    cur->ch.offsetIdx = gcChainingMap[cur->ch.fromCircId][cur->ch.toCircId][simd_idx];
                 }
             }
         }
