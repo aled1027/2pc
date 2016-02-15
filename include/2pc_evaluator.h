@@ -12,7 +12,7 @@ evaluator_classic_2pc(const int *input, int *output,
 void
 evaluator_offline(char *dir, int num_eval_inputs, int nchains, ChainingType chainingType);
 
-void
+int
 evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                  int num_chained_gcs, uint64_t *tot_time, ChainingType chainingType);
 #endif

@@ -171,7 +171,7 @@ static void
 garbler_go(int fd, const FunctionSpec *function, const char *dir,
            const ChainedGarbledCircuit *chained_gcs, const block *randLabels,
            int num_chained_gcs, const int *circuitMapping, const int *inputs,
-           const block *offsets, int noffsets, ChainingType chainingType)
+           const block *offsets, int noffsets, uint64_t *tot_time)
 {
     /* primary role: send the appropriate data to the evaluator. 
      * garbler_go sends: 
@@ -184,10 +184,10 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     block *garbLabels, *evalLabels;
     char *buffer;
     size_t p = 0;
-    uint64_t _start, _end;
+    uint64_t start, end, _start, _end;
 
+    start = current_time_();
     _start = current_time_();
-
     {
         bool *usedGarbInputIdx, *usedEvalInputIdx;
         InputMapping imap = function->input_mapping;
@@ -221,11 +221,20 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         free(usedGarbInputIdx);
         free(usedEvalInputIdx);
     }
+    _end = current_time_();
+    fprintf(stderr, "Set up input labels: %llu\n", _end - _start);
 
     /* Send evaluator's labels via OT correction */
+    _start = current_time_();
     if (num_eval_inputs > 0) {
-        int *corrections = malloc(sizeof(int) * num_eval_inputs);
-        net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
+        uint64_t _start, _end;
+        int *corrections = calloc(num_eval_inputs, sizeof(int));
+        _start = current_time_();
+        {
+            net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
+        }
+        _end = current_time_();
+        fprintf(stderr, "OT correction (receive): %llu\n", _end - _start);
 
         for (int i = 0; i < num_eval_inputs; ++i) {
             assert(corrections[i] == 0 || corrections[i] == 1);
@@ -239,9 +248,12 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         buffer = realloc(NULL, sizeof(block) * 2 * num_eval_inputs);
         p += addToBuffer(buffer + p, evalLabels, sizeof(block) * 2 * num_eval_inputs);
     } else {
-        buffer = malloc(0);
+        buffer = NULL;
     }
+    _end = current_time_();
+    fprintf(stderr, "OT correction: %llu\n", _end - _start);
 
+    _start = current_time_();
     {
         buffer = realloc(buffer, p
                          + sizeof(int) + sizeof(Instruction) * function->instructions.size
@@ -278,8 +290,15 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
                          function->output_instructions.output_instruction,
                          function->output_instructions.size * sizeof(OutputInstruction));
     }
+    _end = current_time_();
+    fprintf(stderr, "Fill buffer: %llu\n", _end - _start);
     /* Send everything */
-    net_send(fd, buffer, p, 0);
+    _start = current_time_();
+    {
+        net_send(fd, buffer, p, 0);
+    }
+    _end = current_time_();
+    fprintf(stderr, "Send buffer: %llu\n", _end - _start);
 
     if (num_garb_inputs > 0)
         free(garbLabels);
@@ -287,8 +306,10 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         free(evalLabels);
     free(buffer);
 
-    _end = current_time_();
-    fprintf(stderr, "garbler go: %llu\n", (_end - _start));
+    end = current_time_();
+    if (tot_time)
+        *tot_time += end - start;
+    fprintf(stderr, "Total (post connection): %llu\n", end - start);
 }
 
 static int 
@@ -536,26 +557,17 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
      */
 
     int serverfd, fd;
-    struct state state;
-    uint64_t start, end, _start, _end;
+    uint64_t _start, _end, total = 0;
     ChainedGarbledCircuit *chained_gcs;
     FunctionSpec function;
     int *circuitMapping, noffsets = 0;
     block *randLabels = NULL, *offsets = NULL;
     char lblName[50];
 
-    state_init(&state);
     if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
         perror("net_init_server");
         exit(EXIT_FAILURE);
     }
-    if ((fd = net_server_accept(serverfd)) == FAILURE) {
-        perror("net_server_accept");
-        exit(EXIT_FAILURE);
-    }
-
-    /* start timing after socket connection */
-    start = current_time_();
 
     /* Load function from disk */
     _start = current_time_();
@@ -568,7 +580,8 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
         }
     }
     _end = current_time_();
-    fprintf(stderr, "load function: %llu\n", (_end - _start));
+    total += _end - _start;
+    fprintf(stderr, "Load function: %llu\n", (_end - _start));
 
     /* Load everything else from disk */
     _start = current_time_();
@@ -584,10 +597,9 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
         randLabels = loadOTLabels(lblName);
     }
     _end = current_time_();
-    fprintf(stderr, "load components: %llu\n", (_end - _start));
+    total += _end - _start;
+    fprintf(stderr, "Load components: %llu\n", (_end - _start));
 
-    /* Tell evaluator that we are done loading circuits so they can start timing */
-    
     _start = current_time_();
     {
         /* +1 because 0th component is inputComponent*/
@@ -601,7 +613,8 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
         }
     }
     _end = current_time_();
-    fprintf(stderr, "make inst: %llu\n", (_end - _start));
+    total += _end - _start;
+    fprintf(stderr, "Make instructions: %llu\n", (_end - _start));
 
     _start = current_time_();
     {
@@ -614,11 +627,18 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
 
     }
     _end = current_time_();
-    fprintf(stderr, "make output: %llu\n", (_end - _start));
+    total += _end - _start;
+    fprintf(stderr, "Make output: %llu\n", (_end - _start));
+
+    /* Accept connection after loading is all done */
+    if ((fd = net_server_accept(serverfd)) == FAILURE) {
+        perror("net_server_accept");
+        exit(EXIT_FAILURE);
+    }
 
     /*main function; does core of work*/
     garbler_go(fd, &function, dir, chained_gcs, randLabels, num_chained_gcs,
-               circuitMapping, inputs, offsets, noffsets, chainingType);
+               circuitMapping, inputs, offsets, noffsets, &total);
     
     free(circuitMapping);
     for (int i = 0; i < num_chained_gcs; ++i) {
@@ -627,12 +647,10 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     free(chained_gcs);
     freeFunctionSpec(&function);
 
-    end = current_time_();
     if (tot_time) {
-        *tot_time = end - start;
+        *tot_time = total;
     }
 
-    state_cleanup(&state);
     close(fd);
     close(serverfd);
 

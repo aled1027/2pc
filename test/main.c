@@ -86,7 +86,7 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials, Chainin
     for (int i = 0; i < ntrials; i++) {
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i], chainingType);
-        fprintf(stderr, "total: %llu\n", tot_time[i]);
+        fprintf(stderr, "Total: %llu\n", tot_time[i]);
         sum += tot_time[i];
     }
 
@@ -111,7 +111,7 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials, ChainingType chainin
         }
         evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i],
                          chainingType);
-        fprintf(stderr, "total: %llu\n", tot_time[i]);
+        fprintf(stderr, "Total: %llu\n", tot_time[i]);
         sum += tot_time[i];
     }
 

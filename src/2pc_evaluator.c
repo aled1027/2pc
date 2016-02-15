@@ -323,7 +323,7 @@ computeOutputs(const OutputInstructions *ois, int *output,
     return SUCCESS;
 }
 
-void
+int
 evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                  int num_chained_gcs, uint64_t *tot_time, ChainingType chainingType)
 {
@@ -351,20 +351,29 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     }
     _end = current_time_();
     loading_time = _end - _start;
-    fprintf(stderr, "loading: %llu\n", (_end - _start));
+    fprintf(stderr, "Load components: %llu\n", (_end - _start));
+
+    start = current_time_();
 
     /* Receive eval labels: OT correction */
     _start = current_time_();
     if (num_eval_inputs > 0) {
+        uint64_t _start, _end;
         /* randLabels and eval_labels are loaded during loading phase */
         /* correction based on input */
         for (int i = 0; i < num_eval_inputs; ++i)
             corrections[i] ^= eval_inputs[i];
 
-        recvLabels = malloc(sizeof(block) * 2 * num_eval_inputs);
+        recvLabels = allocate_blocks(2 * num_eval_inputs);
         /* valgrind is saying corrections is unitialized, but it seems to be */
+        _start = current_time_();
         net_send(sockfd, corrections, sizeof(int) * num_eval_inputs, 0);
+        _end = current_time_();
+        fprintf(stderr, "OT correction (send): %llu\n", _end - _start);
+        _start = current_time_();
         net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
+        _end = current_time_();
+        fprintf(stderr, "OT correction (receive): %llu\n", _end - _start);
 
         for (int i = 0; i < num_eval_inputs; ++i) {
             assert(eval_inputs[i] == 0 || eval_inputs[i] == 1);
@@ -375,18 +384,24 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         free(corrections);
     }
     _end = current_time_();
-    fprintf(stderr, "ot correction: %llu\n", (_end - _start));
+    fprintf(stderr, "OT correction: %llu\n", _end - _start);
 
-
-
-    start = current_time_();
     _start = current_time_();
     {
-        /* timed inside of function */
-        recvInstructions(&function.instructions, sockfd, &offsets);
+        int noffsets;
+        net_recv(sockfd, &function.instructions.size, sizeof(int), 0);
+        net_recv(sockfd, &noffsets, sizeof(int), 0);
+
+        function.instructions.instr = malloc(function.instructions.size * sizeof(Instruction));
+        offsets = allocate_blocks(noffsets);
+
+        net_recv(sockfd, function.instructions.instr,
+                 sizeof(Instruction) * function.instructions.size, 0);
+        net_recv(sockfd, offsets, sizeof(block) * noffsets, 0);
+        /* recvInstructions(&function.instructions, sockfd, &offsets); */
     }
     _end = current_time_();
-    fprintf(stderr, "recvInstructions: %llu\n", (_end - _start));
+    fprintf(stderr, "Receive instructions: %llu\n", _end - _start);
 
     _start = current_time_();
     {
@@ -397,7 +412,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         net_recv(sockfd, circuitMapping, sizeof(int) * size, 0);
     }
     _end = current_time_();
-    fprintf(stderr, "receive circmap: %llu\n", (_end - _start));
+    fprintf(stderr, "Receive circuit map: %llu\n", _end - _start);
 
     _start = current_time_();
     {
@@ -415,7 +430,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         }
     }
     _end = current_time_();
-    fprintf(stderr, "receive labels: %llu\n", (_end - _start));
+    fprintf(stderr, "Receive labels: %llu\n", _end - _start);
 
     /* Receive output instructions */
     OutputInstructions output_instructions;
@@ -430,11 +445,11 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                 output_instructions.size * sizeof(OutputInstruction), 0);
     }
     _end = current_time_();
-    fprintf(stderr, "recv_output_instructions: %llu\n", (_end - _start));
+    fprintf(stderr, "Receive output instructions: %llu\n", _end - _start);
 
     /* Follow instructions and evaluate */
     _start = current_time_();
-    block** computedOutputMap = malloc(sizeof(block*) * (num_chained_gcs + 1));
+    block **computedOutputMap = malloc(sizeof(block *) * (num_chained_gcs + 1));
     {
         computedOutputMap[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
         labels[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
@@ -449,7 +464,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                            labels, circuitMapping, computedOutputMap, offsets, chainingType);
     }
     _end = current_time_();
-    fprintf(stderr, "evaluate: %llu\n", (_end - _start));
+    fprintf(stderr, "Evaluate: %llu\n", _end - _start);
 
     _start = current_time_();
     int *output = calloc(sizeof(int), output_instructions.size);
@@ -457,11 +472,12 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         int res = computeOutputs(&output_instructions, output, computedOutputMap);
         if (res == FAILURE) {
             fprintf(stderr, "computeOutputs failed\n");
+            return FAILURE;
         }
 
     }
     _end = current_time_();
-    fprintf(stderr, "map outputs: %llu\n", (_end - _start));
+    fprintf(stderr, "Map outputs: %llu\n", _end - _start);
 
     // 12. clean up
     free(circuitMapping);
@@ -485,9 +501,10 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     close(sockfd);
 
     end = current_time_();
-    fprintf(stderr, "total_without_loading: %llu\n", (end - start));
+    fprintf(stderr, "Total (without loading): %llu\n", end - start);
     if (tot_time) {
         *tot_time = end - start + loading_time;
     }
+    return SUCCESS;
 }
 
