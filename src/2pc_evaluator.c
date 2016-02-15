@@ -265,11 +265,31 @@ recvInstructions(int fd, Instructions *insts, block **offsets)
     insts->instr = malloc(insts->size * sizeof(Instruction));
     *offsets = allocate_blocks(noffsets);
 
-    fprintf(stderr, "%d\n", insts->size);
+    fprintf(stderr, "instructions size: %d\n", insts->size);
+    fprintf(stderr, "instructions tot bytes %d\n", insts->size * sizeof(Instruction));
+
+
+    /* ADDING HERE */
+    // for aes, insts->size = 1427
+    
+    for (int i = 0; i < 1000; i+=100) {
+        start = current_time_();
+        net_recv(fd, &insts->instr[i], 100 * sizeof(Instruction), 0);
+        end = current_time_();
+        fprintf(stderr, "\tSecond split time (%d): %llu\n", i, end - start);
+    }
+
     start = current_time_();
-    net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
+    net_recv(fd, &insts->instr[1000], 427 * sizeof(Instruction), 0);
     end = current_time_();
-    fprintf(stderr, "\tSecond: %llu\n", end - start);
+    fprintf(stderr, "\tSecond final 427: %llu\n", end - start);
+
+    /* END ADDING HERE */
+    //net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
+    //fprintf(stderr, "\tSecond: %llu\n", end - start);
+
+
+
     start = current_time_();
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
     end = current_time_();
