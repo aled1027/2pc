@@ -379,6 +379,8 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
             hasInputBeenUsed[inputter][start_input_idx] = true;
         }
     }
+    free(hasInputBeenUsed[0]);
+    free(hasInputBeenUsed[1]);
     return SUCCESS;
 }
 

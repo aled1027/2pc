@@ -237,6 +237,8 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
                 usedInput[cur->inputter][cur->input_idx + j] = true;
             }
         }
+        free(usedInput[0]);
+        free(usedInput[1]);
     }
     _end = current_time_();
     fprintf(stderr, "Set up input labels: %llu\n", _end - _start);
@@ -296,9 +298,9 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
                          function->output_instructions.size * sizeof(OutputInstruction));
     }
     {
-        buffer = realloc(buffer, p
-                         + sizeof(int) + sizeof(Instruction) * function->instructions.size
-                         + sizeof(int) + sizeof(block) * noffsets);
+        buffer = realloc(buffer, p + sizeof(int) + sizeof(int) + 
+                         (sizeof(Instruction) * function->instructions.size) +
+                         (sizeof(block) * noffsets));
         p += addToBuffer(buffer + p, &function->instructions.size, sizeof(int));
         p += addToBuffer(buffer + p, &noffsets, sizeof noffsets);
         p += addToBuffer(buffer + p, function->instructions.instr,
@@ -364,6 +366,7 @@ make_real_output_instructions(FunctionSpec* function,
         o->labels[choice] = b_zero;
         o->labels[!choice] = b_one;
     }
+    free(rand);
     return SUCCESS;
 }
 
@@ -663,14 +666,17 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     /*main function; does core of work*/
     garbler_go(fd, &function, dir, chained_gcs, randLabels, num_chained_gcs,
                circuitMapping, inputs, offsets, noffsets, &total);
-    
+
     free(circuitMapping);
     for (int i = 0; i < num_chained_gcs; ++i) {
         freeChainedGarbledCircuit(&chained_gcs[i], true, chainingType);
     }
     free(chained_gcs);
     freeFunctionSpec(&function);
+    free(offsets);
+    free(randLabels);
 
+    
     if (tot_time) {
         *tot_time = total;
     }
@@ -678,7 +684,6 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     close(fd);
     close(serverfd);
 
-    //free(randLabels);
 
     return SUCCESS;
 }

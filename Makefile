@@ -85,10 +85,10 @@ aes_eval_on:
 # LEVEN #
 #########
 leven_garb_off:
-	gdb --args $(BINDIR)/test --garb-off --type LEVEN
+	$(BINDIR)/test --garb-off --type LEVEN
 
 leven_eval_off:
-	gdb --args $(BINDIR)/test --eval-off --type LEVEN
+	$(BINDIR)/test --eval-off --type LEVEN
 
 leven_garb_on:
 	gdb --args $(BINDIR)/test --garb-on --type LEVEN
@@ -100,7 +100,7 @@ leven_eval_on:
 # EXTRAS #
 ##########
 valg:
-	valgrind --leak-check=full  ./$(BINDIR)/test --eval-on --type AES --times 2
+	valgrind --leak-check=full  ./$(BINDIR)/test --garb-on --type AES
 
 clean_gcs:
 	rm -r files/garbler_gcs
