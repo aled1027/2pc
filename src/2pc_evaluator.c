@@ -557,8 +557,6 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
 
     end = current_time_();
     fprintf(stderr, "Total (post connection): %llu\n", end - start);
-    fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
-    fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
     if (tot_time)
         *tot_time = end - start + loading_time;
     return SUCCESS;

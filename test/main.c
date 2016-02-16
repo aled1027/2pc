@@ -9,21 +9,20 @@
 #include "2pc_garbler.h"
 #include "2pc_evaluator.h"
 #include "justGarble.h"
-/* #include "2pc_and.h" */
 #include "2pc_aes.h"
 #include "2pc_cbc.h"
 #include "2pc_leven.h"
 #include "2pc_tests.h"
+#include "net.h"
 #include "utils.h"
 
-#include "justGarble.h"
 #include "garble.h"
 #include "circuits.h"
 
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
-typedef enum { AND, AES, CBC, LEVEN } experiment;
+typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN } experiment;
 
 struct args {
     bool garb_off;
@@ -45,7 +44,7 @@ args_init(struct args *args)
     args->eval_on = 0;
     args->garb_full = 0;
     args->eval_full = 0;
-    args->type = AES;
+    args->type = EXPERIMENT_AES;
     args->ntrials = 1;
 }
 
@@ -85,6 +84,7 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials, Chainin
     tot_time = malloc(sizeof(uint64_t) * ntrials);
 
     for (int i = 0; i < ntrials; i++) {
+        g_bytes_sent = g_bytes_received = 0;
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i], chainingType);
         fprintf(stderr, "Total: %llu\n", tot_time[i]);
@@ -92,6 +92,8 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials, Chainin
     }
 
     fprintf(stderr, "GARB average: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
+    fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
+    fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
 
     free(inputs);
     free(tot_time);
@@ -107,6 +109,7 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials, ChainingType chainin
 
     for (int i = 0; i < ntrials; i++) {
         sleep(1); // uncomment this if getting hung up
+        g_bytes_sent = g_bytes_received = 0;
         for (int j = 0; j < ninputs; j++) {
            inputs[j] = rand() % 2;
         }
@@ -117,6 +120,8 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials, ChainingType chainin
     }
 
     fprintf(stderr, "EVAL average: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
+    fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
+    fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
 
     free(inputs);
     free(tot_time);
@@ -147,10 +152,12 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
     }
 
     {
+        uint64_t sum = 0;
         int *garb_inputs = malloc(sizeof(int) * num_garb_inputs);
         uint64_t *tot_time = calloc(ntrials, sizeof(uint64_t));
 
         for (int i = 0; i < ntrials; ++i) {
+            g_bytes_sent = g_bytes_received = 0;
             for (int i = 0; i < num_garb_inputs; i++) {
                 garb_inputs[i] = rand() % 2; 
             }
@@ -159,16 +166,15 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
             end = current_time_();
             printf("Garble: %llu\n", end - start);
             tot_time[i] += end - start;
-
             garbler_classic_2pc(gc, &imap, outputMap, num_garb_inputs,
                                 num_eval_inputs, garb_inputs, &tot_time[i]);
-
             printf("Total: %llu\n", tot_time[i]);
+            sum += tot_time[i];
         }
 
-        /* qsort(tot_time, ntrials, sizeof(uint64_t), compare); */
-        /* printf("%d trials\n", ntrials); */
-        /* printf("Median time: %llu\n", tot_time[ntrials / 2]); */
+        fprintf(stderr, "GARB average: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
+        fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
+        fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
 
         free(garb_inputs);
         free(tot_time);
@@ -182,23 +188,26 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
 static void
 eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
 {
+    uint64_t sum = 0;
     uint64_t *tot_time = malloc(sizeof(uint64_t) * ntrials);
     int *eval_inputs = malloc(sizeof(int) * n_eval_inputs);
     int *output = malloc(sizeof(int) * noutputs);
 
     for (int i = 0; i < ntrials; ++i) {
-        /* sleep(1); */
+        sleep(1);
+        g_bytes_sent = g_bytes_received = 0;
         for (int i = 0; i < n_eval_inputs; i++) {
             eval_inputs[i] = rand() % 2;
         }
         evaluator_classic_2pc(eval_inputs, output, n_garb_inputs, 
                               n_eval_inputs, &tot_time[i]);
         printf("Total: %llu\n", tot_time[i]);
+        sum += tot_time[i];
     }
 
-    /* qsort(tot_time, ntrials, sizeof(uint64_t), compare); */
-    /* printf("%d trials\n", ntrials); */
-    /* printf("time (cycles): %llu\n", tot_time[ntrials / 2 + 1]); */
+    fprintf(stderr, "EVAL average: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
+    fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
+    fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
 
     free(output);
     free(eval_inputs);
@@ -213,7 +222,7 @@ go(struct args *args)
     ChainingType chainingType;
 
     switch (args->type) {
-    case AES:
+    case EXPERIMENT_AES:
         n_garb_inputs = aesNumGarbInputs();
         n_eval_inputs = aesNumEvalInputs();
         n_eval_labels = n_eval_inputs;
@@ -224,17 +233,17 @@ go(struct args *args)
         fn = "functions/aes.json";
         type = "AES";
         break;
-    case CBC:
+    case EXPERIMENT_CBC:
         n_garb_inputs = cbcNumGarbInputs();
         n_eval_inputs = cbcNumEvalInputs();
         n_eval_labels = n_eval_inputs;
         ncircs = cbcNumCircs();
         noutputs = cbcNumOutputs();
-        chainingType = CHAINING_TYPE_STANDARD;
+        chainingType = CHAINING_TYPE_STANDARD; /* XXX: should this be SIMD? */
         fn = "functions/cbc_10_10.json";
         type = "CBC";
         break;
-    case LEVEN:
+    case EXPERIMENT_LEVEN:
         n_garb_inputs = levenNumGarbInputs();
         n_eval_inputs = levenNumEvalInputs();
         n_eval_labels = n_eval_inputs;
@@ -258,13 +267,13 @@ go(struct args *args)
     if (args->garb_off) {
         printf("Offline garbling\n");
         switch (args->type) {
-        case AES:
+        case EXPERIMENT_AES:
             aes_garb_off(GARBLER_DIR, 10, chainingType);
             break;
-        case CBC:
+        case EXPERIMENT_CBC:
             cbc_garb_off(GARBLER_DIR, chainingType);
             break;
-        case LEVEN:
+        case EXPERIMENT_LEVEN:
             leven_garb_off(chainingType);
             break;
         default:
@@ -276,7 +285,7 @@ go(struct args *args)
         eval_off(n_eval_inputs, ncircs, chainingType);
     } else if (args->garb_on) {
         printf("Online garbling\n");
-        if (args->type == LEVEN) {
+        if (args->type == EXPERIMENT_LEVEN) {
             leven_garb_on(chainingType);
         } else {
             garb_on(fn, n_garb_inputs, ncircs, args->ntrials, chainingType);
@@ -288,23 +297,24 @@ go(struct args *args)
         printf("Full garbling\n");
         GarbledCircuit gc;
         switch (args->type) {
-        case AES:
+        case EXPERIMENT_AES:
             buildAESCircuit(&gc);
             break;
-        case CBC:
+        case EXPERIMENT_CBC:
         {
             block delta = randomBlock();
             *((uint16_t *) (&delta)) |= 1;
             buildCBCFullCircuit(&gc, NUM_CBC_BLOCKS, NUM_AES_ROUNDS, &delta);
             break;
         }
-        case LEVEN:
+        case EXPERIMENT_LEVEN:
+            /* handled below */
             break;
         default:
             assert(false);
-            break;
+            return EXIT_FAILURE;
         }
-        if (args->type == LEVEN) {
+        if (args->type == EXPERIMENT_LEVEN) {
             full_leven_garb();
         } else {
             garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials);
@@ -312,14 +322,14 @@ go(struct args *args)
         }
     } else if (args->eval_full) {
         printf("Full evaluating\n");
-        if (args->type == LEVEN) {
+        if (args->type == EXPERIMENT_LEVEN) {
             full_leven_eval();
         } else {
             eval_full(n_garb_inputs, n_eval_inputs, noutputs, args->ntrials);
         }
     } else {
         fprintf(stderr, "No role specified\n");
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;
@@ -359,14 +369,12 @@ main(int argc, char *argv[])
             args.eval_full = true;
             break;
         case 't':
-            if (strcmp(optarg, "AND") == 0) {
-                args.type = AND;
-            } else if (strcmp(optarg, "AES") == 0) {
-                args.type = AES;
+            if (strcmp(optarg, "AES") == 0) {
+                args.type = EXPERIMENT_AES;
             } else if (strcmp(optarg, "CBC") == 0) {
-                args.type = CBC;
+                args.type = EXPERIMENT_CBC;
             } else if (strcmp(optarg, "LEVEN") == 0) {
-                args.type = LEVEN;
+                args.type = EXPERIMENT_LEVEN;
             } else {
                 fprintf(stderr, "Unknown type\n");
                 exit(EXIT_FAILURE);
