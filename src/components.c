@@ -95,21 +95,21 @@ buildLevenshteinCircuit(GarbledCircuit *gc, int l, int sigma)
         
             int coreOutputWires[DIntSize];
             addLevenshteinCoreCircuit(gc, &gctxt, l, sigma, coreInputWires, coreOutputWires);
-            printf("coreInputWires: (i=%d,j=%d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) -> (%d %d)\n",
-                  i,
-                  j,
-                  coreInputWires[0],
-                  coreInputWires[1],
-                  coreInputWires[2],
-                  coreInputWires[3],
-                  coreInputWires[4],
-                  coreInputWires[5],
-                  coreInputWires[6],
-                  coreInputWires[7],
-                  coreInputWires[8],
-                  coreInputWires[9],
-                  coreOutputWires[0],
-                  coreOutputWires[1]);
+            /*printf("coreInputWires: (i=%d,j=%d) (%d %d) (%d %d) (%d %d) (%d %d) (%d %d) -> (%d %d)\n",*/
+                  /*i,*/
+                  /*j,*/
+                  /*coreInputWires[0],*/
+                  /*coreInputWires[1],*/
+                  /*coreInputWires[2],*/
+                  /*coreInputWires[3],*/
+                  /*coreInputWires[4],*/
+                  /*coreInputWires[5],*/
+                  /*coreInputWires[6],*/
+                  /*coreInputWires[7],*/
+                  /*coreInputWires[8],*/
+                  /*coreInputWires[9],*/
+                  /*coreOutputWires[0],*/
+                  /*coreOutputWires[1]);*/
 
             // Save coreOutputWires to D[i][j] 
             memcpy(D[i][j], coreOutputWires, sizeof(int) * DIntSize);

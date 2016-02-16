@@ -119,11 +119,10 @@ leven_garb_full(void)
      * The alphabet is of size 4, i.e. 2 bits, so the actual length
      * of each party's input string is 2*l bits.
      */
-    /* int sigma = 2; */
     int DIntSize = (int) floor(log2(l)) + 1;
     int inputsDevotedToD = DIntSize * (l+1);
-    int n = inputsDevotedToD + 2*2*l;
-    int numEvalInputs = 2*l;
+    int n = inputsDevotedToD + 2*sigma*l;
+    int numEvalInputs = sigma*l;
     int numGarbInputs = n - numEvalInputs;
     int m = DIntSize;
     int *inputs = calloc(numGarbInputs, sizeof(int));
@@ -182,10 +181,11 @@ leven_eval_full(void)
      */
     int DIntSize = (int) floor(log2(l)) + 1;
     int inputsDevotedToD = DIntSize * (l+1);
-    int n = inputsDevotedToD + 2*2*l;
-    int numEvalInputs = 2*l;
+    int n = inputsDevotedToD + 2*sigma*l;
+    int numEvalInputs = sigma*l;
     int numGarbInputs = n - numEvalInputs;
     int m = DIntSize;
+
 
     /* Set Inputs */
     int *inputs = allocate_ints(numEvalInputs);
