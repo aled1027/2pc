@@ -548,8 +548,8 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
             fprintf(stderr, "computeOutputs failed\n");
             return FAILURE;
         }
-
     }
+    free(output_instructions.output_instruction);
     _end = current_time_();
     fprintf(stderr, "Map outputs: %llu\n", _end - _start);
 

@@ -105,7 +105,7 @@ writeBufferToFile(char* buffer, size_t buf_size, char* fileName)
     FILE *f;
     f = fopen(fileName, "w");
     if (f == NULL) {
-        printf("Write: Error in opening file.\n");
+        printf("Write: Error in opening file %s.\n", fileName);
         return FAILURE;
     }
     (void) fwrite(buffer, sizeof(char), buf_size, f);
@@ -122,7 +122,7 @@ readFileIntoBuffer(char* buffer, char* fileName)
     long fs = filesize(fileName);
 
     if (f == NULL) {
-        printf("Write: Error in opening file.\n");
+        printf("Write: Error in opening file %s.\n", fileName);
         return FAILURE;
     }
     fread(buffer, sizeof(char), fs, f);

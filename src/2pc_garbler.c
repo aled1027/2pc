@@ -71,33 +71,6 @@ extract_labels_gc(block *garbLabels, block *evalLabels, const GarbledCircuit *gc
     }
 }
 
-//static void
-//extract_labels_cgc(block *garbLabels, block *evalLabels,
-//                   const ChainedGarbledCircuit *cgc,
-//                   const int *circuitMapping, const InputMapping *map,
-//                   const int *inputs)
-//{
-//    int eval_p = 0, garb_p = 0;
-//    for (int i = 0; i < map->size; ++i) {
-//        Wire *wire = &cgc[circuitMapping[map->gc_id[i]]].gc.wires[map->wire_id[i]];
-//        switch (map->inputter[i]) {
-//        case PERSON_GARBLER:
-//            memcpy(&garbLabels[garb_p],
-//                   inputs[garb_p] ? &wire->label1 : &wire->label0, sizeof(block));
-//            garb_p++;
-//            break;
-//        case PERSON_EVALUATOR:
-//            memcpy(&evalLabels[eval_p], wire, sizeof(Wire));
-//            eval_p += 2;
-//            break;
-//        default:
-//            assert(0);
-//            abort();
-//        }
-//    }
-//    
-//}
-
 void 
 garbler_classic_2pc(GarbledCircuit *gc, const OldInputMapping *input_mapping,
                     const block *output_map, int num_garb_inputs, int num_eval_inputs,
