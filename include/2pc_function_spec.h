@@ -95,7 +95,8 @@ int writeInputMappingToBuffer(const InputMapping* input_mapping, char* buffer);
 int readBufferIntoInputMapping(InputMapping* input_mapping, const char* buffer);
 void deleteInputMapping(InputMapping *map);
 size_t inputMappingBufferSize(const InputMapping *map);
-void newInputMapping(InputMapping *map, int size);
+void
+newInputMapping(InputMapping *map, int num_garb_inputs, int num_eval_inputs);
 
 void print_instruction(Instruction *in);
 

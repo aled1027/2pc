@@ -29,7 +29,8 @@ static int getCoreN() { return (3 * getDIntSize()) + (2 * sigma); }
 static int getCoreM() { return getDIntSize(); }
 static int getCoreQ() { return 10000; } // TODO figure out this number
 
-void leven_garb_off(ChainingType chainingType) 
+void
+leven_garb_off(ChainingType chainingType) 
 {
     printf("Running leven garb offline\n");
     printf("l = %d, sigma = %d\n", l, sigma);
@@ -53,14 +54,10 @@ void leven_garb_off(ChainingType chainingType)
         GarbledCircuit *gc = &chainedGCs[i].gc;
 
         /* Garble */
-        
-
-
 	    createEmptyGarbledCircuit(gc, coreN, coreM, coreQ, coreR);
 	    startBuilding(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
 	    finishBuilding(gc, outputWires);
-
         if (chainingType == CHAINING_TYPE_SIMD) {
             createSIMDInputLabelsWithRForLeven(&chainedGCs[i], delta, l);
         } else {
@@ -129,58 +126,51 @@ leven_garb_full(void)
     int numEvalInputs = 2*l;
     int numGarbInputs = n - numEvalInputs;
     int m = DIntSize;
-    int *inputs = allocate_ints(numGarbInputs);
+    int *inputs = calloc(numGarbInputs, sizeof(int));
 
-    /* The first inputsDevotedToD inputs are the numbers 
-     * 0 through l+1 encoded in binary */
-    for (int i = 0; i < l + 1; i++) 
+    /* The first inputsDevotedToD inputs are the numbers 0 through l+1 encoded
+     * in binary */
+    for (int i = 0; i < l + 1; i++) {
         convertToBinary(i, inputs + (DIntSize) * i, DIntSize);
-    for (int i = inputsDevotedToD; i < numGarbInputs; i++) {
-        inputs[i] = rand() % 2;
-        printf("%d", inputs[i]);
     }
-    printf("\n");
+    /* XXX: should this be the commented out line?  inputsDevotedToD > l + 1, so
+     * it seems we're skipping some inputs... */
+    /* for (int i = inputsDevotedToD; i < numGarbInputs; i++) { */
+    for (int i = l + 1; i < numGarbInputs; i++) {
+        inputs[i] = rand() % 2;
+    }
 
     /* Build and Garble */
     GarbledCircuit gc;
     int *outputWires = allocate_ints(m);
-    block *inputLabels = allocate_blocks(2*n);
     block *outputMap = allocate_blocks(2*m);
     buildLevenshteinCircuit(&gc, l, sigma);
-    garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
-    
-    /* Set input mapping */
-    InputMapping imap; 
-    imap.size = n;
-    imap.input_idx = malloc(sizeof(int) * imap.size);
-    imap.gc_id = malloc(sizeof(int) * imap.size);
-    imap.wire_id = malloc(sizeof(int) * imap.size);
-    imap.inputter = malloc(sizeof(Person) * imap.size);
 
-    for (int i = 0; i < numGarbInputs; i++) {
-        imap.input_idx[i] = i;
-        imap.gc_id[i] = 0;
-        imap.wire_id[i] = i;
-        imap.inputter[i] = PERSON_GARBLER;
+    InputMapping imap;
+    newInputMapping(&imap, numGarbInputs, numEvalInputs);
+
+    {
+        uint64_t start, end;
+        uint64_t tot_time = 0;
+        start = current_time_();
+        garbleCircuit(&gc, NULL, outputMap, GARBLE_TYPE_STANDARD);
+        end = current_time_();
+        fprintf(stderr, "Garble: %llu\n", end - start);
+        tot_time += end - start;
+        start = current_time_();
+        garbler_classic_2pc(&gc, &imap, outputMap, numGarbInputs, numEvalInputs,
+                            inputs, NULL);
+        end = current_time_();
+        fprintf(stderr, "Classic 2PC: %llu\n", end - start);
+        fprintf(stderr, "Total: %llu\n", tot_time + end - start);
     }
-
-    for (int i = numGarbInputs; i < n; i++) {
-        imap.input_idx[i] = i;
-        imap.gc_id[i] = 0;
-        imap.wire_id[i] = i;
-        imap.inputter[i] = PERSON_EVALUATOR;
-    }
-
-    /* Online work */
-    uint64_t tot_time;
-    garbler_classic_2pc(&gc, &imap, outputMap, numGarbInputs, numEvalInputs,
-                        inputs, &tot_time);
 
     /* Results */
     removeGarbledCircuit(&gc);
     free(inputs);
-    free(inputLabels);
     free(outputWires);
+
+    deleteInputMapping(&imap);
     free(outputMap);
 }
 
@@ -202,23 +192,22 @@ leven_eval_full(void)
 
     /* Set Inputs */
     int *inputs = allocate_ints(numEvalInputs);
-    printf("Input: ");
     for (int i = 0; i < numEvalInputs; i++) { 
         inputs[i] = rand() % 2;
-        printf("%d", inputs[i]);
     }
     printf("\n");
 
     /* Online work */
     int *outputs = allocate_ints(m);
-    uint64_t tot_time;
+    uint64_t tot_time = 0;
     evaluator_classic_2pc(inputs, outputs, numGarbInputs, numEvalInputs, &tot_time);
+    printf("Total: %llu\n", tot_time);
 
     /* Results */
-    printf("Output: ");
-    for (int i = 0; i < m; i++) 
-        printf("%d", outputs[i]);
-    printf("\n");
+    /* printf("Output: "); */
+    /* for (int i = 0; i < m; i++)  */
+    /*     printf("%d", outputs[i]); */
+    /* printf("\n"); */
 
     free(inputs);
     free(outputs);

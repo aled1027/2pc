@@ -555,13 +555,27 @@ print_function(FunctionSpec* function)
 }
 
 void
-newInputMapping(InputMapping *map, int size)
+newInputMapping(InputMapping *map, int num_garb_inputs, int num_eval_inputs)
 {
-    map->size = size;
-    map->input_idx = malloc(sizeof(int) * size);
-    map->gc_id = malloc(sizeof(int) * size);
-    map->wire_id = malloc(sizeof(int) * size);
-    map->inputter = malloc(sizeof(Person) * size);
+    map->size = num_garb_inputs + num_eval_inputs;
+    map->input_idx = malloc(sizeof(int) * map->size);
+    map->gc_id = malloc(sizeof(int) * map->size);
+    map->wire_id = malloc(sizeof(int) * map->size);
+    map->inputter = malloc(sizeof(Person) * map->size);
+
+    for (int i = 0; i < num_eval_inputs; i++) {
+        map->input_idx[i] = i;
+        map->gc_id[i] = 0;
+        map->wire_id[i] = i;
+        map->inputter[i] = PERSON_EVALUATOR;
+    }
+
+    for (int i = num_eval_inputs; i < num_eval_inputs + num_garb_inputs; i++) {
+        map->input_idx[i] = i;
+        map->gc_id[i] = 0;
+        map->wire_id[i] = i;
+        map->inputter[i] = PERSON_GARBLER;
+    }
 }
 
 void

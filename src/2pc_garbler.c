@@ -169,7 +169,8 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
 
 
     end = current_time_();
-    *tot_time += end - start;
+    if (tot_time)
+        *tot_time += end - start;
 }
 
 static void

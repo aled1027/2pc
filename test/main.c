@@ -135,21 +135,7 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
     uint64_t start, end;
     block *outputMap = allocate_blocks(2 * gc->m);
 
-    newInputMapping(&imap, num_eval_inputs + num_garb_inputs);
-
-    for (int i = 0; i < num_eval_inputs; i++) {
-        imap.input_idx[i] = i;
-        imap.gc_id[i] = 0;
-        imap.wire_id[i] = i;
-        imap.inputter[i] = PERSON_EVALUATOR;
-    }
-
-    for (int i = num_eval_inputs; i < num_eval_inputs + num_garb_inputs; i++) {
-        imap.input_idx[i] = i;
-        imap.gc_id[i] = 0;
-        imap.wire_id[i] = i;
-        imap.inputter[i] = PERSON_GARBLER;
-    }
+    newInputMapping(&imap, num_garb_inputs, num_eval_inputs);
 
     {
         uint64_t sum = 0;
@@ -189,7 +175,7 @@ static void
 eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
 {
     uint64_t sum = 0;
-    uint64_t *tot_time = malloc(sizeof(uint64_t) * ntrials);
+    uint64_t *tot_time = calloc(ntrials, sizeof(uint64_t));
     int *eval_inputs = malloc(sizeof(int) * n_eval_inputs);
     int *output = malloc(sizeof(int) * noutputs);
 
