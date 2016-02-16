@@ -317,7 +317,6 @@ computeOutputs(const OutputInstructions *ois, int *output,
 {
     assert(output && "output's memory should be allocated");
 
-    print_output_instructions(ois);
     for (uint16_t i = 0; i < ois->size; ++i) {
         AES_KEY key;
         block out[2], b_zero, b_one;

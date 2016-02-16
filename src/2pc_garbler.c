@@ -354,6 +354,15 @@ make_real_output_instructions(FunctionSpec* function,
         int savedGCId = circuitMapping[o->gc_id];
         block key_zero = chained_gcs[savedGCId].outputMap[2 * o->wire_id];
         block key_one = chained_gcs[savedGCId].outputMap[2 * o->wire_id + 1];
+        block b_zero = zero_block();
+        block b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
+
+        AES_set_encrypt_key(key_zero, &key);
+        AES_ecb_encrypt_blks(&b_zero, 1, &key);
+        AES_set_encrypt_key(key_one, &key);
+        AES_ecb_encrypt_blks(&b_one, 1, &key);
+        o->labels[choice] = b_zero;
+        o->labels[!choice] = b_one;
     }
     return SUCCESS;
 }
