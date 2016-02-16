@@ -104,7 +104,7 @@ void deleteInputMapping(InputMapping *map);
 size_t inputMappingBufferSize(const InputMapping *map);
 void newInputMapping(InputMapping *map, int size);
 
-void print_instruction(Instruction *in);
-void print_output_instructions(OutputInstructions *ois);
+void print_instruction(const Instruction *in);
+void print_output_instructions(const OutputInstructions *ois);
 
 #endif

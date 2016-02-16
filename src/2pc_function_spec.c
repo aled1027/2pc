@@ -106,7 +106,7 @@ print_input_mapping(InputMapping* inputMapping)
 }
 
 void
-print_instruction(Instruction *in)
+print_instruction(const Instruction *in)
 {
     switch(in->type) {
         case EVAL:
@@ -151,7 +151,7 @@ print_instructions(Instructions* instr)
 }
 
 void
-print_output_instructions(OutputInstructions *ois)
+print_output_instructions(const OutputInstructions *ois)
 {
     FILE* fp = stdout;
     printf("Num output instructions: %d\n", ois->size);
@@ -306,13 +306,16 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
 
     jInputMapping = json_object_get(root, "input_mapping");
     assert(json_is_array(jInputMapping));
-    imap->size = json_array_size(jInputMapping); 
-
+    int loop_size = json_array_size(jInputMapping);  // size is subject to change in for loop
+    imap->size = loop_size;
     imap->imap_instr = malloc(imap->size * sizeof(InputMappingInstruction));
     assert(imap->imap_instr);
+    bool *hasInputBeenUsed[2];
+    hasInputBeenUsed[0]= calloc(function->n, sizeof(bool));
+    hasInputBeenUsed[1]= calloc(function->n, sizeof(bool));
 
-    for (int i = 0; i < imap->size; i++) {
-
+    int idx = 0;
+    for (int i = 0; i < loop_size; i++) {
         // Get info from the json pointers
         jMap = json_array_get(jInputMapping, i);
         assert(json_is_object(jMap));
@@ -352,11 +355,29 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
             return FAILURE;
         }
 
-        imap->imap_instr[i].input_idx = start_input_idx;
-        imap->imap_instr[i].gc_id = gc_id;
-        imap->imap_instr[i].inputter = inputter;
-        imap->imap_instr[i].dist = end_input_idx - start_input_idx + 1;
-        imap->imap_instr[i].wire_id = start_wire_idx;
+        if (hasInputBeenUsed[inputter][start_input_idx] == true) {
+            // then we need to make separate instructions for each input
+            // because each input requires a unique offset
+            int new_memory = end_input_idx - start_input_idx;
+            imap->size += new_memory;
+            imap->imap_instr = realloc(imap->imap_instr, imap->size *  sizeof(InputMappingInstruction));
+            for (int j = 0; j < new_memory + 1; j++) {
+                imap->imap_instr[idx].input_idx = start_input_idx + j;
+                imap->imap_instr[idx].gc_id = gc_id;
+                imap->imap_instr[idx].inputter = inputter;
+                imap->imap_instr[idx].dist = 1;
+                imap->imap_instr[idx].wire_id = start_wire_idx + j;
+                ++idx;
+            }
+        } else {
+            imap->imap_instr[idx].input_idx = start_input_idx;
+            imap->imap_instr[idx].gc_id = gc_id;
+            imap->imap_instr[idx].inputter = inputter;
+            imap->imap_instr[idx].dist = end_input_idx - start_input_idx + 1;
+            imap->imap_instr[idx].wire_id = start_wire_idx;
+            ++idx;
+            hasInputBeenUsed[inputter][start_input_idx] = true;
+        }
     }
     return SUCCESS;
 }

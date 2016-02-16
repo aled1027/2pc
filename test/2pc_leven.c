@@ -15,7 +15,7 @@
 
 /* XXX: l < 35 */
 const int sigma = 8;
-const int l = 5; // if you change this, you need to change the json as well (use the script)
+const int l = 2; // if you change this, you need to change the json as well (use the script)
 char *COMPONENT_FUNCTION_PATH = "functions/leven_8.json"; 
 
 static int getDIntSize() { return (int) floor(log2(l)) + 1; }

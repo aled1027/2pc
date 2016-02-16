@@ -233,7 +233,9 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
                     printf("Person not detected while processing input_mapping.\n");
                     break;
             }
-            usedInput[cur->inputter][cur->input_idx] = true;
+            for (int j = 0; j < cur->dist; ++j) {
+                usedInput[cur->inputter][cur->input_idx + j] = true;
+            }
         }
     }
     _end = current_time_();
@@ -418,38 +420,41 @@ make_real_instructions(FunctionSpec *function,
      * readable/maintainable code.*/
 
     /* Add input component chaining offsets */
-    int *imapCirc = allocate_ints(function->n);
-    int *imapWire = allocate_ints(function->n);
-    for (int i = 0; i < function->n; ++i)
-        imapCirc[i] = -1;
+    int *imapCirc = allocate_ints(function->n); // a somewhat misleading name.
+    int *imapWire = allocate_ints(function->n); // a somewhat misleading name.
+
+    for (int i = 0; i < function->n; ++i) {
+            imapCirc[i] = -1;
+    }
 
     Instruction *cur;
     int offsetsIdx = 1;
     int num_instructions = function->instructions.size;
     offsets[0] = zero_block();
-
     for (int i = 0; i < num_instructions; ++i) {
-
         cur = &(function->instructions.instr[i]);
         /* Chain input/output wires */
-        if (cur->type == CHAIN && cur->ch.fromCircId == 0) {
+        if (cur->type == CHAIN && cur->ch.fromCircId == 0) { /* if input component */
             int idx = cur->ch.fromWireId;
             if (imapCirc[idx] == -1) {
                 /* this input has not been used */
-                imapCirc[idx] = cur->ch.toCircId;
-                imapWire[idx] = cur->ch.toWireId;
+                for (int j = 0; j < cur->ch.wireDist; j++) {
+                    imapCirc[idx + j] = cur->ch.toCircId;
+                    imapWire[idx + j] = cur->ch.toWireId + j;
+                }
                 cur->ch.offsetIdx = 0;
             } else {
                 /* this idx has been used */
                 /* this is only used for levenshtein presently */
                 offsets[offsetsIdx] = xorBlocks(
-                    chained_gcs[circuitMapping[imapCirc[idx]]].inputLabels[2*imapWire[idx]],
+                    chained_gcs[circuitMapping[imapCirc[idx]]].inputLabels[2 * imapWire[idx]],
                     chained_gcs[circuitMapping[cur->ch.toCircId]].inputLabels[2*cur->ch.toWireId]); 
                 cur->ch.offsetIdx = offsetsIdx;
                 ++offsetsIdx;
             }
         }
     }
+
     free(imapCirc);
     free(imapWire);
 
@@ -497,6 +502,8 @@ make_real_instructions(FunctionSpec *function,
                     
                     cur->ch.offsetIdx = offsetsIdx;
                     ++offsetsIdx;
+
+
 
                 } else {
                     /* reference block already in offsets */
