@@ -14,6 +14,7 @@
 #include "2pc_cbc.h"
 #include "2pc_leven.h"
 #include "2pc_tests.h"
+#include "utils.h"
 
 #include "justGarble.h"
 #include "garble.h"
@@ -126,9 +127,8 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
           int ntrials)
 {
     InputMapping imap;
+    uint64_t start, end;
     block *outputMap = allocate_blocks(2 * gc->m);
-
-    garbleCircuit(gc, NULL, outputMap, GARBLE_TYPE_STANDARD);
 
     newInputMapping(&imap, num_eval_inputs + num_garb_inputs);
 
@@ -148,20 +148,27 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
 
     {
         int *garb_inputs = malloc(sizeof(int) * num_garb_inputs);
-        uint64_t *tot_time = malloc(sizeof(uint64_t) * ntrials);
+        uint64_t *tot_time = calloc(ntrials, sizeof(uint64_t));
 
         for (int i = 0; i < ntrials; ++i) {
             for (int i = 0; i < num_garb_inputs; i++) {
                 garb_inputs[i] = rand() % 2; 
             }
+            start = current_time_();
+            garbleCircuit(gc, NULL, outputMap, GARBLE_TYPE_STANDARD);
+            end = current_time_();
+            printf("Garble: %llu\n", end - start);
+            tot_time[i] += end - start;
+
             garbler_classic_2pc(gc, &imap, outputMap, num_garb_inputs,
                                 num_eval_inputs, garb_inputs, &tot_time[i]);
-            printf("%llu\n", tot_time[i]);
+
+            printf("Total: %llu\n", tot_time[i]);
         }
 
-        qsort(tot_time, ntrials, sizeof(uint64_t), compare);
-        printf("%d trials\n", ntrials);
-        printf("time (cycles): %llu\n", tot_time[ntrials / 2 + 1]);
+        /* qsort(tot_time, ntrials, sizeof(uint64_t), compare); */
+        /* printf("%d trials\n", ntrials); */
+        /* printf("Median time: %llu\n", tot_time[ntrials / 2]); */
 
         free(garb_inputs);
         free(tot_time);
@@ -180,18 +187,18 @@ eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
     int *output = malloc(sizeof(int) * noutputs);
 
     for (int i = 0; i < ntrials; ++i) {
-        sleep(1);
+        /* sleep(1); */
         for (int i = 0; i < n_eval_inputs; i++) {
             eval_inputs[i] = rand() % 2;
         }
         evaluator_classic_2pc(eval_inputs, output, n_garb_inputs, 
                               n_eval_inputs, &tot_time[i]);
-        printf("%llu\n", tot_time[i]);
+        printf("Total: %llu\n", tot_time[i]);
     }
 
-    qsort(tot_time, ntrials, sizeof(uint64_t), compare);
-    printf("%d trials\n", ntrials);
-    printf("time (cycles): %llu\n", tot_time[ntrials / 2 + 1]);
+    /* qsort(tot_time, ntrials, sizeof(uint64_t), compare); */
+    /* printf("%d trials\n", ntrials); */
+    /* printf("time (cycles): %llu\n", tot_time[ntrials / 2 + 1]); */
 
     free(output);
     free(eval_inputs);

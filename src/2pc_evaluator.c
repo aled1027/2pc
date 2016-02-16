@@ -98,58 +98,119 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
     fprintf(stderr, "evaltime: %llu\n", eval_time);
 }
 
-void evaluator_classic_2pc(const int *input, int *output,
-        int num_garb_inputs, int num_eval_inputs,
-        uint64_t *tot_time) 
+void
+evaluator_classic_2pc(const int *input, int *output, int num_garb_inputs,
+                      int num_eval_inputs, uint64_t *tot_time)
 {
     int sockfd, res;
-    struct state state;
+    int *selections = NULL;
     GarbledCircuit gc;
     InputMapping map;
     block *garb_labels = NULL, *eval_labels = NULL;
-    block *labels, *output_map, *computed_output_map;
-    uint64_t start, end;
+    block *labels, *output_map;
+    uint64_t start, end, _start, _end;
+    size_t tmp;
 
-    assert(output && tot_time); /* input could be NULL if num_eval_inputs == 0 */
-
-    state_init(&state);
     if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
         perror("net_init_client");
         exit(EXIT_FAILURE);
     }
 
-    start = current_time_();
-
-    gc_comm_recv(sockfd, &gc);
-
-    /* Receive input_mapping from garbler */
-    {
-        size_t buf_size;
-        char *buffer;
-
-        net_recv(sockfd, &buf_size, sizeof(size_t), 0);
-        buffer = malloc(buf_size);
-        net_recv(sockfd, buffer, buf_size, 0);
-        readBufferIntoInputMapping(&map, buffer);
-        free(buffer);
+    /* pre-process OT */
+    if (num_eval_inputs > 0) {
+        struct state state;
+        state_init(&state);
+        selections = calloc(num_eval_inputs, sizeof(int));
+        eval_labels = allocate_blocks(num_eval_inputs);
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            selections[i] = rand() % 2;
+        }
+        ot_np_recv(&state, sockfd, selections, num_eval_inputs, sizeof(block),
+                   2, eval_labels, new_choice_reader, new_msg_writer);
+        state_cleanup(&state);
     }
 
-    /* Receive garb_labels */
+    /* Start timing after pre-processing of OT as we only want to record online
+     * time */
+    start = current_time_();
+
+    _start = current_time_();
+    {
+        tmp = g_bytes_received;
+        gc_comm_recv(sockfd, &gc);
+    }
+    _end = current_time_();
+    fprintf(stderr, "Receive GC: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
+
+    _start = current_time_();
+    tmp = g_bytes_received;
+    if (num_eval_inputs > 0) {
+        block *recvLabels;
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            selections[i] ^= input[i];
+        }
+        recvLabels = allocate_blocks(2 * num_eval_inputs);
+        /* valgrind is saying corrections is unitialized, but it seems to be */
+        net_send(sockfd, selections, sizeof(int) * num_eval_inputs, 0);
+        net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            eval_labels[i] = xorBlocks(eval_labels[i],
+                                       recvLabels[2 * i + input[i]]);
+        }
+        free(recvLabels);
+        free(selections);
+    }
+    _end = current_time_();
+    fprintf(stderr, "OT correction: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
+
+    _start = current_time_();
+    tmp = g_bytes_received;
     if (num_garb_inputs > 0) {
         garb_labels = allocate_blocks(num_garb_inputs);
         net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
     }
+    _end = current_time_();
+    fprintf(stderr, "Receive garbler labels: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
-    /* Receive eval_labels via OT */
-    if (num_eval_inputs > 0) {
-        eval_labels = allocate_blocks(2 * num_eval_inputs);
-        ot_np_recv(&state, sockfd, input, num_eval_inputs, sizeof(block), 2,
-                   eval_labels, new_choice_reader, new_msg_writer);
-    }
+    /* for (int i = 0; i < num_eval_inputs; ++i) { */
+    /*     print_block(stdout, eval_labels[i]); */
+    /*     printf("\n"); */
+    /* } */
 
-    /* Plug labels in correctly based on input_mapping */
-    labels = allocate_blocks(gc.n);
+    _start = current_time_();
     {
+        tmp = g_bytes_received;
+        output_map = allocate_blocks(2 * gc.m);
+        net_recv(sockfd, output_map, sizeof(block) * 2 * gc.m, 0);
+    }
+    _end = current_time_();
+    fprintf(stderr, "Receive output map: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
+
+    _start = current_time_();
+    tmp = g_bytes_received;
+    {
+        size_t size;
+        char *buffer;
+
+        net_recv(sockfd, &size, sizeof size, 0);
+        buffer = malloc(size);
+        net_recv(sockfd, buffer, size, 0);
+        readBufferIntoInputMapping(&map, buffer);
+        free(buffer);
+    }
+    _end = current_time_();
+    fprintf(stderr, "Receive garbler labels: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
+
+    close(sockfd);
+    
+    /* Plug labels in correctly based on input_mapping */
+    {
+        labels = allocate_blocks(gc.n);
         int garb_p = 0, eval_p = 0;
         for (int i = 0; i < map.size; i++) {
             if (map.inputter[i] == PERSON_GARBLER) {
@@ -162,26 +223,20 @@ void evaluator_classic_2pc(const int *input, int *output,
         }
     }
 
-    /* Receive output_map */
-    output_map = allocate_blocks(2 * gc.m);
-    net_recv(sockfd, output_map, sizeof(block) * 2 * gc.m, 0);
-
-    /* Evaluate the circuit */
-    computed_output_map = allocate_blocks(gc.m);
-    evaluate(&gc, labels, computed_output_map, GARBLE_TYPE_STANDARD);
-    res = mapOutputs(output_map, computed_output_map, output, gc.m);
-    assert(res == SUCCESS);
-
-    /* Close and clean up network */
-    close(sockfd);
-    state_cleanup(&state);
+    _start = current_time_();
+    {
+        block *computed_output_map = allocate_blocks(gc.m);
+        evaluate(&gc, labels, computed_output_map, GARBLE_TYPE_STANDARD);
+        res = mapOutputs(output_map, computed_output_map, output, gc.m);
+        /* assert(res == SUCCESS); */
+        free(computed_output_map);
+    }
+    _end = current_time_();
+    fprintf(stderr, "Evaluate: %llu\n", _end - _start);
 
     removeGarbledCircuit(&gc);
     deleteInputMapping(&map);
-
-    /* free up memory */
     free(output_map);
-    free(computed_output_map);
     free(eval_labels);
     free(garb_labels);
     free(labels);
@@ -244,7 +299,7 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains, ChainingType chai
     }
 
     end = current_time_();
-    fprintf(stderr, "evaluator offline: %llu\n", (end - start));
+    fprintf(stderr, "Total: %llu\n", (end - start));
 
     close(sockfd);
     state_cleanup(&state);
@@ -261,29 +316,6 @@ recvInstructions(int fd, Instructions *insts, block **offsets)
     insts->instr = malloc(insts->size * sizeof(Instruction));
     *offsets = allocate_blocks(noffsets);
 
-/* <<<<<<< Updated upstream */
-/*     fprintf(stderr, "instructions size: %d\n", insts->size); */
-/*     fprintf(stderr, "instructions tot bytes %d\n", insts->size * sizeof(Instruction)); */
-
-
-/*     /\* ADDING HERE *\/ */
-/*     // for aes, insts->size = 1427 */
-    
-/*     for (int i = 0; i < 1000; i+=100) { */
-/*         start = current_time_(); */
-/*         net_recv(fd, &insts->instr[i], 100 * sizeof(Instruction), 0); */
-/*         end = current_time_(); */
-/*         fprintf(stderr, "\tSecond split time (%d): %llu\n", i, end - start); */
-/*     } */
-
-/* ======= */
-/* >>>>>>> Stashed changes */
-    /* start = current_time_(); */
-    /* net_recv(fd, &insts->instr[1000], 427 * sizeof(Instruction), 0); */
-    /* end = current_time_(); */
-    /* fprintf(stderr, "\tSecond final 427: %llu\n", end - start); */
-
-    /* END ADDING HERE */
     net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
 }

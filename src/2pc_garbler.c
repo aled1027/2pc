@@ -17,6 +17,13 @@
 
 #include "gc_comm.h"
 
+static inline size_t
+addToBuffer(char *buffer, const void *item, size_t length)
+{
+    (void) memcpy(buffer, item, length);
+    return length;
+}
+
 static void *
 new_msg_reader(void *msgs, int idx)
 {
@@ -46,7 +53,8 @@ extract_labels_gc(block *garbLabels, block *evalLabels, const GarbledCircuit *gc
             garb_p++;
             break;
         case PERSON_EVALUATOR:
-            memcpy(&evalLabels[eval_p], wire, sizeof(Wire));
+            memcpy(&evalLabels[eval_p], &wire->label0, sizeof(block));
+            memcpy(&evalLabels[eval_p + 1], &wire->label1, sizeof(block));
             eval_p += 2;
             break;
         default:
@@ -54,33 +62,6 @@ extract_labels_gc(block *garbLabels, block *evalLabels, const GarbledCircuit *gc
             abort();
         }
     }
-}
-
-static void
-extract_labels_cgc(block *garbLabels, block *evalLabels,
-                   const ChainedGarbledCircuit *cgc,
-                   const int *circuitMapping, const InputMapping *map,
-                   const int *inputs)
-{
-    int eval_p = 0, garb_p = 0;
-    for (int i = 0; i < map->size; ++i) {
-        Wire *wire = &cgc[circuitMapping[map->gc_id[i]]].gc.wires[map->wire_id[i]];
-        switch (map->inputter[i]) {
-        case PERSON_GARBLER:
-            memcpy(&garbLabels[garb_p],
-                   inputs[garb_p] ? &wire->label1 : &wire->label0, sizeof(block));
-            garb_p++;
-            break;
-        case PERSON_EVALUATOR:
-            memcpy(&evalLabels[eval_p], wire, sizeof(Wire));
-            eval_p += 2;
-            break;
-        default:
-            assert(0);
-            abort();
-        }
-    }
-    
 }
 
 void 
@@ -89,13 +70,14 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
                     const int *inputs, uint64_t *tot_time)
 {
     /* Does 2PC in the classic way, without components. */
+    block *randLabels;
+    block *garb_labels = NULL, *eval_labels = NULL;
     int serverfd, fd;
-    struct state state;
+    char *buffer = NULL;
+    size_t p = 0;
     uint64_t start, end;
 
     assert(gc->n == num_garb_inputs + num_eval_inputs);
-
-    state_init(&state);
 
     if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
         perror("net_init_server");
@@ -106,65 +88,88 @@ garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
         exit(EXIT_FAILURE);
     }
 
-    start = current_time_();;
+    /* pre-process OT */
+    if (num_eval_inputs > 0) {
+        struct state state;
+        state_init(&state);
+        if (num_eval_inputs > 0) {
+            randLabels = allocate_blocks(2 * num_eval_inputs);
+            for (int i = 0; i < 2 * num_eval_inputs; ++i) {
+                randLabels[i] = randomBlock();
+            }
+            ot_np_send(&state, fd, randLabels, sizeof(block), num_eval_inputs, 2,
+                       new_msg_reader, new_item_reader);
+        }
+        state_cleanup(&state);
+    }
+
+    start = current_time_();
 
     gc_comm_send(fd, gc);
 
-    /* Send input_mapping to evaluator */
-    {
-        size_t buf_size;
-        char *buffer;
-
-        buf_size = inputMappingBufferSize(input_mapping);
-        buffer = malloc(buf_size);
-        (void) writeInputMappingToBuffer(input_mapping, buffer);
-        net_send(fd, &buf_size, sizeof(buf_size), 0);
-        net_send(fd, buffer, buf_size, 0);
-        free(buffer);
-    }
-
-    /* Setup for communicating labels to evaluator */
-    /* Populate garb_labels and eval_labels as instructed by input_mapping */
-    block *garb_labels = NULL, *eval_labels = NULL;
-    if (num_garb_inputs > 0) {
-        garb_labels = allocate_blocks(num_garb_inputs);
-    }
-    if (num_eval_inputs > 0) {
+    if (num_eval_inputs > 0)
         eval_labels = allocate_blocks(2 * num_eval_inputs);
-    }
+    if (num_garb_inputs > 0)
+        garb_labels = allocate_blocks(num_garb_inputs);
 
     extract_labels_gc(garb_labels, eval_labels, gc, input_mapping, inputs);
+    /* for (int i = 0; i < num_eval_inputs; ++i) { */
+    /*     print_block(stdout, eval_labels[2 * i]); */
+    /*     printf(" "); */
+    /*     print_block(stdout, eval_labels[2 * i + 1]); */
+    /*     printf("\n"); */
+    /* } */
+
+    if (num_eval_inputs > 0) {
+        int *corrections;
+        corrections = calloc(num_eval_inputs, sizeof(int));
+        net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            assert(corrections[i] == 0 || corrections[i] == 1);
+            eval_labels[2 * i] = xorBlocks(eval_labels[2 * i],
+                                           randLabels[2 * i + corrections[i]]);
+            eval_labels[2 * i + 1] = xorBlocks(eval_labels[2 * i + 1],
+                                               randLabels[2 * i + !corrections[i]]);
+        }
+        free(corrections);
+
+        buffer = realloc(buffer, p + sizeof(block) * 2 * num_eval_inputs);
+        p += addToBuffer(buffer + p, eval_labels, sizeof(block) * 2 * num_eval_inputs);
+    }
 
     /* Send garb_labels */
     if (num_garb_inputs > 0) {
-        net_send(fd, garb_labels, sizeof(block) * num_garb_inputs, 0);
+        buffer = realloc(buffer, p + num_garb_inputs * sizeof(block));
+        p += addToBuffer(buffer + p, garb_labels, num_garb_inputs * sizeof(block));
         free(garb_labels);
     }
 
-    /* Send eval_label via OT */
-    if (num_eval_inputs > 0) {
-        ot_np_send(&state, fd, eval_labels, sizeof(block), num_eval_inputs, 2,
-                   new_msg_reader, new_item_reader);
-        free(eval_labels);
+    {
+        buffer = realloc(buffer, p + 2 * gc->m * sizeof(block));
+        p += addToBuffer(buffer + p, output_map, 2 * gc->m * sizeof(block));
     }
 
-    /* Send output_map to evaluator */
-    net_send(fd, output_map, sizeof(block) * 2 * gc->m, 0);
+    /* Send input_mapping to evaluator */
+    {
+        size_t size;
+
+        size = inputMappingBufferSize(input_mapping);
+        buffer = realloc(buffer, p + sizeof(size) + size);
+        p += addToBuffer(buffer + p, &size, sizeof size);
+        (void) writeInputMappingToBuffer(input_mapping, buffer + p);
+        p += size;
+    }
+
+    (void) net_send(fd, buffer, p, 0);
+    free(buffer);
 
     /* close and clean up network connection */
     close(fd);
     close(serverfd);
-    state_cleanup(&state);
+
 
     end = current_time_();
-    *tot_time = end - start;
-}
-
-static inline size_t
-addToBuffer(char *buffer, const void *item, size_t length)
-{
-    (void) memcpy(buffer, item, length);
-    return length;
+    *tot_time += end - start;
 }
 
 static void
