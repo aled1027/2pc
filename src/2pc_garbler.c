@@ -38,50 +38,58 @@ extract_labels_gc(block *garbLabels, block *evalLabels, const GarbledCircuit *gc
 {
     int eval_p = 0, garb_p = 0;
     for (int i = 0; i < map->size; ++i) {
-        Wire *wire = &gc->wires[map->wire_id[i]];
-        switch (map->inputter[i]) {
-        case PERSON_GARBLER:
-            memcpy(&garbLabels[garb_p],
-                   inputs[garb_p] ? &wire->label1 : &wire->label0, sizeof(block));
-            garb_p++;
-            break;
-        case PERSON_EVALUATOR:
-            memcpy(&evalLabels[eval_p], wire, sizeof(Wire));
-            eval_p += 2;
-            break;
-        default:
-            assert(0);
-            abort();
+        Wire *wire;
+
+        switch (map->imap_instr[i].inputter) {
+            case PERSON_GARBLER:
+                for (int j = 0; j < map->imap_instr[i].dist; ++j) {
+                    wire = &gc->wires[map->imap_instr[i].wire_id];
+                    memcpy(&garbLabels[garb_p],
+                           inputs[garb_p] ? &wire->label1 : &wire->label0, sizeof(block));
+                    garb_p++;
+                }
+                break;
+            case PERSON_EVALUATOR:
+                for (int j = 0; j < map->imap_instr[i].dist; ++j) {
+                    wire = &gc->wires[map->imap_instr[i].wire_id];
+                    memcpy(&evalLabels[eval_p], wire, sizeof(Wire));
+                    eval_p+=2;
+                }
+
+                break;
+            default:
+                assert(0);
+                abort();
         }
     }
 }
 
-static void
-extract_labels_cgc(block *garbLabels, block *evalLabels,
-                   const ChainedGarbledCircuit *cgc,
-                   const int *circuitMapping, const InputMapping *map,
-                   const int *inputs)
-{
-    int eval_p = 0, garb_p = 0;
-    for (int i = 0; i < map->size; ++i) {
-        Wire *wire = &cgc[circuitMapping[map->gc_id[i]]].gc.wires[map->wire_id[i]];
-        switch (map->inputter[i]) {
-        case PERSON_GARBLER:
-            memcpy(&garbLabels[garb_p],
-                   inputs[garb_p] ? &wire->label1 : &wire->label0, sizeof(block));
-            garb_p++;
-            break;
-        case PERSON_EVALUATOR:
-            memcpy(&evalLabels[eval_p], wire, sizeof(Wire));
-            eval_p += 2;
-            break;
-        default:
-            assert(0);
-            abort();
-        }
-    }
-    
-}
+//static void
+//extract_labels_cgc(block *garbLabels, block *evalLabels,
+//                   const ChainedGarbledCircuit *cgc,
+//                   const int *circuitMapping, const InputMapping *map,
+//                   const int *inputs)
+//{
+//    int eval_p = 0, garb_p = 0;
+//    for (int i = 0; i < map->size; ++i) {
+//        Wire *wire = &cgc[circuitMapping[map->gc_id[i]]].gc.wires[map->wire_id[i]];
+//        switch (map->inputter[i]) {
+//        case PERSON_GARBLER:
+//            memcpy(&garbLabels[garb_p],
+//                   inputs[garb_p] ? &wire->label1 : &wire->label0, sizeof(block));
+//            garb_p++;
+//            break;
+//        case PERSON_EVALUATOR:
+//            memcpy(&evalLabels[eval_p], wire, sizeof(Wire));
+//            eval_p += 2;
+//            break;
+//        default:
+//            assert(0);
+//            abort();
+//        }
+//    }
+//    
+//}
 
 void 
 garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
@@ -197,9 +205,9 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         usedGarbInputIdx = calloc(sizeof(bool), num_garb_inputs);
         usedEvalInputIdx = calloc(sizeof(bool), num_eval_inputs);
         for (int i = 0; i < imap.size; i++) {
-            block *label = &chained_gcs[circuitMapping[imap.gc_id[i]]].inputLabels[2*imap.wire_id[i]];
-            int input_idx = imap.input_idx[i];
-            switch(imap.inputter[i]) {
+            block *label = &chained_gcs[circuitMapping[imap.imap_instr[i].gc_id]].inputLabels[2*imap.imap_instr[i].wire_id];
+            int input_idx = imap.imap_instr[i].input_idx;
+            switch(imap.imap_instr[i].inputter) {
             case PERSON_GARBLER:
                 if (usedGarbInputIdx[input_idx] == false) {
                     garbLabels[input_idx] = *(label + inputs[input_idx]);

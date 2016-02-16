@@ -27,8 +27,8 @@ CFLAGS= -g -O3 -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
 CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
 #CFLAGS += -DNDDEBUG # removes all "assert()" at compile time
 
-LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson
-# LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson # for Alex L (libmsgpack)
+#LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson
+LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson # for Alex L (libmsgpack)
 #LIB+= -DNDDEBUG # removes all "assert()" at compile time
 
 ###############
@@ -76,10 +76,11 @@ aes_eval_off:
 	./$(BINDIR)/test --eval-off --type AES
 
 aes_garb_on:
-	./$(BINDIR)/test --garb-on --type AES
+	gdb --args ./$(BINDIR)/test --garb-on --type AES
 
 aes_eval_on:
-	./$(BINDIR)/test --eval-on --type AES 
+	gdb --args ./$(BINDIR)/test --eval-on --type AES 
+
 #########
 # LEVEN #
 #########

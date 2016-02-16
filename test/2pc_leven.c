@@ -148,26 +148,28 @@ void full_leven_garb()
     garbleCircuit(&gc, inputLabels, outputMap, GARBLE_TYPE_STANDARD);
     
     /* Set input mapping */
+    // TODO
+    assert(false && "not yet updated to new input mapping");
     InputMapping imap; 
-    imap.size = n;
-    imap.input_idx = malloc(sizeof(int) * imap.size);
-    imap.gc_id = malloc(sizeof(int) * imap.size);
-    imap.wire_id = malloc(sizeof(int) * imap.size);
-    imap.inputter = malloc(sizeof(Person) * imap.size);
+    //imap.size = n;
+    //imap.input_idx = malloc(sizeof(int) * imap.size);
+    //imap.gc_id = malloc(sizeof(int) * imap.size);
+    //imap.wire_id = malloc(sizeof(int) * imap.size);
+    //imap.inputter = malloc(sizeof(Person) * imap.size);
 
-    for (int i = 0; i < numGarbInputs; i++) {
-        imap.input_idx[i] = i;
-        imap.gc_id[i] = 0;
-        imap.wire_id[i] = i;
-        imap.inputter[i] = PERSON_GARBLER;
-    }
+    //for (int i = 0; i < numGarbInputs; i++) {
+    //    imap.input_idx[i] = i;
+    //    imap.gc_id[i] = 0;
+    //    imap.wire_id[i] = i;
+    //    imap.inputter[i] = PERSON_GARBLER;
+    //}
 
-    for (int i = numGarbInputs; i < n; i++) {
-        imap.input_idx[i] = i;
-        imap.gc_id[i] = 0;
-        imap.wire_id[i] = i;
-        imap.inputter[i] = PERSON_EVALUATOR;
-    }
+    //for (int i = numGarbInputs; i < n; i++) {
+    //    imap.input_idx[i] = i;
+    //    imap.gc_id[i] = 0;
+    //    imap.wire_id[i] = i;
+    //    imap.inputter[i] = PERSON_EVALUATOR;
+    //}
 
     /* Online work */
     uint64_t tot_time;

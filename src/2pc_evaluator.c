@@ -148,19 +148,20 @@ void evaluator_classic_2pc(const int *input, int *output,
     }
 
     /* Plug labels in correctly based on input_mapping */
-    labels = allocate_blocks(gc.n);
-    {
-        int garb_p = 0, eval_p = 0;
-        for (int i = 0; i < map.size; i++) {
-            if (map.inputter[i] == PERSON_GARBLER) {
-                labels[map.wire_id[i]] = garb_labels[garb_p]; 
-                garb_p++;
-            } else if (map.inputter[i] == PERSON_EVALUATOR) {
-                labels[map.wire_id[i]] = eval_labels[eval_p]; 
-                eval_p++;
-            }
-        }
-    }
+    assert(false && "not yet updated for new input mapping");
+    //labels = allocate_blocks(gc.n);
+    //{
+    //    int garb_p = 0, eval_p = 0;
+    //    for (int i = 0; i < map.size; i++) {
+    //        if (map.inputter[i] == PERSON_GARBLER) {
+    //            labels[map.wire_id[i]] = garb_labels[garb_p]; 
+    //            garb_p++;
+    //        } else if (map.inputter[i] == PERSON_EVALUATOR) {
+    //            labels[map.wire_id[i]] = eval_labels[eval_p]; 
+    //            eval_p++;
+    //        }
+    //    }
+    //}
 
     /* Receive output_map */
     output_map = allocate_blocks(2 * gc.m);

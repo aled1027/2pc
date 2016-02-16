@@ -131,19 +131,18 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
     garbleCircuit(gc, NULL, outputMap, GARBLE_TYPE_STANDARD);
 
     newInputMapping(&imap, num_eval_inputs + num_garb_inputs);
-
     for (int i = 0; i < num_eval_inputs; i++) {
-        imap.input_idx[i] = i;
-        imap.gc_id[i] = 0;
-        imap.wire_id[i] = i;
-        imap.inputter[i] = PERSON_EVALUATOR;
+        imap.imap_instr[i].input_idx = i;
+        imap.imap_instr[i].gc_id = 0;
+        imap.imap_instr[i].wire_id = i;
+        imap.imap_instr[i].inputter = PERSON_EVALUATOR;
     }
 
     for (int i = num_eval_inputs; i < num_eval_inputs + num_garb_inputs; i++) {
-        imap.input_idx[i] = i;
-        imap.gc_id[i] = 0;
-        imap.wire_id[i] = i;
-        imap.inputter[i] = PERSON_GARBLER;
+        imap.imap_instr[i].input_idx = i;
+        imap.imap_instr[i].gc_id = 0;
+        imap.imap_instr[i].wire_id = i;
+        imap.imap_instr[i].inputter = PERSON_GARBLER;
     }
 
     {

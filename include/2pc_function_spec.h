@@ -20,12 +20,19 @@ typedef struct {
 } 
 FunctionComponent;
 
+
+typedef struct {
+    int input_idx; // so input_idx maps to (gc_id[i], wire_id[i]) for all i in {wire_id,...wire_id + dist}
+    int gc_id; 
+    int wire_id;
+    int dist; // how many wires
+    Person inputter; 
+} 
+InputMappingInstruction;
+
 typedef struct {
     int size;
-    int* input_idx; // so input_idx[i] maps to (gc_id[i], wire_id[i])
-    int* gc_id; // each int array should be sizeof(int)*n (where n is number of inputs)
-    int* wire_id;
-    Person* inputter; // inputter[i] == GARBLER means the ith input should be inputted by the garbler.
+    InputMappingInstruction *imap_instr;
 } 
 InputMapping;
 
