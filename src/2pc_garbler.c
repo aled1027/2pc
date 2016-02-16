@@ -352,7 +352,6 @@ make_real_output_instructions(FunctionSpec* function,
         int savedGCId = circuitMapping[o->gc_id];
         block key_zero = chained_gcs[savedGCId].outputMap[2 * o->wire_id];
         block key_one = chained_gcs[savedGCId].outputMap[2 * o->wire_id + 1];
-
         block b_zero = zero_block();
         block b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
 
