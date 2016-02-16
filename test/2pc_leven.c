@@ -113,7 +113,8 @@ void leven_garb_on(ChainingType chainingType)
     free(garbInputs);
 }
 
-void full_leven_garb()
+void
+leven_garb_full(void)
 {
     /* Runs the garbler for a full circuit of levenshtein distance. 
      * The only paramter is the integer l, which defines
@@ -127,7 +128,8 @@ void full_leven_garb()
     int n = inputsDevotedToD + 2*2*l;
     int numEvalInputs = 2*l;
     int numGarbInputs = n - numEvalInputs;
-    int m = DIntSize; /* Set Inputs */ int *inputs = allocate_ints(numGarbInputs);
+    int m = DIntSize;
+    int *inputs = allocate_ints(numGarbInputs);
 
     /* The first inputsDevotedToD inputs are the numbers 
      * 0 through l+1 encoded in binary */
@@ -182,7 +184,8 @@ void full_leven_garb()
     free(outputMap);
 }
 
-void full_leven_eval()
+void
+leven_eval_full(void)
 {
     /* Runs the evaluator for a full circuit of 
      * levenshtein distance. The only paramter is the integer l,

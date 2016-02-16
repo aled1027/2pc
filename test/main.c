@@ -315,7 +315,7 @@ go(struct args *args)
             return EXIT_FAILURE;
         }
         if (args->type == EXPERIMENT_LEVEN) {
-            full_leven_garb();
+            leven_garb_full();
         } else {
             garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials);
             removeGarbledCircuit(&gc);
@@ -323,7 +323,7 @@ go(struct args *args)
     } else if (args->eval_full) {
         printf("Full evaluating\n");
         if (args->type == EXPERIMENT_LEVEN) {
-            full_leven_eval();
+            leven_eval_full();
         } else {
             eval_full(n_garb_inputs, n_eval_inputs, noutputs, args->ntrials);
         }
