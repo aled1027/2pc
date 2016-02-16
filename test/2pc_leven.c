@@ -146,8 +146,8 @@ leven_garb_full(void)
     block *outputMap = allocate_blocks(2*m);
     buildLevenshteinCircuit(&gc, l, sigma);
 
-    InputMapping imap;
-    newInputMapping(&imap, numGarbInputs, numEvalInputs);
+    OldInputMapping imap;
+    newOldInputMapping(&imap, numGarbInputs, numEvalInputs);
 
     {
         uint64_t start, end;
@@ -170,7 +170,7 @@ leven_garb_full(void)
     free(inputs);
     free(outputWires);
 
-    deleteInputMapping(&imap);
+    deleteOldInputMapping(&imap);
     free(outputMap);
 }
 

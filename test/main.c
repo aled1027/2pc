@@ -81,6 +81,9 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials, Chainin
     int *inputs;
 
     inputs = malloc(sizeof(int) * ninputs);
+    for (int i = 0; i < ninputs; i++) {
+        inputs[i] = rand() % 2;
+    }
     tot_time = malloc(sizeof(uint64_t) * ntrials);
 
     for (int i = 0; i < ntrials; i++) {
@@ -111,7 +114,7 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials, ChainingType chainin
         sleep(1); // uncomment this if getting hung up
         g_bytes_sent = g_bytes_received = 0;
         for (int j = 0; j < ninputs; j++) {
-           inputs[j] = rand() % 2;
+            inputs[j] = rand() % 2;
         }
         evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i],
                          chainingType);
@@ -131,11 +134,10 @@ static void
 garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
           int ntrials)
 {
-    InputMapping imap;
+    OldInputMapping imap;
     uint64_t start, end;
     block *outputMap = allocate_blocks(2 * gc->m);
-
-    newInputMapping(&imap, num_garb_inputs, num_eval_inputs);
+    newOldInputMapping(&imap, num_garb_inputs, num_eval_inputs);
 
     {
         uint64_t sum = 0;
@@ -166,8 +168,7 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
         free(tot_time);
     }
 
-    deleteInputMapping(&imap);
-
+    deleteOldInputMapping(&imap);
     free(outputMap);
 }
 

@@ -20,14 +20,30 @@ typedef struct {
 } 
 FunctionComponent;
 
+
+typedef struct {
+    int input_idx; // so input_idx maps to (gc_id[i], wire_id[i]) for all i in {wire_id,...wire_id + dist}
+    int gc_id; 
+    int wire_id;
+    int dist; // how many wires
+    Person inputter; 
+} 
+InputMappingInstruction;
+
+typedef struct {
+    int size;
+    InputMappingInstruction *imap_instr;
+} 
+InputMapping;
+
 typedef struct {
     int size;
     int* input_idx; // so input_idx[i] maps to (gc_id[i], wire_id[i])
     int* gc_id; // each int array should be sizeof(int)*n (where n is number of inputs)
     int* wire_id;
     Person* inputter; // inputter[i] == GARBLER means the ith input should be inputted by the garbler.
-} 
-InputMapping;
+}
+OldInputMapping;
 
 typedef struct {
     int circId;
@@ -91,13 +107,13 @@ FunctionSpec;
 int load_function_via_json(char* path, FunctionSpec *function, ChainingType chainingType);
 void print_function(FunctionSpec* function);
 int freeFunctionSpec(FunctionSpec* function);
-int writeInputMappingToBuffer(const InputMapping* input_mapping, char* buffer);
-int readBufferIntoInputMapping(InputMapping* input_mapping, const char* buffer);
+int writeInputMappingToBuffer(const OldInputMapping* input_mapping, char* buffer);
+int readBufferIntoInputMapping(OldInputMapping* input_mapping, const char* buffer);
 void deleteInputMapping(InputMapping *map);
-size_t inputMappingBufferSize(const InputMapping *map);
-void
-newInputMapping(InputMapping *map, int num_garb_inputs, int num_eval_inputs);
+void deleteOldInputMapping(OldInputMapping *map);
+size_t inputMappingBufferSize(const OldInputMapping *map);
 
-void print_instruction(Instruction *in);
+void newInputMapping(InputMapping *map, int size);
+void newOldInputMapping(OldInputMapping *map, int num_garb_inputs, int num_eval_inputs);
 
 #endif

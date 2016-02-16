@@ -6,7 +6,7 @@
 
 
 void
-garbler_classic_2pc(GarbledCircuit *gc, const InputMapping *input_mapping,
+garbler_classic_2pc(GarbledCircuit *gc, const OldInputMapping *input_mapping,
                     const block *outputMap, int num_garb_inputs, int num_eval_inputs,
                     const int *inputs, uint64_t *tot_time);
 

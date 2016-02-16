@@ -45,23 +45,23 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      */
     int savedCircId, offsetIdx;
     uint64_t s,e, eval_time = 0;
-
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
-        /* print_instruction(cur); */
+        //print_instruction(cur);
         switch(cur->type) {
             case EVAL:
-
                 s = current_time_();
                 savedCircId = circuitMapping[cur->ev.circId];
+
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->ev.circId], 
                          computedOutputMap[cur->ev.circId], GARBLE_TYPE_STANDARD);
+
                 e = current_time_();
                 eval_time += e - s;
                 break;
             case CHAIN:
 
-                if (chainingType == CHAINING_TYPE_STANDARD || cur->ch.fromCircId == 0) {
+                if (chainingType == CHAINING_TYPE_STANDARD) {
                     labels[cur->ch.toCircId][cur->ch.toWireId] = xorBlocks(
                             computedOutputMap[cur->ch.fromCircId][cur->ch.fromWireId], 
                             offsets[cur->ch.offsetIdx]);
@@ -77,16 +77,16 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 
                         /* correct computedOutputMap offlineChainingOffsets */
                         /* i.e. correct to enable SIMD trick */
-                        labels[cur->ch.toCircId][k] = zero_block();
-
-                        /* fix with offline chaining offset */
                         labels[cur->ch.toCircId][k] = xorBlocks(
                                 computedOutputMap[cur->ch.fromCircId][j],
-                                chained_gcs[savedCircId].offlineChainingOffsets[j]);
-
-                        labels[cur->ch.toCircId][k] = xorBlocks(
-                                labels[cur->ch.toCircId][k],
                                 offsets[offsetIdx]);
+
+                        if (cur->ch.fromCircId != 0) { /* if not the input component */
+                            labels[cur->ch.toCircId][k] = xorBlocks(
+                                    labels[cur->ch.toCircId][k],
+                                    chained_gcs[savedCircId].offlineChainingOffsets[j]);
+                        }
+
                     }
                 }
                 break;
@@ -105,7 +105,7 @@ evaluator_classic_2pc(const int *input, int *output, int num_garb_inputs,
     int sockfd, res;
     int *selections = NULL;
     GarbledCircuit gc;
-    InputMapping map;
+    OldInputMapping map;
     block *garb_labels = NULL, *eval_labels = NULL;
     block *labels, *output_map;
     uint64_t start, end, _start, _end;
@@ -225,17 +225,34 @@ evaluator_classic_2pc(const int *input, int *output, int num_garb_inputs,
 
     _start = current_time_();
     {
+        for (int i = 0; i < gc.n; i++) {
+            printf("%d: ", i);
+            print_block(stdout, labels[i]);
+            printf("\n");
+        }
+        printf("\n");
+
+        
         block *computed_output_map = allocate_blocks(gc.m);
         evaluate(&gc, labels, computed_output_map, GARBLE_TYPE_STANDARD);
+
+        //for (int i = 0; i < gc.m; i++) {
+        //    printf("%d: ", i);
+        //    print_block(stdout, computed_output_map[i]);
+        //    printf("\n");
+        //}
+        //printf("\n");
+
+
         res = mapOutputs(output_map, computed_output_map, output, gc.m);
-        /* assert(res == SUCCESS); */
+        assert(res == SUCCESS); 
         free(computed_output_map);
     }
     _end = current_time_();
     fprintf(stderr, "Evaluate: %llu\n", _end - _start);
 
     removeGarbledCircuit(&gc);
-    deleteInputMapping(&map);
+    deleteOldInputMapping(&map);
     free(output_map);
     free(eval_labels);
     free(garb_labels);

@@ -110,8 +110,15 @@ freeChainedGarbledCircuit(ChainedGarbledCircuit *chained_gc, bool isGarb, Chaini
         free(chained_gc->inputLabels);
         free(chained_gc->outputMap);
     }
-    if (chainingType == CHAINING_TYPE_SIMD)
+
+    if (chainingType == CHAINING_TYPE_SIMD) {
         free(chained_gc->offlineChainingOffsets);
+        if (isGarb) {
+            free(chained_gc->simd_info.input_blocks);
+            free(chained_gc->simd_info.iblock_map);
+        }
+    }
+
     return 0;
 }
 
