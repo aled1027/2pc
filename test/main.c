@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <getopt.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -75,9 +76,33 @@ compare(const void * a, const void * b)
 }
 
 static void
-garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials, ChainingType chainingType)
+results(const char *name, uint64_t *totals, uint64_t n)
 {
-    uint64_t sum = 0, *tot_time;
+    uint64_t avg = 0, tmp = 0;
+    double sigma, confidence;
+
+    for (int i = 0; i < n; ++i) {
+        avg += totals[i];
+    }
+    avg /= n;
+    for (int i = 0; i < n; ++i) {
+        tmp += (totals[i] - avg)*(totals[i] - avg);
+    }
+    tmp /= n;
+    sigma = sqrt((double) tmp);
+    confidence = 1.96 * sigma / sqrt((double) n);
+    
+    printf("%s average: %llu microsec\n", name, avg / 1000);
+    printf("%s 95%% confidence: %f microsec\n", name, confidence / 1000);
+    printf("%s Kbits sent: %lu\n", name, g_bytes_sent * 8 / 1000);
+    printf("%s Kbits received: %lu\n", name, g_bytes_received * 8 / 1000);
+}
+
+static void
+garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials,
+        ChainingType chainingType)
+{
+    uint64_t *tot_time;
     int *inputs;
 
     inputs = malloc(sizeof(int) * ninputs);
@@ -91,20 +116,19 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials, Chainin
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i], chainingType);
         fprintf(stderr, "Total: %llu\n", tot_time[i]);
-        sum += tot_time[i];
     }
 
-    fprintf(stderr, "GARB average: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
-    fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
-    fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
+    results("GARB", tot_time, ntrials);
 
     free(inputs);
     free(tot_time);
 }
 
 static void
-eval_on(int ninputs, int nlabels, int nchains, int ntrials, ChainingType chainingType) {
-    uint64_t sum = 0, *tot_time;
+eval_on(int ninputs, int nlabels, int nchains, int ntrials,
+        ChainingType chainingType)
+{
+    uint64_t *tot_time;
     int *inputs;
 
     tot_time = malloc(sizeof(uint64_t) * ntrials);
@@ -119,12 +143,9 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials, ChainingType chainin
         evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i],
                          chainingType);
         fprintf(stderr, "Total: %llu\n", tot_time[i]);
-        sum += tot_time[i];
     }
 
-    fprintf(stderr, "EVAL average: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
-    fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
-    fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
+    results("EVAL", tot_time, ntrials);
 
     free(inputs);
     free(tot_time);
@@ -140,7 +161,6 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
     newOldInputMapping(&imap, num_garb_inputs, num_eval_inputs);
 
     {
-        uint64_t sum = 0;
         int *garb_inputs = malloc(sizeof(int) * num_garb_inputs);
         uint64_t *tot_time = calloc(ntrials, sizeof(uint64_t));
 
@@ -152,17 +172,14 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
             start = current_time_();
             garbleCircuit(gc, NULL, outputMap, GARBLE_TYPE_STANDARD);
             end = current_time_();
-            printf("Garble: %llu\n", end - start);
+            fprintf(stderr, "Garble: %llu\n", end - start);
             tot_time[i] += end - start;
             garbler_classic_2pc(gc, &imap, outputMap, num_garb_inputs,
                                 num_eval_inputs, garb_inputs, &tot_time[i]);
-            printf("Total: %llu\n", tot_time[i]);
-            sum += tot_time[i];
+            fprintf(stderr, "Total: %llu\n", tot_time[i]);
         }
 
-        fprintf(stderr, "GARB average: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
-        fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
-        fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
+        results("GARB", tot_time, ntrials);
 
         free(garb_inputs);
         free(tot_time);
@@ -175,7 +192,6 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
 static void
 eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
 {
-    uint64_t sum = 0;
     uint64_t *tot_time = calloc(ntrials, sizeof(uint64_t));
     int *eval_inputs = malloc(sizeof(int) * n_eval_inputs);
     int *output = malloc(sizeof(int) * noutputs);
@@ -188,13 +204,10 @@ eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
         }
         evaluator_classic_2pc(eval_inputs, output, n_garb_inputs, 
                               n_eval_inputs, &tot_time[i]);
-        printf("Total: %llu\n", tot_time[i]);
-        sum += tot_time[i];
+        fprintf(stderr, "Total: %llu\n", tot_time[i]);
     }
 
-    fprintf(stderr, "EVAL average: %llu\n", (uint64_t) sum / (uint64_t) ntrials);
-    fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
-    fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
+    results("EVAL", tot_time, ntrials);
 
     free(output);
     free(eval_inputs);
