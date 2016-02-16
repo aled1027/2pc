@@ -326,10 +326,6 @@ computeOutputs(const OutputInstructions *ois, int *output,
         // decrypt using comp_block as key
         block comp_block = computed_outputmap[oi->gc_id][oi->wire_id];
 
-        printf("comp block: ");
-        print_block(stdout, comp_block);
-        printf("\n");
-
         AES_set_decrypt_key(comp_block, &key);
         out[0] = oi->labels[0];
         out[1] = oi->labels[1];
@@ -337,15 +333,6 @@ computeOutputs(const OutputInstructions *ois, int *output,
 
         b_zero = zero_block();
         b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
-
-
-        printf("dec block0: ");
-        print_block(stdout, out[0]);
-        printf("\n");
-        printf("dec block1: ");
-        print_block(stdout, out[1]);
-        printf("\n");
-
 
         if (equal_blocks(out[0], b_zero) || equal_blocks(out[1], b_zero)) {
             output[i] = 0;
