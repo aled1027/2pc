@@ -119,7 +119,7 @@ leven_garb_full(void)
      * The alphabet is of size 4, i.e. 2 bits, so the actual length
      * of each party's input string is 2*l bits.
      */
-    int sigma = 2;
+    /* int sigma = 2; */
     int DIntSize = (int) floor(log2(l)) + 1;
     int inputsDevotedToD = DIntSize * (l+1);
     int n = inputsDevotedToD + 2*2*l;
@@ -133,10 +133,7 @@ leven_garb_full(void)
     for (int i = 0; i < l + 1; i++) {
         convertToBinary(i, inputs + (DIntSize) * i, DIntSize);
     }
-    /* XXX: should this be the commented out line?  inputsDevotedToD > l + 1, so
-     * it seems we're skipping some inputs... */
-    /* for (int i = inputsDevotedToD; i < numGarbInputs; i++) { */
-    for (int i = l + 1; i < numGarbInputs; i++) {
+    for (int i = inputsDevotedToD; i < numGarbInputs; i++) {
         inputs[i] = rand() % 2;
     }
 
