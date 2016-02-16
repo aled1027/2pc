@@ -197,37 +197,44 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     start = current_time_();
     _start = current_time_();
     {
-        bool *usedGarbInputIdx, *usedEvalInputIdx;
-        InputMapping imap = function->input_mapping;
+        bool *usedInput[2];
+        usedInput[0] = calloc(num_garb_inputs, sizeof(bool));
+        usedInput[1] = calloc(num_eval_inputs, sizeof(bool));
 
+        InputMapping imap = function->input_mapping;
         evalLabels = allocate_blocks(2 * num_eval_inputs);
         garbLabels = allocate_blocks(num_garb_inputs);
-        usedGarbInputIdx = calloc(sizeof(bool), num_garb_inputs);
-        usedEvalInputIdx = calloc(sizeof(bool), num_eval_inputs);
         for (int i = 0; i < imap.size; i++) {
-            block *label = &chained_gcs[circuitMapping[imap.imap_instr[i].gc_id]].inputLabels[2*imap.imap_instr[i].wire_id];
-            int input_idx = imap.imap_instr[i].input_idx;
-            switch(imap.imap_instr[i].inputter) {
-            case PERSON_GARBLER:
-                if (usedGarbInputIdx[input_idx] == false) {
-                    garbLabels[input_idx] = *(label + inputs[input_idx]);
-                    usedGarbInputIdx[input_idx] = true;
-                }
-                break;
-            case PERSON_EVALUATOR:
-                if (usedEvalInputIdx[input_idx] == false) {
-                    evalLabels[2*input_idx] = *label;
-                    evalLabels[2*input_idx + 1] = *(label + 1);
-                    usedEvalInputIdx[input_idx] = true;
-                }
-                break;
-            default:
-                printf("Person not detected while processing input_mapping.\n");
-                break;
-            } 
+            InputMappingInstruction *cur = &imap.imap_instr[i];
+            int gc_id = circuitMapping[cur->gc_id];
+            int input_idx = 0;
+            int wire_id = 0;
+
+            if (usedInput[cur->inputter][cur->input_idx]) {
+                continue;
+            }
+
+            switch(cur->inputter) {
+                case PERSON_GARBLER:
+                    for (int j = 0; j < cur->dist; ++j) {
+                        input_idx = cur->input_idx + j;
+                        wire_id = cur->wire_id + j;
+                        garbLabels[input_idx] = chained_gcs[gc_id].inputLabels[2*wire_id + inputs[input_idx]];
+                    }
+                    break;
+                case PERSON_EVALUATOR:
+                    input_idx = cur->input_idx;
+                    wire_id = cur->wire_id;
+                    memcpy(&evalLabels[2*input_idx],
+                        &chained_gcs[gc_id].inputLabels[2*wire_id],
+                        2 * cur->dist * sizeof(block));
+                    break;
+                default:
+                    printf("Person not detected while processing input_mapping.\n");
+                    break;
+            }
+            usedInput[cur->inputter][cur->input_idx] = true;
         }
-        free(usedGarbInputIdx);
-        free(usedEvalInputIdx);
     }
     _end = current_time_();
     fprintf(stderr, "Set up input labels: %llu\n", _end - _start);
@@ -421,6 +428,7 @@ make_real_instructions(FunctionSpec *function,
     int offsetsIdx = 1;
     int num_instructions = function->instructions.size;
     offsets[0] = zero_block();
+
     for (int i = 0; i < num_instructions; ++i) {
 
         cur = &(function->instructions.instr[i]);
@@ -434,6 +442,7 @@ make_real_instructions(FunctionSpec *function,
                 cur->ch.offsetIdx = 0;
             } else {
                 /* this idx has been used */
+                /* this is only used for levenshtein presently */
                 offsets[offsetsIdx] = xorBlocks(
                     chained_gcs[circuitMapping[imapCirc[idx]]].inputLabels[2*imapWire[idx]],
                     chained_gcs[circuitMapping[cur->ch.toCircId]].inputLabels[2*cur->ch.toWireId]); 
@@ -498,7 +507,6 @@ make_real_instructions(FunctionSpec *function,
         }
     }
     *noffsets = offsetsIdx;
-
     return SUCCESS;
 }
 
@@ -664,7 +672,7 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     close(fd);
     close(serverfd);
 
-    free(randLabels);
+    //free(randLabels);
 
     return SUCCESS;
 }

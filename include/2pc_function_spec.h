@@ -105,5 +105,6 @@ size_t inputMappingBufferSize(const InputMapping *map);
 void newInputMapping(InputMapping *map, int size);
 
 void print_instruction(Instruction *in);
+void print_output_instructions(OutputInstructions *ois);
 
 #endif

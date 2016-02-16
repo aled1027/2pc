@@ -81,6 +81,9 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials, Chainin
     int *inputs;
 
     inputs = malloc(sizeof(int) * ninputs);
+    for (int i = 0; i < ninputs; i++) {
+        inputs[i] = 0;
+    }
     tot_time = malloc(sizeof(uint64_t) * ntrials);
 
     for (int i = 0; i < ntrials; i++) {
@@ -107,7 +110,8 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials, ChainingType chainin
     for (int i = 0; i < ntrials; i++) {
         sleep(1); // uncomment this if getting hung up
         for (int j = 0; j < ninputs; j++) {
-           inputs[j] = rand() % 2;
+            inputs[j] = 0;
+           //inputs[j] = rand() % 2;
         }
         evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, &tot_time[i],
                          chainingType);

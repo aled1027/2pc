@@ -358,7 +358,6 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
         imap->imap_instr[i].dist = end_input_idx - start_input_idx + 1;
         imap->imap_instr[i].wire_id = start_wire_idx;
     }
-    print_input_mapping(imap);
     return SUCCESS;
 }
 
@@ -472,7 +471,6 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
         }
     }
     assert(idx == instructions->size);
-    print_instructions(instructions);
     return SUCCESS;
 }
 

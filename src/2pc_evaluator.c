@@ -45,23 +45,22 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      */
     int savedCircId, offsetIdx;
     uint64_t s,e, eval_time = 0;
-
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
-        /* print_instruction(cur); */
         switch(cur->type) {
             case EVAL:
-
                 s = current_time_();
                 savedCircId = circuitMapping[cur->ev.circId];
+
                 evaluate(&chained_gcs[savedCircId].gc, labels[cur->ev.circId], 
                          computedOutputMap[cur->ev.circId], GARBLE_TYPE_STANDARD);
+
                 e = current_time_();
                 eval_time += e - s;
                 break;
             case CHAIN:
 
-                if (chainingType == CHAINING_TYPE_STANDARD || cur->ch.fromCircId == 0) {
+                if (chainingType == CHAINING_TYPE_STANDARD) {
                     labels[cur->ch.toCircId][cur->ch.toWireId] = xorBlocks(
                             computedOutputMap[cur->ch.fromCircId][cur->ch.fromWireId], 
                             offsets[cur->ch.offsetIdx]);
@@ -77,16 +76,16 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 
                         /* correct computedOutputMap offlineChainingOffsets */
                         /* i.e. correct to enable SIMD trick */
-                        labels[cur->ch.toCircId][k] = zero_block();
-
-                        /* fix with offline chaining offset */
                         labels[cur->ch.toCircId][k] = xorBlocks(
                                 computedOutputMap[cur->ch.fromCircId][j],
-                                chained_gcs[savedCircId].offlineChainingOffsets[j]);
-
-                        labels[cur->ch.toCircId][k] = xorBlocks(
-                                labels[cur->ch.toCircId][k],
                                 offsets[offsetIdx]);
+
+                        if (cur->ch.fromCircId != 0) { /* if not the input component */
+                            labels[cur->ch.toCircId][k] = xorBlocks(
+                                    labels[cur->ch.toCircId][k],
+                                    chained_gcs[savedCircId].offlineChainingOffsets[j]);
+                        }
+
                     }
                 }
                 break;
@@ -316,7 +315,6 @@ computeOutputs(const OutputInstructions *ois, int *output,
                block **computed_outputmap)
 {
     assert(output && "output's memory should be allocated");
-
     for (uint16_t i = 0; i < ois->size; ++i) {
         AES_KEY key;
         block out[2], b_zero, b_one;
@@ -324,7 +322,6 @@ computeOutputs(const OutputInstructions *ois, int *output,
 
         // decrypt using comp_block as key
         block comp_block = computed_outputmap[oi->gc_id][oi->wire_id];
-
         AES_set_decrypt_key(comp_block, &key);
         out[0] = oi->labels[0];
         out[1] = oi->labels[1];
