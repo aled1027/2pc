@@ -355,22 +355,21 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
         imap->imap_instr[i].input_idx = start_input_idx;
         imap->imap_instr[i].gc_id = gc_id;
         imap->imap_instr[i].inputter = inputter;
-        imap->imap_instr[i].dist = end_input_idx - start_input_idx;
+        imap->imap_instr[i].dist = end_input_idx - start_input_idx + 1;
         imap->imap_instr[i].wire_id = start_wire_idx;
     }
+    print_input_mapping(imap);
     return SUCCESS;
 }
 
 int 
 json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chainingType) 
 {
+    /* preliminary work */
     Instructions* instructions = &(function->instructions);
-
     InputMapping *imap = &function->input_mapping;
-
     json_t *jInstructions, *jInstr, *jPtr, *jMetadata;
     const char* sType;
-
     jMetadata = json_object_get(root, "metadata");
     jPtr = json_object_get(jMetadata, "instructions_size");
     assert(json_is_integer(jPtr));
@@ -383,25 +382,20 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
     } else {
         instructions->size = imap->size + loop_size;
     }
-
-    /* printf("mallocing %zu for instructions\n", instructions->size * sizeof(Instruction)); */
     instructions->instr = malloc(instructions->size * sizeof(Instruction));
     assert(instructions->instr);
 
-
-    /* Add chaining for "InputComponent" as specified by InputMapping,
-     * which shold be already loaded from the json file */
+    /* Load input mapping instructions */
     for (int i = 0; i < imap->size; ++i) {
-        InputMappingInstruction *cur = imap->imap_instr; 
-
+        InputMappingInstruction *cur = &imap->imap_instr[i]; 
         instructions->instr[i].type = CHAIN;
         instructions->instr[i].ch.fromCircId = 0;
-        instructions->instr[i].ch.fromWireId = (cur->inputter == PERSON_GARBLER) ? 
+        instructions->instr[i].ch.fromWireId = (cur->inputter == PERSON_GARBLER) ?  
                             cur->input_idx : cur->input_idx + function->num_garb_inputs;
         instructions->instr[i].ch.toCircId = cur->gc_id;
         instructions->instr[i].ch.toWireId = cur->wire_id;
         instructions->instr[i].ch.wireDist = cur->dist;
-        /*printf("chaining from circId 0 wire_id %d\n", instructions->instr[i].chFromWireId);*/
+        instructions->instr[i].ch.offsetIdx = 0;
     }
 
     /* Add normal chaining and evaluating instructions as specified by json */
@@ -478,6 +472,7 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
         }
     }
     assert(idx == instructions->size);
+    print_instructions(instructions);
     return SUCCESS;
 }
 
