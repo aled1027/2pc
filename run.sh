@@ -15,13 +15,13 @@ do
     sleep 0.5
     ./bin/test --type $TYPE --times $NTIMES --eval-on 2> logs/$TYPE-eval-on.txt
 
-    # echo -e "\n$TYPE Full\n"
+    echo -e "\n$TYPE Full\n"
 
-    # sleep 0.5
-    # ./bin/test --type $TYPE --times $NTIMES --garb-full  2> logs/$TYPE-garb-full.txt &
-    # sleep 0.5
-    # ./bin/test --type $TYPE --times $NTIMES --eval-full 2> logs/$TYPE-eval-full.txt
-    # sleep 1.0
+    sleep 0.5
+    ./bin/test --type $TYPE --times $NTIMES --garb-full  2> logs/$TYPE-garb-full.txt &
+    sleep 0.5
+    ./bin/test --type $TYPE --times $NTIMES --eval-full 2> logs/$TYPE-eval-full.txt
+    sleep 1.0
 
 done
 
@@ -40,11 +40,11 @@ do
     ./bin/test --type $TYPE --nsymbols $NSYMBOLS --times $NTIMES --eval-on 2> logs/$TYPE-eval-on.txt
     sleep 1.0
 
-    # echo -e "\n$TYPE-$NSYMBOLS Full\n"
+    echo -e "\n$TYPE-$NSYMBOLS Full\n"
 
-    # ./bin/test --type $TYPE --nsymbols $NSYMBOLS --times $NTIMES --garb-full  2> logs/$TYPE-garb-full.txt &
-    # sleep 1.0
-    # ./bin/test --type $TYPE --nsymbols $NSYMBOLS --times $NTIMES --eval-full 2> logs/$TYPE-eval-full.txt
-    # sleep 1.0
+    ./bin/test --type $TYPE --nsymbols $NSYMBOLS --times $NTIMES --garb-full  2> logs/$TYPE-garb-full.txt &
+    sleep 1.0
+    ./bin/test --type $TYPE --nsymbols $NSYMBOLS --times $NTIMES --eval-full 2> logs/$TYPE-eval-full.txt
+    sleep 1.0
 
 done
