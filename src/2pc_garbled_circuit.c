@@ -154,6 +154,7 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
     if (!isGarbler && chainingType == CHAINING_TYPE_SIMD) {
         fwrite(chained_gc->offlineChainingOffsets, sizeof(block), gc->m, f);
     }
+    fclose(f);
     return SUCCESS;
 }
 
@@ -195,7 +196,7 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
         chained_gc->offlineChainingOffsets = allocate_blocks(gc->m);
         fread(chained_gc->offlineChainingOffsets, sizeof(block), gc->m, f);
     }
-    
+    fclose(f);
     return SUCCESS;
 }
 

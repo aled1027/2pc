@@ -27,8 +27,7 @@ CFLAGS= -g -O3 -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
 CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
 #CFLAGS += -DNDDEBUG # removes all "assert()" at compile time
 
-#LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson
-LIBS=-lmsgpack -lm -lcrypto -lssl -lgmp -ljansson # for Alex L (libmsgpack)
+LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson
 #LIB+= -DNDDEBUG # removes all "assert()" at compile time
 
 ###############

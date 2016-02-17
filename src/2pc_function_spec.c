@@ -607,58 +607,59 @@ load_function_via_json(char* path, FunctionSpec* function, ChainingType chaining
      * there exists a function to load directly from file, 
      * but I was getting runtime memory errors when using it.
      */
+    long fs;
+    FILE *f;
+    json_t *jRoot;
+    json_error_t error;
+    char *buffer = NULL;
+    int res = FAILURE;
 
-    //printf("loading %s\n", path);
-    long fs = filesize(path); 
-    FILE *f = fopen(path, "r"); 
+    f = fopen(path, "r");
     if (f == NULL) {
         printf("Error in opening file %s.\n", path);
-        return -1;
-    }   
-    char *buffer = malloc(fs); 
-    assert(buffer);
+        return FAILURE;
+    }
+    fs = filesize(path);
+    if (fs == FAILURE)
+        goto cleanup;
+    buffer = malloc(fs);
     fread(buffer, sizeof(char), fs, f);
     buffer[fs-1] = '\0';
 
-    json_t *jRoot;
-    json_error_t error; 
     jRoot = json_loads(buffer, 0, &error);
     if (!jRoot) {
         fprintf(stderr, "error load json on line %d: %s\n", error.line, error.text);
-        return FAILURE;
+        goto cleanup;
     }
-    fclose(f);
-    free(buffer);
-
 
     // Grab things from the json_t object
     if (json_load_metadata(jRoot, function) == FAILURE) {
         fprintf(stderr, "error loading metadata");
-        return FAILURE;
+        goto cleanup;
     }
-
     if (json_load_components(jRoot, function) == FAILURE) {
         fprintf(stderr, "error loading json components");
-        return FAILURE;
+        goto cleanup;
     }
-    
     if (json_load_input_mapping(jRoot, function) == FAILURE) {
-        fprintf(stderr, "error loading json components");
-        return FAILURE;
+        fprintf(stderr, "error loading json input mapping");
+        goto cleanup;
     }
-
     if (json_load_instructions(jRoot, function, chainingType) == FAILURE) {
         fprintf(stderr, "error loading json instructions");
-        return FAILURE;
+        goto cleanup;
     }
-
     if (json_load_output(jRoot, function) == FAILURE) {
         fprintf(stderr, "error loading json output");
         return FAILURE;
     }
 
     json_decref(jRoot); // frees all of the other json_t* objects, everywhere.
-    return SUCCESS;
+    res = SUCCESS;
+cleanup:
+    free(buffer);
+    fclose(f);
+    return res;
 }
 
 

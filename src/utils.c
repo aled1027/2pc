@@ -48,11 +48,6 @@ current_time_ns(void)
     return 1000000000 * tp.tv_sec + tp.tv_nsec;
 }
 
-/* uint64_t */
-/* nanoSecondsToMilliseconds(uint64_t nanoseconds) { */
-/*     return nanoseconds / 1000000; */
-/* } */
-
 void *
 ot_malloc(size_t size)
 {
@@ -64,7 +59,6 @@ ot_free(void *p)
 {
     return _mm_free(p);
 }
-
 
 void
 arrayPopulateRange(int *arr, int start, int end) 
@@ -96,7 +90,7 @@ filesize(char *filename)
 	if (stat(filename, &st) == 0)
 		return st.st_size;
 
-	return -1;
+	return FAILURE;
 }
 
 int 
@@ -114,18 +108,14 @@ writeBufferToFile(char* buffer, size_t buf_size, char* fileName)
 }
 
 int
-readFileIntoBuffer(char* buffer, char* fileName) 
+readFileIntoBuffer(char *buffer, char *fileName) 
 {
-    /* assume buffer is already malloced */
-    assert(buffer);
     FILE *f = fopen(fileName, "r");
-    long fs = filesize(fileName);
-
     if (f == NULL) {
         printf("Write: Error in opening file %s.\n", fileName);
         return FAILURE;
     }
-    fread(buffer, sizeof(char), fs, f);
+    fread(buffer, sizeof(char), filesize(fileName), f);
     fclose(f);
     return SUCCESS;
 }
@@ -137,41 +127,13 @@ debug(char *s)
     fflush(stderr);
 }
 
-block
-our_encrypt(block *bl, block* key)
-{
-    /* encrypt bl using key. output is put back into bl */
-    block ret;
-    ret = xorBlocks(*bl, *key);
-    return ret;
-    
-    // Ideally what it would look like:
-    //AES_KEY key;
-    //AES_set_encrypt_key((unsigned char *) bl, 128, key);
-    //AES_ecb_encrypt_blks(bl, 1, key);
-}
-
-block
-our_decrypt(block *bl, block* key)
-{
-    /* encrypt bl using key. output is put back into bl */
-    block ret;
-    ret = xorBlocks(*bl, *key);
-    return ret;
-    
-    // Ideally what it would look like:
-    //AES_KEY key;
-    //AES_set_encrypt_key((unsigned char *) bl, 128, key);
-    //AES_ecb_encrypt_blks(bl, 1, key);
-}
-
 void print_gate(Gate *g) 
 {
     printf("Type: %d, inputs %d %d output: %d\n",
-            g->type,
-            g->input0,
-            g->input0,
-            g->output);
+           g->type,
+           g->input0,
+           g->input0,
+           g->output);
 }
 
 void print_table(GarbledTable *gt)
