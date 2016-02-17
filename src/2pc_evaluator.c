@@ -98,8 +98,9 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 }
 
 void
-evaluator_classic_2pc(const int *input, int *output, int num_garb_inputs,
-                      int num_eval_inputs, uint64_t *tot_time)
+evaluator_classic_2pc(const int *input, int *output,
+                      int num_garb_inputs, int num_eval_inputs,
+                      uint64_t *tot_time)
 {
     int sockfd, res;
     int *selections = NULL;
@@ -150,7 +151,6 @@ evaluator_classic_2pc(const int *input, int *output, int num_garb_inputs,
             selections[i] ^= input[i];
         }
         recvLabels = allocate_blocks(2 * num_eval_inputs);
-        /* valgrind is saying corrections is unitialized, but it seems to be */
         net_send(sockfd, selections, sizeof(int) * num_eval_inputs, 0);
         net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
         for (int i = 0; i < num_eval_inputs; ++i) {
@@ -223,7 +223,7 @@ evaluator_classic_2pc(const int *input, int *output, int num_garb_inputs,
         evaluate(&gc, labels, computed_output_map, GARBLE_TYPE_STANDARD);
 
         res = mapOutputs(output_map, computed_output_map, output, gc.m);
-        assert(res == SUCCESS); 
+        /* assert(res == SUCCESS);  */
         free(computed_output_map);
     }
     _end = current_time_();
@@ -268,29 +268,28 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains, ChainingType chai
     if (num_eval_inputs > 0) {
         int *selections;
         block *evalLabels;
-
-        char selName[50];
-        char lblName[50];
-
-        (void) sprintf(selName, "%s/%s", dir, "sel"); /* XXX: security hole */
-        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
+        char *fname;
+        size_t size;
 
         selections = malloc(sizeof(int) * num_eval_inputs);
-        if (selections == NULL) {
-            perror("malloc");
-            exit(EXIT_FAILURE);
-        }
+
+        size = strlen(dir) + strlen("/sel") + 1;
+        fname = malloc(size);
+
         for (int i = 0; i < num_eval_inputs; ++i) {
             selections[i] = rand() % 2;
         }
         evalLabels = allocate_blocks(num_eval_inputs);
         ot_np_recv(&state, sockfd, selections, num_eval_inputs, sizeof(block),
                    2, evalLabels, new_choice_reader, new_msg_writer);
-        saveOTSelections(selName, selections, num_eval_inputs);
-        saveOTLabels(lblName, evalLabels, num_eval_inputs, false);
+        (void) snprintf(fname, size, "%s/%s", dir, "sel");
+        saveOTSelections(fname, selections, num_eval_inputs);
+        (void) snprintf(fname, size, "%s/%s", dir, "lbl");
+        saveOTLabels(fname, evalLabels, num_eval_inputs, false);
 
         free(selections);
         free(evalLabels);
+        free(fname);
     }
 
     end = current_time_();
@@ -316,7 +315,8 @@ recvInstructions(int fd, Instructions *insts, block **offsets)
 }
 
 static void 
-loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, int ncgcs, char *dir, ChainingType chainingType) 
+loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, int ncgcs, char *dir,
+                           ChainingType chainingType) 
 {
     /* Loads chained garbled circuits from disk, assuming the loader is the evaluator */
     for (int i = 0; i < ncgcs; ++i) {
@@ -327,14 +327,16 @@ loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, int ncgcs, char *dir, Cha
 static void
 loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
 {
-        char selName[50], lblName[50];
+    size_t size;
+    char *fname;
 
-        (void) sprintf(selName, "%s/%s", dir, "sel"); /* XXX: security hole */
-        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
-
-        *corrections = loadOTSelections(selName);
-
-        *eval_labels = loadOTLabels(lblName);
+    size = strlen(dir) + strlen("/sel") + 1;
+    fname = malloc(size);
+    (void) snprintf(fname, size, "%s/%s", dir, "sel");
+    *corrections = loadOTSelections(fname);
+    (void) snprintf(fname, size, "%s/%s", dir, "lbl");
+    *eval_labels = loadOTLabels(fname);
+    free(fname);
 }
 
 static int
@@ -351,7 +353,13 @@ computeOutputs(const OutputInstructions *ois, int *output,
         // decrypt using comp_block as key
         block comp_block = computed_outputmap[oi->gc_id][oi->wire_id];
 
-        AES_set_decrypt_key(comp_block, &key);
+        /* XXX: huh?  why does calling AES_set_decrypt_key not work!? */
+        /* AES_set_decrypt_key(comp_block, &key); */
+        {
+            AES_KEY temp_key;
+            AES_set_encrypt_key(comp_block, &temp_key);
+            AES_set_decrypt_key_fast(&key, &temp_key);
+        }
         out[0] = oi->labels[0];
         out[1] = oi->labels[1];
         AES_ecb_decrypt_blks(out, 2, &key);
@@ -366,7 +374,7 @@ computeOutputs(const OutputInstructions *ois, int *output,
         } else {
             fprintf(stderr, "Could not compute output[%d] from (gc_id: %d, wire_id: %d)\n",
                     i, oi->gc_id, oi->wire_id);
-            assert(false);
+            /* assert(false); */
             return FAILURE;
         }
     }
@@ -375,7 +383,8 @@ computeOutputs(const OutputInstructions *ois, int *output,
 
 int
 evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
-                 int num_chained_gcs, uint64_t *tot_time, ChainingType chainingType)
+                 int num_chained_gcs, ChainingType chainingType,
+                 uint64_t *tot_time, uint64_t *tot_time_no_load)
 {
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
@@ -524,7 +533,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         int res = computeOutputs(&output_instructions, output, computedOutputMap);
         if (res == FAILURE) {
             fprintf(stderr, "computeOutputs failed\n");
-            return FAILURE;
+            /* return FAILURE; */
         }
     }
     free(output_instructions.output_instruction);
@@ -551,9 +560,10 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     free(offsets);
 
     end = current_time_();
-    fprintf(stderr, "Total (post connection): %llu\n", end - start);
     if (tot_time)
         *tot_time = end - start + loading_time;
+    if (tot_time_no_load)
+        *tot_time_no_load = end - start;
     return SUCCESS;
 }
 

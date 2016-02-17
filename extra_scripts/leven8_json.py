@@ -3,6 +3,7 @@ import json # json.dumps
 from collections import OrderedDict
 import argparse
 import math
+import sys
 
 def initializeComponents(ret_dict):
     l = ret_dict['metadata']['l']
@@ -210,5 +211,7 @@ def generateLevenJSON(l):
     print(s)
 
 if __name__=='__main__':
-    l = 5
-    generateLevenJSON(l)
+    if len(sys.argv) != 2:
+        print("Usage: %s <l>", sys.argv[0])
+        exit(1)
+    generateLevenJSON(int(sys.argv[1]))

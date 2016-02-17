@@ -66,10 +66,9 @@ extract_labels_gc(block *garbLabels, block *evalLabels, const GarbledCircuit *gc
 
 void 
 garbler_classic_2pc(GarbledCircuit *gc, const OldInputMapping *input_mapping,
-                    const block *output_map, int num_garb_inputs, int num_eval_inputs,
-                    const int *inputs, uint64_t *tot_time)
+                    const block *output_map, int num_garb_inputs,
+                    int num_eval_inputs, const int *inputs, uint64_t *tot_time)
 {
-    /* Does 2PC in the classic way, without components. */
     block *randLabels;
     block *garb_labels = NULL, *eval_labels = NULL;
     int serverfd, fd;
@@ -106,6 +105,17 @@ garbler_classic_2pc(GarbledCircuit *gc, const OldInputMapping *input_mapping,
     start = current_time_();
 
     gc_comm_send(fd, gc);
+    /* { */
+    /*     int res; */
+    /*     int *output = allocate_ints(gc->m); */
+    /*     block *computed_output_map = allocate_blocks(gc->m); */
+    /*     evaluate(&gc, labels, computed_output_map, GARBLE_TYPE_STANDARD); */
+
+    /*     res = mapOutputs(output_map, computed_output_map, output, gc->m); */
+    /*     assert(res == SUCCESS);  */
+    /*     free(computed_output_map); */
+    /*     free(output); */
+    /* } */
 
     if (num_eval_inputs > 0)
         eval_labels = allocate_blocks(2 * num_eval_inputs);
@@ -474,10 +484,14 @@ make_real_instructions(FunctionSpec *function,
         /* gcChainingMap tracks which component is mapping to which component. 
          * maps (gc-id, gc-id, simd-idx) --> offset-idx */
 
-        // hardcoding 3 as the max number of simd_info.input_blocks
-        int gcChainingMap[num_chained_gcs+1][num_chained_gcs+1][3]; 
+        int ***gcChainingMap;
+        /* int gcChainingMap[num_chained_gcs+1][num_chained_gcs+1][3];  */
+
+        gcChainingMap = calloc(num_chained_gcs + 1, sizeof(int **));
         for (int i = 0; i < num_chained_gcs+1; i++) {
+            gcChainingMap[i] = calloc(num_chained_gcs + 1, sizeof(int *));
             for (int j = 0; j < num_chained_gcs+1; j++) {
+                gcChainingMap[i][j] = calloc(3, sizeof(int));
                 for (int k = 0; k < 3; k++) {
                     gcChainingMap[i][j][k] = -1;
                 }
@@ -509,6 +523,14 @@ make_real_instructions(FunctionSpec *function,
                 }
             }
         }
+
+        for (int i = 0; i < num_chained_gcs + 1; ++i) {
+            for (int j = 0; j < num_chained_gcs + 1; ++j) {
+                free(gcChainingMap[i][j]);
+            }
+            free(gcChainingMap[i]);
+        }
+        free(gcChainingMap);
     }
     *noffsets = offsetsIdx;
     return SUCCESS;
@@ -545,9 +567,12 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
         /* pre-processing OT using random labels */
         if (num_eval_inputs > 0) {
             block *evalLabels;
-            char lblName[50];
+            char *fname;
+            size_t size;
 
-            (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
+            size = strlen(dir) + strlen("/lbl") + 1;
+            fname = malloc(size);
+            (void) snprintf(fname, size, "%s/%s", dir, "lbl");
 
             evalLabels = allocate_blocks(2 * num_eval_inputs);
             for (int i = 0; i < 2 * num_eval_inputs; ++i) {
@@ -556,9 +581,10 @@ garbler_offline(char *dir, ChainedGarbledCircuit* chained_gcs,
             
             ot_np_send(&state, fd, evalLabels, sizeof(block), num_eval_inputs, 2,
                        new_msg_reader, new_item_reader);
-            saveOTLabels(lblName, evalLabels, num_eval_inputs, true);
+            saveOTLabels(fname, evalLabels, num_eval_inputs, true);
 
             free(evalLabels);
+            free(fname);
         }
     }
     end = current_time_();
@@ -584,7 +610,6 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     FunctionSpec function;
     int *circuitMapping, noffsets = 0;
     block *randLabels = NULL, *offsets = NULL;
-    char lblName[50];
 
     if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
         perror("net_init_server");
@@ -608,15 +633,19 @@ garbler_online(char *function_path, char *dir, int *inputs, int num_garb_inputs,
     /* Load everything else from disk */
     _start = current_time_();
     {
+        size_t size;
+        char *lblName;
         /* load chained garbled circuits from disk */
         chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         for (int i = 0; i < num_chained_gcs; ++i) {
             loadChainedGC(&chained_gcs[i], dir, i, true, chainingType);
         }
 
-        /* load ot info from disk */
-        (void) sprintf(lblName, "%s/%s", dir, "lbl"); /* XXX: security hole */
+        size = strlen(dir)  + strlen("/lbl") + 1;
+        lblName = malloc(size);
+        (void) snprintf(lblName, size, "%s/%s", dir, "lbl");
         randLabels = loadOTLabels(lblName);
+        free(lblName);
     }
     _end = current_time_();
     total += _end - _start;
