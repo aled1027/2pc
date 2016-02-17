@@ -46,13 +46,6 @@ extract_labels_gc(block *garbLabels, block *evalLabels, const GarbledCircuit *gc
     int eval_p = 0, garb_p = 0;
     for (int i = 0; i < map->size; ++i) {
         Wire *wire = &gc->wires[map->wire_id[i]];
-
-        printf("%d: ", i);
-        print_block(stdout, wire->label0);
-        printf("\n");
-        print_block(stdout, wire->label1);
-        printf("\n");
-
         switch (map->inputter[i]) {
         case PERSON_GARBLER:
             memcpy(&garbLabels[garb_p],
@@ -147,13 +140,7 @@ garbler_classic_2pc(GarbledCircuit *gc, const OldInputMapping *input_mapping,
         garb_labels = allocate_blocks(num_garb_inputs);
 
     extract_labels_gc(garb_labels, eval_labels, gc, input_mapping, inputs);
-    /* for (int i = 0; i < num_eval_inputs; ++i) { */
-    /*     print_block(stdout, eval_labels[2 * i]); */
-    /*     printf(" "); */
-    /*     print_block(stdout, eval_labels[2 * i + 1]); */
-    /*     printf("\n"); */
-    /* } */
-
+    
     if (num_eval_inputs > 0) {
         int *corrections;
         corrections = calloc(num_eval_inputs, sizeof(int));
@@ -183,14 +170,6 @@ garbler_classic_2pc(GarbledCircuit *gc, const OldInputMapping *input_mapping,
     {
         buffer = realloc(buffer, p + 2 * gc->m * sizeof(block));
         p += addToBuffer(buffer + p, output_map, 2 * gc->m * sizeof(block));
-
-        for (int i = 0; i < gc->m; i++) {
-            printf("%d: ", i);
-            print_block(stdout, output_map[2*i]);
-            printf("\n");
-            print_block(stdout, output_map[2*i + 1]);
-            printf("\n");
-        }
     }
 
     /* Send input_mapping to evaluator */
@@ -282,6 +261,7 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         free(usedInput[0]);
         free(usedInput[1]);
     }
+
     _end = current_time_();
     fprintf(stderr, "Set up input labels: %llu\n", _end - _start);
 
@@ -510,7 +490,7 @@ make_real_instructions(FunctionSpec *function,
                 offsets[offsetsIdx] = xorBlocks(
                     chained_gcs[circuitMapping[cur->ch.fromCircId]].outputMap[2*cur->ch.fromWireId],
                     chained_gcs[circuitMapping[cur->ch.toCircId]].inputLabels[2*cur->ch.toWireId]); 
-
+                
                 cur->ch.offsetIdx = offsetsIdx;
                 ++offsetsIdx;
             }

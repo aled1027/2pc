@@ -116,4 +116,6 @@ size_t inputMappingBufferSize(const OldInputMapping *map);
 void newInputMapping(InputMapping *map, int size);
 void newOldInputMapping(OldInputMapping *map, int num_garb_inputs, int num_eval_inputs);
 
+void print_instructions(const Instructions* instr);
+
 #endif

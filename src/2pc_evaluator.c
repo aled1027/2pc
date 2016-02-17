@@ -47,7 +47,6 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
     uint64_t s,e, eval_time = 0;
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
-        //print_instruction(cur);
         switch(cur->type) {
             case EVAL:
                 s = current_time_();
@@ -175,11 +174,6 @@ evaluator_classic_2pc(const int *input, int *output, int num_garb_inputs,
     fprintf(stderr, "Receive garbler labels: %llu\n", _end - _start);
     fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
-    /* for (int i = 0; i < num_eval_inputs; ++i) { */
-    /*     print_block(stdout, eval_labels[i]); */
-    /*     printf("\n"); */
-    /* } */
-
     _start = current_time_();
     {
         tmp = g_bytes_received;
@@ -225,24 +219,8 @@ evaluator_classic_2pc(const int *input, int *output, int num_garb_inputs,
 
     _start = current_time_();
     {
-        for (int i = 0; i < gc.n; i++) {
-            printf("%d: ", i);
-            print_block(stdout, labels[i]);
-            printf("\n");
-        }
-        printf("\n");
-
-        
         block *computed_output_map = allocate_blocks(gc.m);
         evaluate(&gc, labels, computed_output_map, GARBLE_TYPE_STANDARD);
-
-        //for (int i = 0; i < gc.m; i++) {
-        //    printf("%d: ", i);
-        //    print_block(stdout, computed_output_map[i]);
-        //    printf("\n");
-        //}
-        //printf("\n");
-
 
         res = mapOutputs(output_map, computed_output_map, output, gc.m);
         assert(res == SUCCESS); 

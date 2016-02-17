@@ -127,26 +127,11 @@ print_instruction(const Instruction *in)
 }
 
 void 
-print_instructions(Instructions* instr) 
+print_instructions(const Instructions* instr) 
 {
     printf("Instructions:\n");
     for (int i = 0; i < instr->size; i++) {
-        switch(instr->instr[i].type) {
-            case EVAL:
-                printf("EVAL %d\n", instr->instr[i].ev.circId);
-                break;
-            case CHAIN:
-                printf("CHAIN (%d, %d) -> (%d, %d) with offset (%d)\n", 
-                        instr->instr[i].ch.fromCircId, 
-                        instr->instr[i].ch.fromWireId,
-                        instr->instr[i].ch.toCircId,
-                        instr->instr[i].ch.toWireId,
-                        instr->instr[i].ch.offsetIdx);
-
-                break;
-            default:
-                printf("Not printing command\n");
-        }
+        print_instruction(&instr->instr[i]);
     }
 }
 
