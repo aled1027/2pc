@@ -92,8 +92,7 @@ results(const char *name, uint64_t *totals, uint64_t n)
     sigma = sqrt((double) tmp);
     confidence = 1.96 * sigma / sqrt((double) n);
     
-    printf("%s average: %llu microsec\n", name, avg / 1000);
-    printf("%s 95%% confidence: %f microsec\n", name, confidence / 1000);
+    printf("%s average: %llu +- %f microsec\n", name, avg / 1000, confidence / 1000);
     printf("%s Kbits sent: %lu\n", name, g_bytes_sent * 8 / 1000);
     printf("%s Kbits received: %lu\n", name, g_bytes_received * 8 / 1000);
 }
@@ -112,6 +111,7 @@ garb_on(char* function_path, int ninputs, int nchains, uint64_t ntrials,
     tot_time = malloc(sizeof(uint64_t) * ntrials);
 
     for (int i = 0; i < ntrials; i++) {
+        sleep(1);
         g_bytes_sent = g_bytes_received = 0;
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i], chainingType);
