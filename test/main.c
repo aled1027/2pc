@@ -23,7 +23,7 @@
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
-typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN } experiment;
+typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_LEVEN100, EXPERIMENT_LEVEN200} experiment;
 
 struct args {
     bool garb_off;
@@ -218,6 +218,7 @@ static int
 go(struct args *args)
 {
     int n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs;
+    int l, sigma;
     char *fn, *type;
     ChainingType chainingType;
 
@@ -245,15 +246,43 @@ go(struct args *args)
         type = "CBC";
         break;
     case EXPERIMENT_LEVEN:
-        n_garb_inputs = levenNumGarbInputs();
-        n_eval_inputs = levenNumEvalInputs();
+        l = 5;
+        sigma = 8;
+        n_garb_inputs = levenNumGarbInputs(l, sigma);
+        n_eval_inputs = levenNumEvalInputs(l, sigma);
         n_eval_labels = n_eval_inputs;
-        ncircs = levenNumCircs();
-        noutputs = levenNumOutputs();
+        ncircs = levenNumCircs(l);
+        noutputs = levenNumOutputs(l);
         //chainingType = CHAINING_TYPE_STANDARD;
         chainingType = CHAINING_TYPE_SIMD;
-        fn = "doesnt matter, see 2pc_leven";
+        fn = "functions/leven_5.json";
         type = "LEVEN";
+        break;
+    case EXPERIMENT_LEVEN100:
+        l = 100;
+        sigma = 8;
+        n_garb_inputs = levenNumGarbInputs(l, sigma);
+        n_eval_inputs = levenNumEvalInputs(l, sigma);
+        n_eval_labels = n_eval_inputs;
+        ncircs = levenNumCircs(l);
+        noutputs = levenNumOutputs(l);
+        //chainingType = CHAINING_TYPE_STANDARD;
+        chainingType = CHAINING_TYPE_SIMD;
+        fn = "functions/leven_100.json";
+        type = "LEVEN100";
+        break;
+     case EXPERIMENT_LEVEN200:
+        l = 200;
+        sigma = 8;
+        n_garb_inputs = levenNumGarbInputs(l, sigma);
+        n_eval_inputs = levenNumEvalInputs(l, sigma);
+        n_eval_labels = n_eval_inputs;
+        ncircs = levenNumCircs(l);
+        noutputs = levenNumOutputs(l);
+        //chainingType = CHAINING_TYPE_STANDARD;
+        chainingType = CHAINING_TYPE_SIMD;
+        fn = "functions/leven_200.json";
+        type = "LEVEN200";
         break;
     default:
         fprintf(stderr, "No type specified\n");
@@ -272,10 +301,15 @@ go(struct args *args)
             aes_garb_off(GARBLER_DIR, 10, chainingType);
             break;
         case EXPERIMENT_CBC:
-            cbc_garb_off(GARBLER_DIR, chainingType);
-            break;
+            cbc_garb_off(GARBLER_DIR, chainingType); break;
         case EXPERIMENT_LEVEN:
-            leven_garb_off(chainingType);
+            leven_garb_off(5, 8, chainingType);
+            break;
+        case EXPERIMENT_LEVEN100:
+            leven_garb_off(l, sigma, chainingType);
+            break;
+        case EXPERIMENT_LEVEN200:
+            leven_garb_off(l, sigma, chainingType);
             break;
         default:
             assert(false);
@@ -286,8 +320,9 @@ go(struct args *args)
         eval_off(n_eval_inputs, ncircs, chainingType);
     } else if (args->garb_on) {
         printf("Online garbling\n");
-        if (args->type == EXPERIMENT_LEVEN) {
-            leven_garb_on(chainingType);
+        if (args->type == EXPERIMENT_LEVEN || args->type == EXPERIMENT_LEVEN100 ||
+                args->type == EXPERIMENT_LEVEN200) {
+            leven_garb_on(l, sigma, chainingType, fn);
         } else {
             garb_on(fn, n_garb_inputs, ncircs, args->ntrials, chainingType);
         }
@@ -311,20 +346,28 @@ go(struct args *args)
         case EXPERIMENT_LEVEN:
             /* handled below */
             break;
+        case EXPERIMENT_LEVEN100:
+            /* handled below */
+            break;
+        case EXPERIMENT_LEVEN200:
+            /* handled below */
+            break;
         default:
             assert(false);
             return EXIT_FAILURE;
         }
-        if (args->type == EXPERIMENT_LEVEN) {
-            leven_garb_full();
+        if (args->type == EXPERIMENT_LEVEN || args->type == EXPERIMENT_LEVEN100 || 
+                args->type == EXPERIMENT_LEVEN200) {
+            leven_garb_full(l, sigma);
         } else {
             garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials);
             removeGarbledCircuit(&gc);
         }
     } else if (args->eval_full) {
         printf("Full evaluating\n");
-        if (args->type == EXPERIMENT_LEVEN) {
-            leven_eval_full();
+        if (args->type == EXPERIMENT_LEVEN || args->type == EXPERIMENT_LEVEN100 || 
+                args->type == EXPERIMENT_LEVEN200) {
+            leven_eval_full(l, sigma);
         } else {
             eval_full(n_garb_inputs, n_eval_inputs, noutputs, args->ntrials);
         }
@@ -376,6 +419,10 @@ main(int argc, char *argv[])
                 args.type = EXPERIMENT_CBC;
             } else if (strcmp(optarg, "LEVEN") == 0) {
                 args.type = EXPERIMENT_LEVEN;
+            } else if (strcmp(optarg, "LEVEN100") == 0) {
+                args.type = EXPERIMENT_LEVEN100;
+            } else if (strcmp(optarg, "LEVEN200") == 0) {
+                args.type = EXPERIMENT_LEVEN200;
             } else {
                 fprintf(stderr, "Unknown type\n");
                 exit(EXIT_FAILURE);

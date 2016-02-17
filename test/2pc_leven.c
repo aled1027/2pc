@@ -14,23 +14,23 @@
 #include "gates.h"
 
 /* XXX: l < 35 */
-const int sigma = 8;
-const int l = 5; // if you change this, you need to change the json as well (use the script)
-char *COMPONENT_FUNCTION_PATH = "functions/leven_8.json"; 
+//const int sigma = 8;
+//const int l = 5; // if you change this, you need to change the json as well (use the script)
+//char *COMPONENT_FUNCTION_PATH = "functions/leven_8.json"; 
 
-static int getDIntSize() { return (int) floor(log2(l)) + 1; }
-static int getInputsDevotedToD() { return getDIntSize() * (l+1); }
-static int getN() { return getInputsDevotedToD() + (2*sigma*l); }
-int levenNumOutputs() { return getDIntSize(); }
-int levenNumEvalInputs() { return sigma * l; }
-int levenNumGarbInputs() { return getN() - levenNumEvalInputs(); }
-int levenNumCircs() { return l * l; }
-static int getCoreN() { return (3 * getDIntSize()) + (2 * sigma); }
-static int getCoreM() { return getDIntSize(); }
+static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
+static int getInputsDevotedToD(int l) { return getDIntSize(l) * (l+1); }
+static int getN(int l, int sigma) { return getInputsDevotedToD(l) + (2*sigma*l); }
+int levenNumOutputs(int l) { return getDIntSize(l); }
+int levenNumEvalInputs(int l, int sigma) { return sigma * l; }
+int levenNumGarbInputs(int l, int sigma) { return getN(l, sigma) - levenNumEvalInputs(l, sigma); }
+int levenNumCircs(int l) { return l * l; }
+static int getCoreN(int l, int sigma) { return (3 * getDIntSize(l)) + (2 * sigma); }
+static int getCoreM(int l) { return getDIntSize(l); }
 static int getCoreQ() { return 10000; } // TODO figure out this number
 
 void
-leven_garb_off(ChainingType chainingType) 
+leven_garb_off(int l, int sigma, ChainingType chainingType) 
 {
     printf("Running leven garb offline\n");
     printf("l = %d, sigma = %d\n", l, sigma);
@@ -38,11 +38,11 @@ leven_garb_off(ChainingType chainingType)
     block delta = randomBlock();
     *((uint16_t *) (&delta)) |= 1;
 
-    int coreN = getCoreN();
-    int coreM = getCoreM();
+    int coreN = getCoreN(l, sigma);
+    int coreM = getCoreM(l);
     int coreQ = getCoreQ();
     int coreR = coreN + coreQ;
-    int numCircuits = levenNumCircs();
+    int numCircuits = levenNumCircs(l);
     ChainedGarbledCircuit chainedGCs[numCircuits];
     for (int i = 0; i < numCircuits; i++) {
         /* Initialize */
@@ -77,18 +77,17 @@ leven_garb_off(ChainingType chainingType)
             generateOfflineChainingOffsets(&chainedGCs[i]);
     }
 
-    int num_eval_inputs = levenNumEvalInputs();
+    int num_eval_inputs = levenNumEvalInputs(l, sigma);
     garbler_offline("files/garbler_gcs", chainedGCs, num_eval_inputs, numCircuits, chainingType);
 }
 
-void leven_garb_on(ChainingType chainingType)
+void leven_garb_on(int l, int sigma, ChainingType chainingType, char *functionPath)
 {
     printf("Running leven garb online\n");
     printf("l = %d, sigma = %d\n", l, sigma);
-    char *functionPath = COMPONENT_FUNCTION_PATH;
-    int DIntSize = getDIntSize();
-    int inputsDevotedToD = getInputsDevotedToD();
-    int numGarbInputs = levenNumGarbInputs();
+    int DIntSize = getDIntSize(l);
+    int inputsDevotedToD = getInputsDevotedToD(l);
+    int numGarbInputs = levenNumGarbInputs(l, sigma);
 
     /* Set inputs */
     int *garbInputs = allocate_ints(numGarbInputs);
@@ -104,14 +103,14 @@ void leven_garb_on(ChainingType chainingType)
     printf("\n");
 
     uint64_t tot_time;
-    int numCircuits = levenNumCircs();
+    int numCircuits = levenNumCircs(l);
     garbler_online(functionPath, "files/garbler_gcs", garbInputs, numGarbInputs, 
             numCircuits, &tot_time, chainingType);
     free(garbInputs);
 }
 
 void
-leven_garb_full(void)
+leven_garb_full(int l, int sigma)
 {
     /* Runs the garbler for a full circuit of levenshtein distance. 
      * The only paramter is the integer l, which defines
@@ -171,7 +170,7 @@ leven_garb_full(void)
 }
 
 void
-leven_eval_full(void)
+leven_eval_full(int l, int sigma)
 {
     /* Runs the evaluator for a full circuit of 
      * levenshtein distance. The only paramter is the integer l,
