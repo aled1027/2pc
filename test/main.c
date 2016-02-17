@@ -239,7 +239,8 @@ go(struct args *args)
         n_eval_labels = n_eval_inputs;
         ncircs = cbcNumCircs();
         noutputs = cbcNumOutputs();
-        chainingType = CHAINING_TYPE_STANDARD; /* XXX: should this be SIMD? */
+        //chainingType = CHAINING_TYPE_STANDARD; /* XXX: should this be SIMD? */
+        chainingType = CHAINING_TYPE_SIMD; /* XXX: should this be SIMD? */
         fn = "functions/cbc_10_10.json";
         type = "CBC";
         break;
