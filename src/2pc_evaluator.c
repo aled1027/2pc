@@ -115,6 +115,15 @@ evaluator_classic_2pc(const int *input, int *output, int num_garb_inputs,
         exit(EXIT_FAILURE);
     }
 
+
+    // ADDING HERE: SENDING ALL INPUT LABELS
+    block *all_input_labels = allocate_blocks(2*98);
+    for (int i = 0; i < 98; i++) { 
+        net_recv(sockfd, &all_input_labels[2*i], sizeof(block), 0);
+        net_recv(sockfd, &all_input_labels[2*i + 1], sizeof(block), 0);
+    }
+    // END ADDING HERE
+
     /* pre-process OT */
     if (num_eval_inputs > 0) {
         struct state state;
@@ -219,6 +228,15 @@ evaluator_classic_2pc(const int *input, int *output, int num_garb_inputs,
 
     _start = current_time_();
     {
+        // ADDING TEST HERE
+        int asdf[98];
+        mapOutputs(all_input_labels, labels, asdf, 98);
+        printf("!!!INPUTS PASSED INSPECTION!!!\n");
+        printf("now on onto mapping outputs\n");
+        // END TEST
+
+
+
         block *computed_output_map = allocate_blocks(gc.m);
         evaluate(&gc, labels, computed_output_map, GARBLE_TYPE_STANDARD);
 

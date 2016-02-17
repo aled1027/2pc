@@ -88,6 +88,17 @@ garbler_classic_2pc(GarbledCircuit *gc, const OldInputMapping *input_mapping,
         exit(EXIT_FAILURE);
     }
 
+    // ADDING HERE: SENDING ALL INPUT LABELS
+
+    printf("gc->n = %d\n", gc->n);
+    for (int i = 0; i < gc->n; i++) {
+        Wire *wire = &gc->wires[i];
+        net_send(fd, &wire->label0, sizeof(block), 0);
+        net_send(fd, &wire->label1, sizeof(block), 0);
+    }
+    // END ADDING HERE
+
+
     /* pre-process OT */
     if (num_eval_inputs > 0) {
         struct state state;
