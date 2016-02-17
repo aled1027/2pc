@@ -277,6 +277,7 @@ go(struct args *args)
     char *fn, *type;
     ChainingType chainingType;
 
+    chainingType = CHAINING_TYPE_SIMD;
     switch (args->type) {
     case EXPERIMENT_AES:
         n_garb_inputs = aesNumGarbInputs();
@@ -284,7 +285,6 @@ go(struct args *args)
         n_eval_labels = n_eval_inputs;
         ncircs = aesNumCircs();
         noutputs = aesNumOutputs();
-        chainingType = CHAINING_TYPE_SIMD;
         fn = "functions/aes.json";
         type = "AES";
         break;
@@ -294,7 +294,6 @@ go(struct args *args)
         n_eval_labels = n_eval_inputs;
         ncircs = cbcNumCircs();
         noutputs = cbcNumOutputs();
-        chainingType = CHAINING_TYPE_SIMD;
         fn = "functions/cbc_10_10.json";
         type = "CBC";
         break;
@@ -306,7 +305,6 @@ go(struct args *args)
         n_eval_labels = n_eval_inputs;
         ncircs = levenNumCircs(l);
         noutputs = levenNumOutputs(l);
-        chainingType = CHAINING_TYPE_SIMD;
         fn = NULL;              /* set later */
         type = "LEVEN";
         break;
@@ -317,6 +315,9 @@ go(struct args *args)
 
     if (chainingType == CHAINING_TYPE_SIMD)
         printf("Using CHAINING_TYPE_SIMD\n");
+    else
+        printf("Using CHAINING_TYPE_STANDARD\n");
+
     printf("Running %s with (%d, %d) inputs, %d outputs, %d chains, %d chain_type, %d trials\n",
            type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, chainingType, args->ntrials);
 
