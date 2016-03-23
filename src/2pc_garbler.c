@@ -340,8 +340,6 @@ make_real_output_instructions(FunctionSpec* function,
     unsigned char *rand;
     OutputInstructions* output_instructions = &function->output_instructions;
 
-    print_metadata(function);
-
     rand = calloc((output_instructions->size + 8) / 8, sizeof(char));
     if (rand == NULL)
         return FAILURE;
