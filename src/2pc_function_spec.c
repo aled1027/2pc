@@ -138,7 +138,6 @@ print_instructions(const Instructions* instr)
 void
 print_output_instructions(const OutputInstructions *ois)
 {
-    FILE* fp = stdout;
     printf("Num output instructions: %d\n", ois->size);
     OutputInstruction *oi;
     for (int i = 0; i < ois->size; i++) {
@@ -147,9 +146,9 @@ print_output_instructions(const OutputInstructions *ois)
                 i,
                 oi->gc_id,
                 oi->wire_id);
-        print_block(fp, oi->labels[0]);
-        printf(" ");
-        print_block(fp, oi->labels[1]);
+        /* print_block(fp, oi->labels[0]); */
+        /* printf(" "); */
+        /* print_block(fp, oi->labels[1]); */
         printf("\n");
     }
 }

@@ -1,7 +1,7 @@
 #ifndef COMPONENTS_H
 #define COMPONENTS_H
 
-#include "justGarble.h"
+#include "garble.h"
 #include <stdbool.h>
 
 typedef enum {
@@ -17,14 +17,17 @@ typedef enum {
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
+int
+countToN(int *a, int n);
+
 bool isFinalCircuitType(CircuitType type);
 
-void buildMinCircuit(GarbledCircuit *gc, block *inputLabels, block *outputMap,
+void buildMinCircuit(garble_circuit *gc, block *inputLabels, block *outputMap,
                      int *outputWires);
 
-void buildLevenshteinCircuit(GarbledCircuit *gc, int l, int sigma);
+void buildLevenshteinCircuit(garble_circuit *gc, int l, int sigma);
 
-void addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gctxt, 
+void addLevenshteinCoreCircuit(garble_circuit *gc, garble_context *gctxt, 
         int l, int sigma, int *inputWires, int *outputWires);
 /* Makes a "LevenshteinCore" circuit as defined in 
  * Faster Secure Two-Party Computation Using Garbled Circuits
@@ -39,19 +42,19 @@ void addLevenshteinCoreCircuit(GarbledCircuit *gc, GarblingContext *gctxt,
  * This is way in which JustGarble oriented their adders.
  */
 
-int MINCircuitWithLEQOutput(GarbledCircuit *gc, GarblingContext *garblingContext, int n,
+int MINCircuitWithLEQOutput(garble_circuit *gc, garble_context *garblingContext, int n,
 		int* inputs, int* outputs);
 
-int INCCircuitWithSwitch(GarbledCircuit *gc, GarblingContext *ctxt,
+int INCCircuitWithSwitch(garble_circuit *gc, garble_context *ctxt,
 		int the_switch, int n, int *inputs, int *outputs);
 
-void AddAESCircuit(GarbledCircuit *gc, GarblingContext *garblingContext, int numAESRounds, 
+void AddAESCircuit(garble_circuit *gc, garble_context *garblingContext, int numAESRounds, 
         int *inputWires, int *outputWires);
-void buildANDCircuit(GarbledCircuit *gc, int n, int nlayers);
-void buildCBCFullCircuit(GarbledCircuit *gc, int num_message_blocks, int num_aes_rounds, block *delta);
-void buildAdderCircuit(GarbledCircuit *gc);
-void buildAESCircuit(GarbledCircuit *gc);
-void buildXORCircuit(GarbledCircuit *gc, block* delta);
-void buildAESRoundComponentCircuit(GarbledCircuit *gc, bool isFinalFound, block* delta);
+void buildANDCircuit(garble_circuit *gc, int n, int nlayers);
+void buildCBCFullCircuit(garble_circuit *gc, int num_message_blocks, int num_aes_rounds, block *delta);
+void buildAdderCircuit(garble_circuit *gc);
+void buildAESCircuit(garble_circuit *gc);
+void buildXORCircuit(garble_circuit *gc, block* delta);
+void buildAESRoundComponentCircuit(garble_circuit *gc, bool isFinalFound, block* delta);
 
 #endif

@@ -21,7 +21,7 @@ typedef struct {
 } SimdInformation;
 
 typedef struct {
-    GarbledCircuit gc;
+    garble_circuit gc;
     int id;
     CircuitType type;
     block *inputLabels;

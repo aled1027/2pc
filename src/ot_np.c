@@ -21,7 +21,7 @@
 
 #include <gmp.h>
 #include <openssl/sha.h>
-#include "aes.h"
+#include <garble/aes.h>
 
 #define SHA
 

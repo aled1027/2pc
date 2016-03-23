@@ -5,29 +5,29 @@ BINDIR := bin
 
 rm = rm --f
 
-JUSTGARBLE = JustGarble
+# JUSTGARBLE = JustGarble
 
 SOURCES := $(wildcard $(SRCDIR)/*.c)
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 TESTSOURCES := $(wildcard $(TESTDIR)/*.c)
 TESTOBJECTS := $(TESTSOURCES:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
-JGSRC := $(wildcard $(JUSTGARBLE)/src/*.c)
-JGOBJECTS  := $(JGSRC:$(JUSTGARBLE)/src/%.c=$(JUSTGARBLE)/src/%.o)
-CIRCUITSRC := $(wildcard $(JUSTGARBLE)/circuit/*.c)
-CIRCUITOBJECTS  := $(CIRCUITSRC:$(JUSTGARBLE)/circuit/%.c=$(JUSTGARBLE)/circuit/%.o)
+# JGSRC := $(wildcard $(JUSTGARBLE)/src/*.c)
+# JGOBJECTS  := $(JGSRC:$(JUSTGARBLE)/src/%.c=$(JUSTGARBLE)/src/%.o)
+# CIRCUITSRC := $(wildcard $(JUSTGARBLE)/circuit/*.c)
+# CIRCUITOBJECTS  := $(CIRCUITSRC:$(JUSTGARBLE)/circuit/%.c=$(JUSTGARBLE)/circuit/%.o)
 
 IDIR =include
 INCLUDES := $(wildcard $(SRCDIR)/*.h) -Iinc -I$(JUSTGARBLE)/include -I$(IDIR)
 
-CC=clang
-CFLAGS= -g -O3 -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
+CC=gcc
+CFLAGS= -g -O0 -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
 # TODO add -Wextra -pedantic and fix errors/warnings
 # TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
 # Wno-format is for printing uint64_t as llu.
 CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
 #CFLAGS += -DNDDEBUG # removes all "assert()" at compile time
 
-LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson
+LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson -lgarble -lgarblec
 #LIB+= -DNDDEBUG # removes all "assert()" at compile time
 
 ###############
@@ -35,19 +35,13 @@ LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson
 ###############
 all: test
 
-test: $(JGOBJECTS) $(TESTOBJECTS) $(OBJECTS) $(CIRCUITOBJECTS)
-	$(CC) $(OBJECTS) $(JGOBJECTS) $(CIRCUITOBJECTS) $(TESTOBJECTS) -o $(BINDIR)/test $(CFLAGS) $(LIBS)
+test: $(TESTOBJECTS) $(OBJECTS)
+	$(CC) $(OBJECTS) $(TESTOBJECTS) -o $(BINDIR)/test $(CFLAGS) $(LIBS)
 
 $(OBJECTS): $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 $(TESTOBJECTS): $(OBJDIR)/%.o : $(TESTDIR)/%.c
-	$(CC) -c $< -o $@ $(CFLAGS)
-
-$(JGOBJECTS): $(JUSTGARBLE)/src/%.o : $(JUSTGARBLE)/src/%.c
-	$(CC) -c $< -o $@ $(CFLAGS)
-
-$(CIRCUITOBJECTS): $(JUSTGARBLE)/circuit/%.o : $(JUSTGARBLE)/circuit/%.c
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 #################

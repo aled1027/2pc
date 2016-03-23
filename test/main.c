@@ -9,7 +9,6 @@
 
 #include "2pc_garbler.h"
 #include "2pc_evaluator.h"
-#include "justGarble.h"
 #include "2pc_aes.h"
 #include "2pc_cbc.h"
 #include "2pc_leven.h"
@@ -127,9 +126,9 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
         ChainingType chainingType, int l, int sigma, bool leven)
 {
     uint64_t *tot_time;
-    int *inputs;
+    bool *inputs;
 
-    inputs = malloc(sizeof(int) * ninputs);
+    inputs = calloc(ninputs, sizeof(bool));
 
     if (leven) {
         printf("l = %d, sigma = %d\n", l, sigma);
@@ -194,16 +193,16 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials,
 }
 
 static void
-garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
+garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
           int ntrials, int l, int sigma, bool leven)
 {
     OldInputMapping imap;
     uint64_t start, end;
-    block *outputMap = allocate_blocks(2 * gc->m);
+    block *outputMap = garble_allocate_blocks(2 * gc->m);
     newOldInputMapping(&imap, num_garb_inputs, num_eval_inputs);
 
     {
-        int *inputs = malloc(sizeof(int) * num_garb_inputs);
+        bool *inputs = calloc(num_garb_inputs, sizeof(bool));
         uint64_t *tot_time = calloc(ntrials, sizeof(uint64_t));
 
         for (int i = 0; i < ntrials; ++i) {
@@ -225,7 +224,7 @@ garb_full(GarbledCircuit *gc, int num_garb_inputs, int num_eval_inputs,
                 }
             }
             start = current_time_();
-            garbleCircuit(gc, NULL, outputMap, GARBLE_TYPE_STANDARD);
+            garble_garble(gc, NULL, outputMap);
             end = current_time_();
             fprintf(stderr, "Garble: %llu\n", end - start);
             tot_time[i] += end - start;
@@ -249,7 +248,7 @@ eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
 {
     uint64_t *tot_time = calloc(ntrials, sizeof(uint64_t));
     int *eval_inputs = malloc(sizeof(int) * n_eval_inputs);
-    int *output = malloc(sizeof(int) * noutputs);
+    bool *output = malloc(sizeof(bool) * noutputs);
 
     for (int i = 0; i < ntrials; ++i) {
         sleep(1);
@@ -358,15 +357,14 @@ go(struct args *args)
     } else if (args->garb_full) {
         printf("Full garbling\n");
         bool leven = false;
-        GarbledCircuit gc;
+        garble_circuit gc;
         switch (args->type) {
         case EXPERIMENT_AES:
             buildAESCircuit(&gc);
             break;
         case EXPERIMENT_CBC:
         {
-            block delta = randomBlock();
-            *((uint16_t *) (&delta)) |= 1;
+            block delta = garble_create_delta();
             buildCBCFullCircuit(&gc, NUM_CBC_BLOCKS, NUM_AES_ROUNDS, &delta);
             break;
         }
@@ -379,7 +377,7 @@ go(struct args *args)
             return EXIT_FAILURE;
         }
         garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials, l, sigma, leven);
-        removeGarbledCircuit(&gc);
+        garble_delete(&gc);
     } else if (args->eval_full) {
         printf("Full evaluating\n");
         eval_full(n_garb_inputs, n_eval_inputs, noutputs, args->ntrials);
@@ -397,7 +395,7 @@ main(int argc, char *argv[])
     int c, idx;
     struct args args;
 
-    (void) seedRandom(NULL);
+    (void) garble_seed(NULL);
 
     args_init(&args);
 

@@ -20,13 +20,13 @@ int aesNumOutputs() { return 128; }
 void
 aes_garb_off(char *dir, int nchains, ChainingType chainingType)
 {
-    ChainedGarbledCircuit *chained_gcs = calloc(nchains, sizeof(ChainedGarbledCircuit));
-
-    block delta = randomBlock();
-    *((uint16_t *) (&delta)) |= 1;
+    ChainedGarbledCircuit *chained_gcs = calloc(nchains,
+                                                sizeof(ChainedGarbledCircuit));
+    block delta = garble_create_delta();
 
     for (int i = 0; i < nchains; i++) {
-        GarbledCircuit* gc = &chained_gcs[i].gc;
+        garble_circuit *gc = &chained_gcs[i].gc;
+        gc->type = GARBLE_TYPE_STANDARD;
         if (i == nchains - 1) {
             buildAESRoundComponentCircuit(gc, true, &delta);
             chained_gcs[i].type = AES_FINAL_ROUND;
@@ -35,17 +35,16 @@ aes_garb_off(char *dir, int nchains, ChainingType chainingType)
             chained_gcs[i].type = AES_ROUND;
         }
         chained_gcs[i].id = i;
-        chained_gcs[i].inputLabels = allocate_blocks(2 * gc->n);
-        chained_gcs[i].outputMap = allocate_blocks(2 * gc->m);
+        chained_gcs[i].inputLabels = garble_allocate_blocks(2 * gc->n);
+        chained_gcs[i].outputMap = garble_allocate_blocks(2 * gc->m);
 
         if (chainingType == CHAINING_TYPE_SIMD) {
             createSIMDInputLabelsWithR(&chained_gcs[i], delta);
         } else {
-            createInputLabelsWithR(chained_gcs[i].inputLabels, gc->n, delta);
+            garble_create_input_labels(chained_gcs[i].inputLabels, gc->n, &delta, false);
         }
 
-        garbleCircuit(gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap,
-                      GARBLE_TYPE_STANDARD);
+        garble_garble(gc, chained_gcs[i].inputLabels, chained_gcs[i].outputMap);
 
     }
 

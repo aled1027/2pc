@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h> 
-#include "justGarble.h"
+#include "garble.h"
 
 #define SUCCESS 0
 #define FAILURE -1
@@ -20,7 +20,7 @@
 #define current_time_ current_time_ns
 
 void 
-convertToBinary(int x, int *arr, int narr);
+convertToBinary(int x, bool *arr, int narr);
 
 void
 reverse_array(int *arr, size_t nints);
@@ -52,7 +52,7 @@ readFileIntoBuffer(char* buffer, char* fileName);
 void
 debug(char *s);
 
-void
-print_gc(GarbledCircuit *gc);
+/* void */
+/* print_gc(garble_circuit *gc); */
 
 #endif

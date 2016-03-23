@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 void
-evaluator_classic_2pc(const int *input, int *output,
+evaluator_classic_2pc(const int *input, bool *output,
                       int num_garb_inputs, int num_eval_inputs,
                       uint64_t *tot_time);
 

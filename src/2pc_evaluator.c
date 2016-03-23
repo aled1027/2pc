@@ -6,7 +6,8 @@
 #include <unistd.h> // sleep
 #include <time.h>
 #include <string.h>
-#include "justGarble.h"
+#include <garble.h>
+#include <garble/aes.h>
 
 #include "gc_comm.h"
 #include "net.h"
@@ -48,68 +49,70 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
         switch(cur->type) {
-            case EVAL:
-                s = current_time_();
-                savedCircId = circuitMapping[cur->ev.circId];
+        case EVAL:
+            s = current_time_();
+            savedCircId = circuitMapping[cur->ev.circId];
 
-                evaluate(&chained_gcs[savedCircId].gc, labels[cur->ev.circId], 
-                         computedOutputMap[cur->ev.circId], GARBLE_TYPE_STANDARD);
+            garble_eval(&chained_gcs[savedCircId].gc, labels[cur->ev.circId],
+                        computedOutputMap[cur->ev.circId]);
 
-                e = current_time_();
-                eval_time += e - s;
-                break;
-            case CHAIN:
+            e = current_time_();
+            eval_time += e - s;
+            break;
+        case CHAIN:
 
-                if (chainingType == CHAINING_TYPE_STANDARD) {
-                    labels[cur->ch.toCircId][cur->ch.toWireId] = xorBlocks(
-                            computedOutputMap[cur->ch.fromCircId][cur->ch.fromWireId], 
-                            offsets[cur->ch.offsetIdx]);
+            if (chainingType == CHAINING_TYPE_STANDARD) {
+                labels[cur->ch.toCircId][cur->ch.toWireId] = garble_xor(
+                    computedOutputMap[cur->ch.fromCircId][cur->ch.fromWireId], 
+                    offsets[cur->ch.offsetIdx]);
 
-                } else { 
-                    /* CHAINING_TYPE_SIMD */
-                    savedCircId = circuitMapping[cur->ch.fromCircId];
-                    offsetIdx = cur->ch.offsetIdx;
+            } else { 
+                /* CHAINING_TYPE_SIMD */
+                savedCircId = circuitMapping[cur->ch.fromCircId];
+                offsetIdx = cur->ch.offsetIdx;
 
-                    for (int j = cur->ch.fromWireId, k = cur->ch.toWireId; 
-                         j < cur->ch.fromWireId + cur->ch.wireDist;
-                         ++j, ++k) {
+                for (int j = cur->ch.fromWireId, k = cur->ch.toWireId; 
+                     j < cur->ch.fromWireId + cur->ch.wireDist;
+                     ++j, ++k) {
 
-                        /* correct computedOutputMap offlineChainingOffsets */
-                        /* i.e. correct to enable SIMD trick */
-                        labels[cur->ch.toCircId][k] = xorBlocks(
-                                computedOutputMap[cur->ch.fromCircId][j],
-                                offsets[offsetIdx]);
+                    /* correct computedOutputMap offlineChainingOffsets */
+                    /* i.e. correct to enable SIMD trick */
+                    labels[cur->ch.toCircId][k] = garble_xor(
+                        computedOutputMap[cur->ch.fromCircId][j],
+                        offsets[offsetIdx]);
 
-                        if (cur->ch.fromCircId != 0) { /* if not the input component */
-                            labels[cur->ch.toCircId][k] = xorBlocks(
-                                    labels[cur->ch.toCircId][k],
-                                    chained_gcs[savedCircId].offlineChainingOffsets[j]);
-                        }
-
+                    if (cur->ch.fromCircId != 0) { /* if not the input component */
+                        labels[cur->ch.toCircId][k] = garble_xor(
+                            labels[cur->ch.toCircId][k],
+                            chained_gcs[savedCircId].offlineChainingOffsets[j]);
                     }
+
                 }
-                break;
-            default:
-                printf("Error: Instruction %d is not of a valid type\n", i);
-                return;
+            }
+            break;
+        default:
+            printf("Error: Instruction %d is not of a valid type\n", i);
+            return;
         }
     }
     fprintf(stderr, "evaltime: %llu\n", eval_time);
 }
 
 void
-evaluator_classic_2pc(const int *input, int *output,
+evaluator_classic_2pc(const int *input, bool *output,
                       int num_garb_inputs, int num_eval_inputs,
                       uint64_t *tot_time)
 {
     int sockfd, res;
     int *selections = NULL;
-    GarbledCircuit gc;
+    garble_circuit gc;
     OldInputMapping map;
     block *garb_labels = NULL, *eval_labels = NULL;
     block *labels, *output_map;
     uint64_t start, end, _start, _end;
     size_t tmp;
+
+    gc.type = GARBLE_TYPE_STANDARD;
 
     if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
         perror("net_init_client");
@@ -121,7 +124,7 @@ evaluator_classic_2pc(const int *input, int *output,
         struct state state;
         state_init(&state);
         selections = calloc(num_eval_inputs, sizeof(int));
-        eval_labels = allocate_blocks(num_eval_inputs);
+        eval_labels = garble_allocate_blocks(num_eval_inputs);
         for (int i = 0; i < num_eval_inputs; ++i) {
             selections[i] = rand() % 2;
         }
@@ -150,12 +153,12 @@ evaluator_classic_2pc(const int *input, int *output,
         for (int i = 0; i < num_eval_inputs; ++i) {
             selections[i] ^= input[i];
         }
-        recvLabels = allocate_blocks(2 * num_eval_inputs);
+        recvLabels = garble_allocate_blocks(2 * num_eval_inputs);
         net_send(sockfd, selections, sizeof(int) * num_eval_inputs, 0);
         net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
         for (int i = 0; i < num_eval_inputs; ++i) {
-            eval_labels[i] = xorBlocks(eval_labels[i],
-                                       recvLabels[2 * i + input[i]]);
+            eval_labels[i] = garble_xor(eval_labels[i],
+                                        recvLabels[2 * i + input[i]]);
         }
         free(recvLabels);
         free(selections);
@@ -167,7 +170,7 @@ evaluator_classic_2pc(const int *input, int *output,
     _start = current_time_();
     tmp = g_bytes_received;
     if (num_garb_inputs > 0) {
-        garb_labels = allocate_blocks(num_garb_inputs);
+        garb_labels = garble_allocate_blocks(num_garb_inputs);
         net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
     }
     _end = current_time_();
@@ -177,7 +180,7 @@ evaluator_classic_2pc(const int *input, int *output,
     _start = current_time_();
     {
         tmp = g_bytes_received;
-        output_map = allocate_blocks(2 * gc.m);
+        output_map = garble_allocate_blocks(2 * gc.m);
         net_recv(sockfd, output_map, sizeof(block) * 2 * gc.m, 0);
     }
     _end = current_time_();
@@ -204,7 +207,7 @@ evaluator_classic_2pc(const int *input, int *output,
     
     /* Plug labels in correctly based on input_mapping */
     {
-        labels = allocate_blocks(gc.n);
+        labels = garble_allocate_blocks(gc.n);
         int garb_p = 0, eval_p = 0;
         for (int i = 0; i < map.size; i++) {
             if (map.inputter[i] == PERSON_GARBLER) {
@@ -219,17 +222,17 @@ evaluator_classic_2pc(const int *input, int *output,
 
     _start = current_time_();
     {
-        block *computed_output_map = allocate_blocks(gc.m);
-        evaluate(&gc, labels, computed_output_map, GARBLE_TYPE_STANDARD);
+        block *computed_output_map = garble_allocate_blocks(gc.m);
+        garble_eval(&gc, labels, computed_output_map);
 
-        res = mapOutputs(output_map, computed_output_map, output, gc.m);
+        res = garble_map_outputs(output_map, computed_output_map, output, gc.m);
         /* assert(res == SUCCESS);  */
         free(computed_output_map);
     }
     _end = current_time_();
     fprintf(stderr, "Evaluate: %llu\n", _end - _start);
 
-    removeGarbledCircuit(&gc);
+    garble_delete(&gc);
     deleteOldInputMapping(&map);
     free(output_map);
     free(eval_labels);
@@ -241,7 +244,8 @@ evaluator_classic_2pc(const int *input, int *output,
 }
 
 void
-evaluator_offline(char *dir, int num_eval_inputs, int nchains, ChainingType chainingType)
+evaluator_offline(char *dir, int num_eval_inputs, int nchains,
+                  ChainingType chainingType)
 {
     int sockfd;
     struct state state;
@@ -263,7 +267,6 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains, ChainingType chai
         freeChainedGarbledCircuit(&cgc, false, chainingType);
     }
 
-
     /* pre-processing OT using random selection bits */
     if (num_eval_inputs > 0) {
         int *selections;
@@ -279,7 +282,7 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains, ChainingType chai
         for (int i = 0; i < num_eval_inputs; ++i) {
             selections[i] = rand() % 2;
         }
-        evalLabels = allocate_blocks(num_eval_inputs);
+        evalLabels = garble_allocate_blocks(num_eval_inputs);
         ot_np_recv(&state, sockfd, selections, num_eval_inputs, sizeof(block),
                    2, evalLabels, new_choice_reader, new_msg_writer);
         (void) snprintf(fname, size, "%s/%s", dir, "sel");
@@ -293,7 +296,7 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains, ChainingType chai
     }
 
     end = current_time_();
-    fprintf(stderr, "Total: %llu\n", (end - start));
+    fprintf(stderr, "evaluator offline: %llu\n", (end - start));
 
     close(sockfd);
     state_cleanup(&state);
@@ -308,7 +311,7 @@ recvInstructions(int fd, Instructions *insts, block **offsets)
     net_recv(fd, &noffsets, sizeof(int), 0);
 
     insts->instr = malloc(insts->size * sizeof(Instruction));
-    *offsets = allocate_blocks(noffsets);
+    *offsets = garble_allocate_blocks(noffsets);
 
     net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
     net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
@@ -364,12 +367,12 @@ computeOutputs(const OutputInstructions *ois, int *output,
         out[1] = oi->labels[1];
         AES_ecb_decrypt_blks(out, 2, &key);
 
-        b_zero = zero_block();
-        b_one = makeBlock((uint64_t) 0, (uint64_t) 1); // 000...00001
+        b_zero = garble_zero_block();
+        b_one = garble_make_block((uint64_t) 0, (uint64_t) 1); // 000...00001
 
-        if (equal_blocks(out[0], b_zero) || equal_blocks(out[1], b_zero)) {
+        if (garble_equal(out[0], b_zero) || garble_equal(out[1], b_zero)) {
             output[i] = 0;
-        } else if (equal_blocks(out[0], b_one) || equal_blocks(out[1], b_one)) {
+        } else if (garble_equal(out[0], b_one) || garble_equal(out[1], b_one)) {
             output[i] = 1;
         } else {
             fprintf(stderr, "Could not compute output[%d] from (gc_id: %d, wire_id: %d)\n",
@@ -404,7 +407,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         loadOTPreprocessing(&eval_labels, &corrections, dir);
         labels = malloc(sizeof(block *) * (num_chained_gcs + 1));
         for (int i = 1; i < num_chained_gcs + 1; i++) {
-            labels[i] = allocate_blocks(chained_gcs[i-1].gc.n);
+            labels[i] = garble_allocate_blocks(chained_gcs[i-1].gc.n);
         }
     }
     _end = current_time_();
@@ -425,7 +428,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         uint64_t _start, _end;
         for (int i = 0; i < num_eval_inputs; ++i)
             corrections[i] ^= eval_inputs[i];
-        recvLabels = allocate_blocks(2 * num_eval_inputs);
+        recvLabels = garble_allocate_blocks(2 * num_eval_inputs);
         /* valgrind is saying corrections is unitialized, but it seems to be */
         _start = current_time_();
         {
@@ -443,8 +446,8 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
         for (int i = 0; i < num_eval_inputs; ++i) {
-            eval_labels[i] = xorBlocks(eval_labels[i],
-                                       recvLabels[2 * i + eval_inputs[i]]);
+            eval_labels[i] = garble_xor(eval_labels[i],
+                                        recvLabels[2 * i + eval_inputs[i]]);
         }
         free(recvLabels);
     }
@@ -471,7 +474,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         tmp = g_bytes_received;
         net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
         if (num_garb_inputs > 0) {
-            garb_labels = allocate_blocks(sizeof(block) * num_garb_inputs);
+            garb_labels = garble_allocate_blocks(sizeof(block) * num_garb_inputs);
             net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
         }
     }
@@ -512,14 +515,14 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     _start = current_time_();
     block **computedOutputMap = malloc(sizeof(block *) * (num_chained_gcs + 1));
     {
-        computedOutputMap[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
-        labels[0] = allocate_blocks(num_garb_inputs + num_eval_inputs);
+        computedOutputMap[0] = garble_allocate_blocks(num_garb_inputs + num_eval_inputs);
+        labels[0] = garble_allocate_blocks(num_garb_inputs + num_eval_inputs);
         memcpy(&computedOutputMap[0][0], garb_labels, sizeof(block) * num_garb_inputs);
         memcpy(&computedOutputMap[0][num_garb_inputs], eval_labels, sizeof(block) * num_eval_inputs);
         memcpy(&labels[0][0], garb_labels, sizeof(block) * num_garb_inputs);
         memcpy(&labels[0][num_garb_inputs], eval_labels, sizeof(block) * num_eval_inputs);
         for (int i = 1; i < num_chained_gcs + 1; i++) {
-            computedOutputMap[i] = allocate_blocks(chained_gcs[i-1].gc.m);
+            computedOutputMap[i] = garble_allocate_blocks(chained_gcs[i-1].gc.m);
         }
         evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
                            labels, circuitMapping, computedOutputMap, offsets, chainingType);
