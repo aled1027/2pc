@@ -161,9 +161,9 @@ static void notGateTest()
     int *inputWires = allocate_ints(n);
     int *outputWires = allocate_ints(m);
     countToN(inputWires, n);
-    garble_gate_NOT(&gc, &gcContext, 0, 1);
-    garble_gate_NOT(&gc, &gcContext, 1, 2);
-    garble_gate_NOT(&gc, &gcContext, 2, 3);
+    gate_NOT(&gc, &gcContext, 0, 1);
+    gate_NOT(&gc, &gcContext, 1, 2);
+    gate_NOT(&gc, &gcContext, 2, 3);
 
     countToN(outputWires, m);
     block *outputMap = garble_allocate_blocks(2*m);
@@ -226,7 +226,7 @@ static void minTest()
     int *inputWires = allocate_ints(n);
     int *outputWires = allocate_ints(m);
     countToN(inputWires, n);
-    MINCircuit(&gc, &gcContext, 4, inputWires, outputWires);
+    circuit_min(&gc, &gcContext, 4, inputWires, outputWires);
 
     block *outputMap = garble_allocate_blocks(2*m);
 	garble_finish_building(&gc, &gcContext, outputWires);
@@ -294,7 +294,7 @@ static void MUXTest()
     int *inputWires = allocate_ints(n);
     int *outputWires = allocate_ints(m);
     countToN(inputWires, n);
-    MUX21Circuit(&gc, &gcContext, inputWires[0], inputWires[1], inputWires[2], outputWires);
+    circuit_mux21(&gc, &gcContext, inputWires[0], inputWires[1], inputWires[2], outputWires);
 
     block *outputMap = garble_allocate_blocks(2*m);
 	garble_finish_building(&gc, &gcContext, outputWires);
@@ -359,7 +359,7 @@ static void LESTest(int n)
     int *inputWires = allocate_ints(n);
     int *outputWires = allocate_ints(m);
     countToN(inputWires, n);
-    LESCircuit(&gc, &gcContext, n, inputWires, outputWires);
+    circuit_les(&gc, &gcContext, n, inputWires, outputWires);
     //countToN(outputWires, m);
 
     block *outputMap = garble_allocate_blocks(2*m);
