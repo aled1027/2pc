@@ -9,10 +9,10 @@
 
 ## Setup
 1. Install dependencies.
-1. Clone the 2pc repo: 
-    - `git clone https://github.com/aled1027/2pc.git`
-    - `cd 2pc`
-1. Be sure that there are directories `files/evaluator_gcs` and `files/garbler_gcs` in the 2pc directory
+1. Clone this repo: 
+   - `git clone https://github.com/aled1027/CompGC.git`
+   - `cd CompGC`
+1. Be sure that there are directories `files/evaluator_gcs` and `files/garbler_gcs` in the CompGC directory
     - `mkdir files; mkdir files/evaluator_gcs; mkdir files/garbler_gcs`
     - these are where the garbled circuits are saved during the offline phase
 
@@ -46,7 +46,7 @@
 - taking about 65 c/g for CBC 10 10 
 
 ## File Organization
-- Core 2pc files:
+- Core CompGC files:
     - `2pc_garbler`
         - functions that garbler would run, including `garbler_init()`
     - `2pc_evaluator`
