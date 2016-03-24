@@ -54,7 +54,7 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
             savedCircId = circuitMapping[cur->ev.circId];
 
             garble_eval(&chained_gcs[savedCircId].gc, labels[cur->ev.circId],
-                        computedOutputMap[cur->ev.circId]);
+                        computedOutputMap[cur->ev.circId], NULL);
 
             e = current_time_();
             eval_time += e - s;
@@ -103,7 +103,7 @@ evaluator_classic_2pc(const int *input, bool *output,
                       int num_garb_inputs, int num_eval_inputs,
                       uint64_t *tot_time)
 {
-    int sockfd, res;
+    int sockfd;
     int *selections = NULL;
     garble_circuit gc;
     OldInputMapping map;
@@ -222,12 +222,9 @@ evaluator_classic_2pc(const int *input, bool *output,
 
     _start = current_time_();
     {
-        block *computed_output_map = garble_allocate_blocks(gc.m);
-        garble_eval(&gc, labels, computed_output_map);
-
-        res = garble_map_outputs(output_map, computed_output_map, output, gc.m);
-        /* assert(res == SUCCESS);  */
-        free(computed_output_map);
+        bool *outputs = calloc(gc.m, sizeof(bool));
+        garble_eval(&gc, labels, NULL, outputs);
+        free(outputs);
     }
     _end = current_time_();
     fprintf(stderr, "Evaluate: %llu\n", _end - _start);

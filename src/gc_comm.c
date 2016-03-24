@@ -8,47 +8,31 @@
 int
 gc_comm_send(int sock, garble_circuit *gc)
 {
-    net_send(sock, &gc->n, sizeof gc->n, 0);
-    net_send(sock, &gc->m, sizeof gc->m, 0);
-    net_send(sock, &gc->q, sizeof gc->q, 0);
-    net_send(sock, &gc->r, sizeof gc->r, 0);
-    net_send(sock, &gc->n_fixed_wires, sizeof gc->n_fixed_wires, 0);
-    net_send(sock, &gc->type, sizeof gc->type, 0);
+    size_t size;
+    char *buf;
 
-    net_send(sock, gc->gates, sizeof(garble_gate) * gc->q, 0);
-    net_send(sock, gc->table, garble_table_size(gc) * gc->q, 0);
-    net_send(sock, gc->outputs, sizeof(int) * gc->m, 0);
-    net_send(sock, gc->fixed_wires, sizeof(garble_fixed_wire) * gc->n_fixed_wires, 0);
-    net_send(sock, &gc->fixed_label, sizeof(block), 0);
-    net_send(sock, &gc->global_key, sizeof(block), 0);
-
+    size = garble_size(gc, false);
+    buf = malloc(size);
+    garble_to_buffer(gc, buf, false);
+    net_send(sock, &size, sizeof size, 0);
+    net_send(sock, buf, size, 0);
+    
+    free(buf);
     return 0;
 }
 
 int
 gc_comm_recv(int sock, garble_circuit *gc)
 {
-    net_recv(sock, &gc->n, sizeof gc->n, 0);
-    net_recv(sock, &gc->m, sizeof gc->m, 0);
-    net_recv(sock, &gc->q, sizeof gc->q, 0);
-    net_recv(sock, &gc->r, sizeof gc->r, 0);
-    net_recv(sock, &gc->n_fixed_wires, sizeof gc->n_fixed_wires, 0);
-    net_recv(sock, &gc->type, sizeof gc->type, 0);
+    size_t size;
+    char *buf;
 
-    gc->gates = calloc(gc->q, sizeof(garble_gate));
-    gc->table = calloc(gc->q, garble_table_size(gc));
-    gc->outputs = calloc(gc->m, sizeof(int));
-    gc->fixed_wires = calloc(gc->n_fixed_wires, sizeof(garble_fixed_wire));
+    net_recv(sock, &size, sizeof size, 0);
+    buf = malloc(size);
+    net_recv(sock, buf, size, 0);
+    garble_from_buffer(gc, buf, false);
 
-    net_recv(sock, gc->gates, sizeof(garble_gate) * gc->q, 0);
-    net_recv(sock, gc->table, garble_table_size(gc) * gc->q, 0);
-    net_recv(sock, gc->outputs, sizeof(int) * gc->m, 0);
-    net_recv(sock, gc->fixed_wires, sizeof(garble_fixed_wire) * gc->n_fixed_wires, 0);
-    net_recv(sock, &gc->fixed_label, sizeof(block), 0);
-    net_recv(sock, &gc->global_key, sizeof(block), 0);
-
-    gc->wires = NULL;
-
+    free(buf);
     return 0;
 }
 

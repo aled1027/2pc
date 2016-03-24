@@ -52,10 +52,6 @@ buildLevenshteinCircuit(garble_circuit *gc, int l, int sigma)
     int n = inputsDevotedToD + (2 * sigma * l);
     int m = DIntSize;
     int core_n = (3 * DIntSize) + (2 * sigma);
-    int q = 100000; /* number of gates */ 
-    if (l > 20) {
-        q = 5000000;
-    }
     int inputWires[n];
     countToN(inputWires, n);
 
@@ -230,7 +226,7 @@ addLevenshteinCoreCircuit(garble_circuit *gc, garble_context *gctxt,
     /* 2-1 MUX(switch = determined by secon min, 1, T)*/
     int mux_switch = min_outputs2[DIntSize];
 
-    int fixed_one_wire = garble_gate_one(gc, gctxt);
+    int fixed_one_wire = garble_gate_one(gc);
 
     int mux_output;
     MUX21Circuit(gc, gctxt, mux_switch, fixed_one_wire, T_output, &mux_output);

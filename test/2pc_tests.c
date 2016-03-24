@@ -176,7 +176,7 @@ static void notGateTest()
     block *extractedLabels = garble_allocate_blocks(2*n);
     garble_extract_labels(extractedLabels, inputLabels, inputs, n);
     block *computedOutputMap = garble_allocate_blocks(2*m);
-    garble_eval(&gc, extractedLabels, computedOutputMap);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
     garble_delete(&gc);
 
     /* Results */
@@ -238,7 +238,7 @@ static void minTest()
     block *extractedLabels = garble_allocate_blocks(n);
     garble_extract_labels(extractedLabels, inputLabels, inputs, n);
     block *computedOutputMap = garble_allocate_blocks(m);
-    garble_eval(&gc, extractedLabels, computedOutputMap);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
     garble_delete(&gc);
 
     bool *outputs = calloc(m, sizeof(bool));
@@ -306,7 +306,7 @@ static void MUXTest()
     block *extractedLabels = garble_allocate_blocks(n);
     garble_extract_labels(extractedLabels, inputLabels, inputs, n);
     block *computedOutputMap = garble_allocate_blocks(m);
-    garble_eval(&gc, extractedLabels, computedOutputMap);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
     garble_delete(&gc);
 
     /* Results */
@@ -372,7 +372,7 @@ static void LESTest(int n)
     block *extractedLabels = garble_allocate_blocks(n);
     garble_extract_labels(extractedLabels, inputLabels, inputs, n);
     block *computedOutputMap = garble_allocate_blocks(m);
-    garble_eval(&gc, extractedLabels, computedOutputMap);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
     garble_delete(&gc);
 
     /* Results */
@@ -430,7 +430,7 @@ static void levenTest(int l, int sigma)
     block *extractedLabels = garble_allocate_blocks(n);
     garble_extract_labels(extractedLabels, inputLabels, inputs, n);
     block *computedOutputMap = garble_allocate_blocks(m);
-    garble_eval(&gc, extractedLabels, computedOutputMap);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
 
     int realInputs = n - inputsDevotedToD;
     for (int i = 0; i < n; i++) { 
@@ -517,7 +517,7 @@ static void levenCoreTest()
     garble_extract_labels(extractedLabels, inputLabels, inputs, n);
 
     block computedOutputMap[m];
-    garble_eval(&gc, extractedLabels, computedOutputMap);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
     garble_map_outputs(outputMap, computedOutputMap, outputs, m);
     garble_delete(&gc);
 
@@ -575,7 +575,7 @@ static void saveAndLoadTest()
     garble_extract_labels(extractedLabels, cgc2.inputLabels, inputs, n);
 
     block computedOutputMap[m];
-    garble_eval(&cgc2.gc, extractedLabels, computedOutputMap);
+    garble_eval(&cgc2.gc, extractedLabels, computedOutputMap, NULL);
     garble_map_outputs(cgc2.outputMap, computedOutputMap, outputs, m);
     printf("outputs %d %d\n", outputs[0], outputs[1]);
 }
@@ -610,7 +610,7 @@ void incWithSwitchTest()
     block extractedLabels[n];
     garble_extract_labels(extractedLabels, inputLabels, inputs, n);
     block computedOutputMap[m];
-    garble_eval(&gc, extractedLabels, computedOutputMap);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
     garble_map_outputs(outputMap, computedOutputMap, outputs, m);
     garble_delete(&gc);
     checkIncWithSwitch(inputs, outputs, n);
