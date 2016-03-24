@@ -1,7 +1,8 @@
 #ifndef COMPONENTS_H
 #define COMPONENTS_H
 
-#include "garble.h"
+#include <garble.h>
+#include <circuit_builder.h>
 #include <stdbool.h>
 
 typedef enum {

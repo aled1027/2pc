@@ -57,7 +57,7 @@ buildLevenshteinCircuit(garble_circuit *gc, int l, int sigma)
 
     garble_context gctxt;
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
-	garble_start_building(gc, &gctxt);
+	builder_start_building(gc, &gctxt);
 
     ///* Populate D's 0th row and column with wire indices from inputs*/
     int D[l+1][l+1][DIntSize];
@@ -120,7 +120,7 @@ buildLevenshteinCircuit(garble_circuit *gc, int l, int sigma)
     }
     int output_wires[m];
     memcpy(output_wires, D[l][l], sizeof(int) * DIntSize);
-    garble_finish_building(gc, &gctxt, output_wires);
+    builder_finish_building(gc, &gctxt, output_wires);
 }
 
 int 
@@ -129,20 +129,20 @@ INCCircuitWithSwitch(garble_circuit *gc, garble_context *ctxt,
     /* n does not include the switch. The size of the number */
 
 	for (int i = 0; i < n; i++) {
-		outputs[i] = garble_next_wire(ctxt);
+		outputs[i] = builder_next_wire(ctxt);
     }
-    int carry = garble_next_wire(ctxt);
+    int carry = builder_next_wire(ctxt);
     gate_XOR(gc, ctxt, the_switch, inputs[0], outputs[0]);
     gate_AND(gc, ctxt, the_switch, inputs[0], carry);
 
     /* do first case */
-    int not_switch = garble_next_wire(ctxt);
+    int not_switch = builder_next_wire(ctxt);
     gate_NOT(gc, ctxt, the_switch, not_switch);
     for (int i = 1; i < n; i++) {
         /* cout and(xor(x,c),s) */
-        int xor_out = garble_next_wire(ctxt);
-        int and0 = garble_next_wire(ctxt);
-        int and1 = garble_next_wire(ctxt);
+        int xor_out = builder_next_wire(ctxt);
+        int and0 = builder_next_wire(ctxt);
+        int and1 = builder_next_wire(ctxt);
         gate_XOR(gc, ctxt, carry, inputs[i], xor_out);
         gate_AND(gc, ctxt, xor_out, the_switch, and0);
 
@@ -150,9 +150,9 @@ INCCircuitWithSwitch(garble_circuit *gc, garble_context *ctxt,
         gate_OR(gc, ctxt, and0, and1, outputs[i]);
         
         /* carry and(nand(c,x),s)*/
-        int and_out = garble_next_wire(ctxt);
+        int and_out = builder_next_wire(ctxt);
         gate_AND(gc, ctxt, carry, inputs[i], and_out);
-        carry = garble_next_wire(ctxt);
+        carry = builder_next_wire(ctxt);
         gate_AND(gc, ctxt, and_out, the_switch, carry);
     }
     return 0;
@@ -182,7 +182,7 @@ TCircuit(garble_circuit *gc, garble_context *gctxt, const int *inp0, const int *
     int xor_output[split];
 
     for (int i = 0; i < split; i++) {
-        xor_output[i] = garble_next_wire(gctxt);
+        xor_output[i] = builder_next_wire(gctxt);
         gate_XOR(gc, gctxt, inp0[i], inp1[i], xor_output[i]);
     }
     int T_output;
@@ -242,7 +242,7 @@ int myLEQCircuit(garble_circuit *gc, garble_context *ctxt, int n,
 {
 
 	int les, eq;
-    int ret = garble_next_wire(ctxt);
+    int ret = builder_next_wire(ctxt);
 
 	circuit_les(gc, ctxt, n, inputs, &les);
     circuit_equ(gc, ctxt, n, inputs, &eq);
@@ -261,7 +261,7 @@ int MINCircuitWithLEQOutput(garble_circuit *gc, garble_context *garblingContext,
      */
     int i;
 	int lesOutput;
-	int notOutput = garble_next_wire(garblingContext);
+	int notOutput = builder_next_wire(garblingContext);
     myLEQCircuit(gc, garblingContext, n, inputs, &lesOutput);
 	gate_NOT(gc, garblingContext, lesOutput, notOutput);
     int split = n / 2;
@@ -283,17 +283,17 @@ buildANDCircuit(garble_circuit *gc, int n, int nlayers)
     countToN(wires, n);
 
     garble_new(gc, n, n, GARBLE_TYPE_STANDARD);
-    garble_start_building(gc, &ctxt);
+    builder_start_building(gc, &ctxt);
 
     for (int i = 0; i < nlayers; ++i) {
         for (int j = 0; j < n; j += 2) {
-            wire = garble_next_wire(&ctxt);
+            wire = builder_next_wire(&ctxt);
             gate_AND(gc, &ctxt, wires[j], wires[j+1], wire);
             wires[j] = wires[j+1] = wire;
         }
     }
 
-    garble_finish_building(gc, &ctxt, wires);
+    builder_finish_building(gc, &ctxt, wires);
 }
 
 void AddAESCircuit(garble_circuit *gc, garble_context *garblingContext, int numAESRounds, 
@@ -362,7 +362,7 @@ buildCBCFullCircuit (garble_circuit *gc, int num_message_blocks, int num_aes_rou
 
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
     garble_context gc_context;
-	garble_start_building(gc, &gc_context);
+	builder_start_building(gc, &gc_context);
 
     countToN(xorIn, 256);
     circuit_xor(gc, &gc_context, 256, xorIn, xorOut);
@@ -400,7 +400,7 @@ buildCBCFullCircuit (garble_circuit *gc, int num_message_blocks, int num_aes_rou
     assert(garbler_input_idx == num_garbler_inputs);
     assert(evaluator_input_idx == num_evaluator_inputs);
     assert(output_idx == m);
-	garble_finish_building(gc, &gc_context, outputWires);
+	builder_finish_building(gc, &gc_context, outputWires);
 }
 
 void
@@ -416,9 +416,9 @@ buildAdderCircuit(garble_circuit *gc)
 	garble_context gc_context;
 
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
-	garble_start_building(gc, &gc_context);
+	builder_start_building(gc, &gc_context);
 	circuit_add22(gc, &gc_context, inputs, outputs);
-	garble_finish_building(gc, &gc_context, outputs);
+	builder_finish_building(gc, &gc_context, outputs);
 
     free(inputs);
     free(outputs);
@@ -435,9 +435,9 @@ buildXORCircuit(garble_circuit *gc, block *delta)
     countToN(inp, n);
 
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
-	garble_start_building(gc, &garblingContext);
+	builder_start_building(gc, &garblingContext);
     circuit_xor(gc, &garblingContext, 256, inp, outs);
-	garble_finish_building(gc, &garblingContext, outs);
+	builder_finish_building(gc, &garblingContext, outs);
 }
 
 void
@@ -456,7 +456,7 @@ buildAESRoundComponentCircuit(garble_circuit *gc, bool isFinalRound, block* delt
 	int mixColumnOutputs[n1];
 
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
-	garble_start_building(gc, &garblingContext);
+	builder_start_building(gc, &garblingContext);
 	countToN(prevAndKey, 256); 
 
     // first 128 bits of prevAndKey are prev value
@@ -476,9 +476,9 @@ buildAESRoundComponentCircuit(garble_circuit *gc, bool isFinalRound, block* delt
 	    	aescircuit_mix_columns(gc, &garblingContext, shiftRowsOutputs + i * 32, mixColumnOutputs + 32 * i);
 	    }
         // output wires are stored in mixColumnOutputs
-	    garble_finish_building(gc, &garblingContext, mixColumnOutputs);
+	    builder_finish_building(gc, &garblingContext, mixColumnOutputs);
     } else {
-	    garble_finish_building(gc, &garblingContext, shiftRowsOutputs);
+	    builder_finish_building(gc, &garblingContext, shiftRowsOutputs);
     }
 }
 
@@ -500,7 +500,7 @@ void buildAESCircuit(garble_circuit *gc)
 	int i;
 
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
-	garble_start_building(gc, &garblingContext);
+	builder_start_building(gc, &garblingContext);
 
 	countToN(addKeyInputs, 256);
 
@@ -529,6 +529,6 @@ void buildAESCircuit(garble_circuit *gc)
 		}
 	}
 	final = shiftRowsOutputs;
-	garble_finish_building(gc, &garblingContext, final);
+	builder_finish_building(gc, &garblingContext, final);
 }
 

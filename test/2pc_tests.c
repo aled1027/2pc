@@ -156,7 +156,7 @@ static void notGateTest()
     garble_circuit gc;
     garble_context gcContext;
 	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
-	garble_start_building(&gc, &gcContext);
+	builder_start_building(&gc, &gcContext);
 
     int *inputWires = allocate_ints(n);
     int *outputWires = allocate_ints(m);
@@ -167,7 +167,7 @@ static void notGateTest()
 
     countToN(outputWires, m);
     block *outputMap = garble_allocate_blocks(2*m);
-	garble_finish_building(&gc, &gcContext, outputWires);
+	builder_finish_building(&gc, &gcContext, outputWires);
 
     /* Garble */
     garble_garble(&gc, inputLabels, outputMap);
@@ -221,7 +221,7 @@ static void minTest()
     garble_circuit gc;
     garble_context gcContext;
 	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
-	garble_start_building(&gc, &gcContext);
+	builder_start_building(&gc, &gcContext);
 
     int *inputWires = allocate_ints(n);
     int *outputWires = allocate_ints(m);
@@ -229,7 +229,7 @@ static void minTest()
     circuit_min(&gc, &gcContext, 4, inputWires, outputWires);
 
     block *outputMap = garble_allocate_blocks(2*m);
-	garble_finish_building(&gc, &gcContext, outputWires);
+	builder_finish_building(&gc, &gcContext, outputWires);
 
     /* Garble */
     garble_garble(&gc, inputLabels, outputMap);
@@ -289,7 +289,7 @@ static void MUXTest()
     garble_circuit gc;
 	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
     garble_context gcContext;
-	garble_start_building(&gc, &gcContext);
+	builder_start_building(&gc, &gcContext);
 
     int *inputWires = allocate_ints(n);
     int *outputWires = allocate_ints(m);
@@ -297,7 +297,7 @@ static void MUXTest()
     circuit_mux21(&gc, &gcContext, inputWires[0], inputWires[1], inputWires[2], outputWires);
 
     block *outputMap = garble_allocate_blocks(2*m);
-	garble_finish_building(&gc, &gcContext, outputWires);
+	builder_finish_building(&gc, &gcContext, outputWires);
 
     /* Garble */
     garble_garble(&gc, inputLabels, outputMap);
@@ -354,7 +354,7 @@ static void LESTest(int n)
     garble_circuit gc;
 	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
     garble_context gcContext;
-	garble_start_building(&gc, &gcContext);
+	builder_start_building(&gc, &gcContext);
 
     int *inputWires = allocate_ints(n);
     int *outputWires = allocate_ints(m);
@@ -363,7 +363,7 @@ static void LESTest(int n)
     //countToN(outputWires, m);
 
     block *outputMap = garble_allocate_blocks(2*m);
-	garble_finish_building(&gc, &gcContext, outputWires);
+	builder_finish_building(&gc, &gcContext, outputWires);
 
     /* Garble */
     garble_garble(&gc, inputLabels, outputMap);
@@ -502,9 +502,9 @@ static void levenCoreTest()
 
     garble_create_input_labels(inputLabels, n, NULL, false);
 	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
-	garble_start_building(&gc, &gcContext);
+	builder_start_building(&gc, &gcContext);
     addLevenshteinCoreCircuit(&gc, &gcContext, l, sigma, inputWires, outputWires);
-	garble_finish_building(&gc, &gcContext, outputWires);
+	builder_finish_building(&gc, &gcContext, outputWires);
 
     garble_garble(&gc, inputLabels, outputMap);
 
@@ -552,9 +552,9 @@ static void saveAndLoadTest()
     /* Garble */
     garble_create_input_labels(cgc.inputLabels, n, &delta, false);
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
-	garble_start_building(gc, &gcContext);
+	builder_start_building(gc, &gcContext);
     addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
-	garble_finish_building(gc, &gcContext, outputWires);
+	builder_finish_building(gc, &gcContext, outputWires);
     garble_garble(gc, cgc.inputLabels, cgc.outputMap);
 
     /* Declare chaining vars */
@@ -597,11 +597,11 @@ void incWithSwitchTest()
 
     garble_create_input_labels(inputLabels, n, NULL, false);
 	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
-	garble_start_building(&gc, &gcContext);
+	builder_start_building(&gc, &gcContext);
 
     INCCircuitWithSwitch(&gc, &gcContext, inputWires[0], n - 1, &inputWires[1], outputWires);
 
-	garble_finish_building(&gc, &gcContext, outputWires);
+	builder_finish_building(&gc, &gcContext, outputWires);
     garble_garble(&gc, inputLabels, outputMap);
 
     for (int i = 0; i < n; i++) {

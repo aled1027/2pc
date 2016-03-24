@@ -49,9 +49,9 @@ leven_garb_off(int l, int sigma, ChainingType chainingType)
 
         /* Garble */
 	    garble_new(gc, coreN, coreM, GARBLE_TYPE_STANDARD);
-	    garble_start_building(gc, &gcContext);
+	    builder_start_building(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
-	    garble_finish_building(gc, &gcContext, outputWires);
+	    builder_finish_building(gc, &gcContext, outputWires);
         if (chainingType == CHAINING_TYPE_SIMD) {
             createSIMDInputLabelsWithRForLeven(&chainedGCs[i], delta, l);
         } else {
