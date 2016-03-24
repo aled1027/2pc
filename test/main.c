@@ -28,6 +28,7 @@ static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD(int l) { return getDIntSize(l) * (l+1); }
 
 struct args {
+    ChainingType chaining_type;
     bool garb_off;
     bool eval_off;
     bool garb_on;
@@ -42,6 +43,7 @@ struct args {
 static void
 args_init(struct args *args)
 {
+    args->chaining_type = CHAINING_TYPE_STANDARD;
     args->garb_off = 0;
     args->eval_off = 0;
     args->garb_on = 0;
@@ -55,6 +57,7 @@ args_init(struct args *args)
 
 static struct option opts[] =
 {
+    {"chaining", required_argument, 0, 'c'},
     {"garb-off", no_argument, 0, 'g'},
     {"eval-off", no_argument, 0, 'e'},
     {"garb-on", no_argument, 0, 'G'},
@@ -274,9 +277,9 @@ go(struct args *args)
     uint64_t n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs;
     uint64_t l, sigma;
     char *fn, *type;
-    ChainingType chainingType;
+    /* ChainingType chainingType; */
 
-    chainingType = CHAINING_TYPE_SIMD;
+    /* chainingType = CHAINING_TYPE_SIMD; */
     switch (args->type) {
     case EXPERIMENT_AES:
         n_garb_inputs = aesNumGarbInputs();
@@ -312,30 +315,30 @@ go(struct args *args)
         exit(EXIT_FAILURE);
     }
 
-    if (chainingType == CHAINING_TYPE_SIMD)
+    if (args->chaining_type == CHAINING_TYPE_SIMD)
         printf("Using CHAINING_TYPE_SIMD\n");
     else
         printf("Using CHAINING_TYPE_STANDARD\n");
 
     printf("Running %s with (%d, %d) inputs, %d outputs, %d chains, %d chain_type, %d trials\n",
-           type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, chainingType, args->ntrials);
+           type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, args->chaining_type, args->ntrials);
 
     if (args->garb_off) {
         printf("Offline garbling\n");
         switch (args->type) {
         case EXPERIMENT_AES:
-            aes_garb_off(GARBLER_DIR, 10, chainingType);
+            aes_garb_off(GARBLER_DIR, 10, args->chaining_type);
             break;
         case EXPERIMENT_CBC:
-            cbc_garb_off(GARBLER_DIR, chainingType);
+            cbc_garb_off(GARBLER_DIR, args->chaining_type);
             break;
         case EXPERIMENT_LEVEN:
-            leven_garb_off(l, sigma, chainingType);
+            leven_garb_off(l, sigma, args->chaining_type);
             break;
         }
     } else if (args->eval_off) {
         printf("Offline evaluating\n");
-        eval_off(n_eval_inputs, ncircs, chainingType);
+        eval_off(n_eval_inputs, ncircs, args->chaining_type);
     } else if (args->garb_on) {
         printf("Online garbling\n");
         if (args->type == EXPERIMENT_LEVEN) {
@@ -346,14 +349,14 @@ go(struct args *args)
                 + (int) floor(log10((float) l)) + 2;
             fn = malloc(size);
             (void) snprintf(fn, size, "functions/leven_%d.json", l);
-            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, chainingType, l, sigma, true);
+            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, l, sigma, true);
             free(fn);
         } else {
-            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, chainingType, 0, 0, false);
+            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, 0, 0, false);
         }
     } else if (args->eval_on) {
         printf("Online evaluating\n");
-        eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, chainingType);
+        eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, args->chaining_type);
     } else if (args->garb_full) {
         printf("Full garbling\n");
         bool leven = false;
@@ -402,6 +405,16 @@ main(int argc, char *argv[])
     while ((c = getopt_long(argc, argv, "", opts, &idx)) != -1) {
         switch (c) {
         case 0:
+            break;
+        case 'c':
+            if (strcmp(optarg, "STANDARD") == 0) {
+                args.chaining_type = CHAINING_TYPE_STANDARD;
+            } else if (strcmp(optarg, "SCMC") == 0) {
+                args.chaining_type = CHAINING_TYPE_SIMD;
+            } else {
+                fprintf(stderr, "Unknown chaining type %s\n", optarg);
+                exit(EXIT_FAILURE);
+            }
             break;
         case 'g':
             args.garb_off = true;
