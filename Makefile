@@ -48,16 +48,16 @@ $(TESTOBJECTS): $(OBJDIR)/%.o : $(TESTDIR)/%.c
 # COMPONENT CBC #
 #################
 cbc_garb_off:
-	gdb --args ./$(BINDIR)/test --garb-off --type CBC
+	./$(BINDIR)/test --garb-off --type CBC
 
 cbc_eval_off:
-	gdb --args ./$(BINDIR)/test --eval-off --type CBC
+	./$(BINDIR)/test --eval-off --type CBC
 
 cbc_garb_on:
-	gdb --args ./$(BINDIR)/test --garb-on --type CBC
+	./$(BINDIR)/test --garb-on --type CBC
 
 cbc_eval_on:
-	gdb --args ./$(BINDIR)/test --eval-on --type CBC
+	./$(BINDIR)/test --eval-on --type CBC
 
 #################
 # COMPONENT AES #
@@ -69,10 +69,10 @@ aes_eval_off:
 	./$(BINDIR)/test --eval-off --type AES
 
 aes_garb_on:
-	gdb --args ./$(BINDIR)/test --garb-on --type AES
+	./$(BINDIR)/test --garb-on --type AES
 
 aes_eval_on:
-	gdb --args ./$(BINDIR)/test --eval-on --type AES 
+	./$(BINDIR)/test --eval-on --type AES
 
 #########
 # LEVEN #
@@ -84,10 +84,10 @@ leven_eval_off:
 	$(BINDIR)/test --eval-off --type LEVEN
 
 leven_garb_on:
-	gdb --args $(BINDIR)/test --garb-on --type LEVEN
+	$(BINDIR)/test --garb-on --type LEVEN
 
 leven_eval_on:
-	gdb --args $(BINDIR)/test --eval-on --type LEVEN
+	$(BINDIR)/test --eval-on --type LEVEN
 
 ##########
 # EXTRAS #
