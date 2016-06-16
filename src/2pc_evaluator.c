@@ -35,15 +35,34 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         const Instructions* instructions, block** labels, const int* circuitMapping,
         block **computedOutputMap, const block *offsets, ChainingType chainingType)
 {
-    /* Essence of function: populate computedOutputMap
-     * computedOutputMap[0] should already be populated garb and eval input labels
-     * These inputs are then chained appropriately to where they need to go.
+    /* Evaluates the chained garbled circuits using the array of chained_gcs, the instructions,
+     * input labels, and other information provided. Ignoring abstractions, this 
+     * function populates the array computedOutputMap which holds
+     * the output blocks of each garbled circuit. With these blocks, 
+     * and extra information on the semantic value of each block 
+     * (i.e. does it represent 0 or 1),
+     * the evaluator can determine the real output of the component-based gc system.
+     * Note: the indices provided by CircuitMapping should only used 
+     * when evaluating. In all other places, the indices used to designate the
+     * chained garbled circuits are consistent with the indices stated in 
+     * the instructions instructions. circuitMapping maps the indice of the instruction
+     * to the correct index of the chainedGarbledCircuit as saved on disk.
      *
-     * only used circuitMapping when evaluating. 
-     * all other labels, outputmap are basedon the indicies of instructions.
-     * This is because instruction's circuits are id'ed 0,..,n-1
-     * whereas saved gc id'ed arbitrarily.
+     * Inputs:
+     * @param chained_gcs an array of chained garbled circuits that will be evaluated
+     * @param num_chained_gcs the length of the chained_gcs array
+     * @param instructions a list of instructions on how to evaluate and chain
+     * @param labels a 2-d array of the input labels to each garbled circuit
+     *        lables[i] is an array of input labels for chained_gcs[i].
+     * @param circuitMapping a mapping of garbled circuit indices from those 
+     *        used in the instructions to those used to save the garbled circuits to disk.
+     * @param computedOutputMap a 2-d array of the output labels of each garbled circuit, 
+     *        where computedOutputMap[i] is the list of output labels of gc i
+     * @param offsets otherwise known as the chaining mask, the offsets are the
+     *        blocks needed to map output labels of one gc to input labels of another gc.
+     *
      */
+
     int savedCircId, offsetIdx;
     uint64_t s,e, eval_time = 0;
     for (int i = 0; i < instructions->size; i++) {
@@ -103,6 +122,11 @@ evaluator_classic_2pc(const int *input, bool *output,
                       int num_garb_inputs, int num_eval_inputs,
                       uint64_t *tot_time)
 {
+    /* Does the "full" garbled circuit protocol, wherein there is no online phase.
+     * The garbled circuit and all input labels are communicated during the 
+     * online phase, although we do use OT-processing
+     */
+
     int sockfd;
     int *selections = NULL;
     garble_circuit gc;
@@ -244,6 +268,17 @@ void
 evaluator_offline(char *dir, int num_eval_inputs, int nchains,
                   ChainingType chainingType)
 {
+    /* Does the offline stage for the evaluator.
+     * This includes receiving pre-exchanged garbled circuits,
+     * performing the offline phase of OT-preprocessing, and
+     * saving relevant information to disk.
+     *
+     * @param dir the directory to save information
+     * @param num_eval_inputs the number of evaluator inputs
+     * @param nchains the number of garbled circuits to be pre-exchanged
+     * @param chainingType indicates whether we are using SIMD or standard chaining.
+     *        WARNING: SIMD-style chaining is now deprecated.
+     */
     int sockfd;
     struct state state;
     ChainedGarbledCircuit cgc;
@@ -386,6 +421,32 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                  int num_chained_gcs, ChainingType chainingType,
                  uint64_t *tot_time, uint64_t *tot_time_no_load)
 {
+    /* Performs the online stage of the evaluator.
+     * The first part of the function loads data from disk
+     * that was saved during the online phase. 
+     * Next, perform OT correction to acquire input labels
+     * corresponding to the evaluators' inputs.
+     * Next, receive instructions on how to evaluate and chain 
+     * the garbled circuits.
+     * Next, receive garbler labels and the output instructions.
+     * The output instructions are unary gates mapping output labels to 0 or 1.
+     * Next, we call evaluator_evaluate to evaluate the garbled circuits using 
+     * the information acquired.
+     * Finally, use the output instructions to process the output of the 
+     * evaluation subprocedure to acquire actual bits of the output.
+     *
+     * @param dir the director which OT and gc data are saved during the offline phase
+     * @param eval_inputs an array of the evaluator's inputs; either 0 or 1
+     * @param num_eval_inputs the length of the eval_inputs array
+     * @param num_chained_gcs the number of garbled circuits saved to disk.
+     * @param chainingType indicates whether to do standard or SIMD-style chaining.
+     *        WARNING: SIMD-style chaining is deprecated.
+     * @param tot_time an unpopulated int* (of length 1). evaluator_online populates
+     *        value with the total amount of time it took to evaluate.
+     * @param tot_time_no_load an unpopulated int* (of length 1). evaluator_online populates
+     *        value with the total amount of time it took to evaluate, not including 
+     *        the time to load data from disk.
+     */
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
     block *garb_labels = NULL, *eval_labels = NULL,
