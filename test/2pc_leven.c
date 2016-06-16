@@ -11,7 +11,7 @@
 #include "utils.h"
 #include <math.h>
 
-#include "gates.h"
+//#include "gates.h"
 
 #include <garble.h>
 

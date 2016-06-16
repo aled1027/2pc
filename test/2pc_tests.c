@@ -11,7 +11,7 @@
 #include "circuits.h"
 #include "utils.h"
 
-#include "gates.h"
+//#include "gates.h"
 
 #include "2pc_tests.h"
 

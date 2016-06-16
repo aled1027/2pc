@@ -3,7 +3,7 @@
 
 #include "garble.h"
 #include "circuits.h"
-#include "gates.h"
+//#include "gates.h"
 
 #include <string.h>
 #include <assert.h>

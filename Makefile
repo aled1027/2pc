@@ -20,14 +20,14 @@ IDIR =include
 INCLUDES := $(wildcard $(SRCDIR)/*.h) -Iinc -I$(JUSTGARBLE)/include -I$(IDIR)
 
 CC=gcc
-CFLAGS= -g -O0 -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
+CFLAGS= -g -O3 -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
 # TODO add -Wextra -pedantic and fix errors/warnings
 # TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
 # Wno-format is for printing uint64_t as llu.
 CFLAGS += -Wno-typedef-redefinition -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
 #CFLAGS += -DNDDEBUG # removes all "assert()" at compile time
 
-LIBS=-lmsgpackc -lm -lcrypto -lssl -lgmp -ljansson -lgarble -lgarblec
+LIBS=-lm -lcrypto -lssl -lgmp -ljansson -lgarble -lgarblec -lmsgpackc
 #LIB+= -DNDDEBUG # removes all "assert()" at compile time
 
 ###############

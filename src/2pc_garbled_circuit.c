@@ -8,7 +8,7 @@
 #include "utils.h"
 #include "2pc_common.h"
 #include "circuits.h"
-#include "gates.h"
+//#include "gates.h"
 
 #include "2pc_garbled_circuit.h"
 
