@@ -272,55 +272,6 @@ static void minTest()
     free(computedOutputMap);
 }
 
-static void ORTest()
-{
-    int n = 2;
-    int m = 12;
-    bool inputs[n];
-    int inputWires[n];
-    int outputWires[m];
-    block inputLabels[2*n];
-    block extractedLabels[n];
-    block computedOutputMap[m];
-    block outputMap[2*m];
-    bool outputs[m];
-
-    /* Inputs */
-
-    inputs[0] = 1;
-    inputs[1] = 1;
-
-    /* Build Circuit */
-    garble_create_input_labels(inputLabels, n, NULL, false);
-    garble_circuit gc;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
-    garble_context gcContext;
-	builder_start_building(&gc, &gcContext);
-
-    countToN(inputWires, n);
-    new_circuit_or(&gc, &gcContext, inputWires, outputWires);
-    countToN(outputWires, m);
-	builder_finish_building(&gc, &gcContext, outputWires);
-
-    /* Garble */
-    garble_garble(&gc, inputLabels, outputMap);
-
-    /* Evaluate */
-    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
-    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
-    garble_delete(&gc);
-
-    /* Results */
-    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
-        
-    printf("outputs: ");
-    for (uint32_t i = 0; i < m; i++) {
-        printf("%d ", outputs[i]);
-    }
-    printf("\n");
-
-}
-
 static void MUXTest() 
 {
     int n = 3;
@@ -392,7 +343,7 @@ static void MUXTest()
 
 static void SimpleLESTest() 
 {
-    int n = 2;
+    int n = 4;
     int m = 1;
     bool inputs[n];
     int inputWires[n];
@@ -403,8 +354,10 @@ static void SimpleLESTest()
     block outputMap[2*m];
     bool outputs[m];
 
-    inputs[0] = 0;
-    inputs[1] = 1;
+    inputs[0] = rand() % 2;
+    inputs[1] = rand() % 2;
+    inputs[2] = rand() % 2;
+    inputs[3] = rand() % 2;
 
     /* Build Circuit */
     garble_create_input_labels(inputLabels, n, NULL, false);
@@ -414,8 +367,7 @@ static void SimpleLESTest()
 	builder_start_building(&gc, &gcContext);
 
     countToN(inputWires, n);
-    jg_circuit_les(&gc, &gcContext, n, inputWires, outputWires);
-    countToN(outputWires, m);
+    new_circuit_les(&gc, &gcContext, n, inputWires, outputWires);
 	builder_finish_building(&gc, &gcContext, outputWires);
 
     /* Garble */
@@ -428,7 +380,13 @@ static void SimpleLESTest()
 
     /* Results */
     garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+
+    /* Check Results */
     printf("%d %d -> %d\n", inputs[0], inputs[1], outputs[0]);
+    int real_answer = lessThanCheck(inputs, n);
+    if (real_answer != *outputs) {
+        printf("FAILURE\n");
+    }
 }
 
 static void LESTest(int n) 
@@ -452,7 +410,7 @@ static void LESTest(int n)
     int *outputWires = allocate_ints(m);
     countToN(inputWires, n);
     //circuit_les(&gc, &gcContext, n, inputWires, outputWires);
-    jg_circuit_les(&gc, &gcContext, n, inputWires, outputWires);
+    //new_circuit_les(&gc, &gcContext, n, inputWires, outputWires);
 
     block *outputMap = garble_allocate_blocks(2*m);
 	builder_finish_building(&gc, &gcContext, outputWires);
@@ -770,8 +728,9 @@ void runAllTests(void)
     //    printf("Running LES test %d times\n", nruns); 
     //} 
     
-    int n = 2;
+    //LESTest(n); 
+    
+    //int n = 2;
     for (int i = 0; i < nruns; i++) 
-        SimpleLESTest(n); 
-        //LESTest(n); 
+        SimpleLESTest(); 
 }  
