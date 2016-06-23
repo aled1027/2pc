@@ -18,6 +18,10 @@ typedef enum {
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
+void new_circuit_mux21(garble_circuit *gc, garble_context *ctxt, 
+              int theSwitch, int input0, int input1, int output[1]);
+void jg_circuit_les(garble_circuit *gc, garble_context *garblingContext, uint64_t n,
+		const int *inputs, int *outputs);
 int
 countToN(int *a, int n);
 

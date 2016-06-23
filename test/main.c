@@ -274,8 +274,8 @@ eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
 static int
 go(struct args *args)
 {
-    uint64_t n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs;
-    uint64_t l, sigma;
+    uint64_t n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs, sigma;
+    uint64_t l = 0;
     char *fn, *type;
     /* ChainingType chainingType; */
 

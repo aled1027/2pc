@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <math.h>
 
+#include "components.h"
 #include "2pc_garbler.h" 
 #include "2pc_evaluator.h"
 #include "circuits.h"
@@ -107,10 +108,10 @@ static int lessThanCheck(bool *inputs, int nints)
         sum2 += pow * inputs[split + i];
         pow = pow * 10;
     }
-    if (sum1 <= sum2)
-        return 0;
-    else 
+    if (sum1 < sum2)
         return 1;
+    else 
+        return 0;
 
 }
 
@@ -276,41 +277,41 @@ static void MUXTest()
 {
     int n = 3;
     int m = 1;
+    bool inputs[n];
+    int inputWires[n];
+    int outputWires[m];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
 
     /* Inputs */
-    bool *inputs = calloc(n, sizeof(int));
-    inputs[0] = rand() % 2;
-    inputs[1] = rand() % 2;
-    inputs[2] = rand() % 2;
+
+    inputs[0] = 1;
+    inputs[1] = 1;
+    inputs[2] = 1;
 
     /* Build Circuit */
-    block *inputLabels = garble_allocate_blocks(2*n);
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
 	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
     garble_context gcContext;
 	builder_start_building(&gc, &gcContext);
 
-    int *inputWires = allocate_ints(n);
-    int *outputWires = allocate_ints(m);
     countToN(inputWires, n);
-    circuit_mux21(&gc, &gcContext, inputWires[0], inputWires[1], inputWires[2], outputWires);
-
-    block *outputMap = garble_allocate_blocks(2*m);
+    new_circuit_mux21(&gc, &gcContext, inputWires[0], inputWires[1], inputWires[2], outputWires);
 	builder_finish_building(&gc, &gcContext, outputWires);
 
     /* Garble */
     garble_garble(&gc, inputLabels, outputMap);
 
     /* Evaluate */
-    block *extractedLabels = garble_allocate_blocks(n);
     garble_extract_labels(extractedLabels, inputLabels, inputs, n);
-    block *computedOutputMap = garble_allocate_blocks(m);
     garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
     garble_delete(&gc);
 
     /* Results */
-    bool *outputs = calloc(m, sizeof(bool));
     garble_map_outputs(outputMap, computedOutputMap, outputs, m);
     bool failed = false;
     if (inputs[0] == 0) {
@@ -326,16 +327,12 @@ static void MUXTest()
         printf("MUX test failed\n");
         printf("inputs: %d %d %d\n", inputs[0], inputs[1], inputs[2]);
         printf("outputs: %d\n", outputs[0]);
+    } else {
+        printf("MUX test passed\n");
+        printf("inputs: %d %d %d\n", inputs[0], inputs[1], inputs[2]);
+        printf("outputs: %d\n", outputs[0]);
     }
 
-    free(outputs);
-    free(inputs);
-    free(inputWires);
-    free(outputWires);
-    free(extractedLabels);
-    free(inputLabels);
-    free(outputMap);
-    free(computedOutputMap);
 
 }
 
@@ -359,8 +356,8 @@ static void LESTest(int n)
     int *inputWires = allocate_ints(n);
     int *outputWires = allocate_ints(m);
     countToN(inputWires, n);
-    circuit_les(&gc, &gcContext, n, inputWires, outputWires);
-    //countToN(outputWires, m);
+    //circuit_les(&gc, &gcContext, n, inputWires, outputWires);
+    jg_circuit_les(&gc, &gcContext, n, inputWires, outputWires);
 
     block *outputMap = garble_allocate_blocks(2*m);
 	builder_finish_building(&gc, &gcContext, outputWires);
@@ -618,8 +615,7 @@ void incWithSwitchTest()
 
 void runAllTests(void)
 { 
-    int nruns = 100; 
-    levenTest(2,2);
+    int nruns = 1; 
 
     // TODO these two tests are failing!
     //for (int i = 0; i < nruns; i++)
@@ -632,7 +628,7 @@ void runAllTests(void)
     //        levenTest(l, sigma); 
     //    printf("Ran leven test %d times\n", nruns); 
     //}
-    
+    //
     //for (int l = 10; l < 11; l++) { 
     //    printf("Running leven test for l=%d\n", l); 
     //    int sigma = 8;
@@ -641,33 +637,37 @@ void runAllTests(void)
     //    printf("Ran leven test %d times\n", nruns); 
     //}
 
-    for (int i = 0; i < nruns; i++) 
-        incWithSwitchTest(); 
+    //for (int i = 0; i < nruns; i++) 
+    //    incWithSwitchTest(); 
 
-    printf("Ran leven core test %d times\n", nruns); 
-    for (int i = 0; i < nruns; i++) 
-        levenCoreTest(); 
-    printf("Ran leven core test %d times\n", nruns); 
+    //printf("Ran leven core test %d times\n", nruns); 
+    //for (int i = 0; i < nruns; i++) 
+    //    levenCoreTest(); 
+    //printf("Ran leven core test %d times\n", nruns); 
 
-    printf("Running min test\n"); 
-    for (int i = 0; i < nruns; i++) 
-        minTest(); 
-    printf("Ran min test %d times\n", nruns); 
+    //printf("Running min test\n"); 
+    //for (int i = 0; i < nruns; i++) 
+    //    minTest(); 
+    //printf("Ran min test %d times\n", nruns); 
 
-    printf("Running not gate test\n"); 
-    for (int i = 0; i < nruns; i++) 
-        notGateTest(); 
-    printf("Ran note gate test %d times\n", nruns); 
+    //printf("Running not gate test\n"); 
+    //for (int i = 0; i < nruns; i++) 
+    //    notGateTest(); 
+    //printf("Ran note gate test %d times\n", nruns); 
 
     printf("Running MUX test\n"); 
     for (int i = 0; i < nruns; i++) 
         MUXTest(); 
     printf("Ran mux test %d times\n", nruns); 
 
-    for (int n = 2; n < 16; n+=2) { 
-        printf("Running LES test for n=%d\n", n); 
-        for (int i = 0; i < nruns; i++) 
-          LESTest(n); 
-        printf("Running LES test %d times\n", nruns); 
-    } 
+    //for (int n = 2; n < 16; n+=2) { 
+    //    printf("Running LES test for n=%d\n", n); 
+    //    for (int i = 0; i < nruns; i++) 
+    //        LESTest(n); 
+    //    printf("Running LES test %d times\n", nruns); 
+    //} 
+    
+    //int n = 2;
+    //for (int i = 0; i < nruns; i++) 
+    //    LESTest(n); 
 }  

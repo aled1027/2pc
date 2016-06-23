@@ -9,6 +9,85 @@
 #include <assert.h>
 #include <math.h>
 
+void
+new_circuit_mux21(garble_circuit *gc, garble_context *ctxt, 
+              int theSwitch, int input0, int input1, int *output)
+{
+    /* MUX21 circuit. 
+     * It takes three inputs, a switch, and two bits. 
+     * If the switch is 0, then it ouptut input0. 
+     * If the switch is 1, then it outputs input1.
+     */
+    printf("In new mux21\n");
+    uint64_t notSwitch = builder_next_wire(ctxt);
+    // faking not gate:
+    int fixed_wire_one = wire_one(gc);
+    gate_XOR(gc, ctxt, theSwitch, fixed_wire_one, notSwitch);
+    // gate_NOT(gc, ctxt, theSwitch, notSwitch);
+
+    int and0 = builder_next_wire(ctxt);
+    gate_AND(gc, ctxt, notSwitch, input0, and0);
+    int and1 = builder_next_wire(ctxt);
+    gate_AND(gc, ctxt, theSwitch, input1, and1);
+    *output = builder_next_wire(ctxt);
+    gate_OR(gc, ctxt, and0, and1, *output);
+}
+
+void jg_circuit_les(garble_circuit *gc, garble_context *garblingContext, uint64_t n,
+		const int *inputs, int *outputs) {
+    /* TODO integrate this into libgarble
+     * Prefer this circuit_les to libgarbles.
+     *
+     * This function adds the less than circuit to the existing
+     * gc and garblingContext
+     *
+     * 
+     * It takes n inputs, where n is an even number.
+     * The first n/2 inputs are the first number, and the second n/2 inputs
+     * are the second number. The circuit created will return 1 if the first number
+     * is less than the second number, and 0 otherwise (as per less than logic). 
+     */
+
+	int tempWires[n / 2];
+	circuit_sub(gc, garblingContext, n, inputs, tempWires);
+	int test = tempWires[n / 2 - 1];
+	int A = n / 2 - 1;
+	int B = n - 1;
+
+	int notA = builder_next_wire(garblingContext);
+	gate_NOT(gc, garblingContext, A, notA);
+
+	int notB = builder_next_wire(garblingContext);
+	gate_NOT(gc, garblingContext, B, notB);
+
+	int case1 = builder_next_wire(garblingContext);
+	gate_AND(gc, garblingContext, A, notB, case1);
+
+	int tmpCase2 = builder_next_wire(garblingContext);
+	int case2 = builder_next_wire(garblingContext);
+	gate_OR(gc, garblingContext, notA, B, tmpCase2);
+	gate_NOT(gc, garblingContext, tmpCase2, case2);
+
+	int tmpCase3 = builder_next_wire(garblingContext);
+	int case3 = builder_next_wire(garblingContext);
+	gate_AND(gc, garblingContext, notA, notB, tmpCase3);
+	gate_AND(gc, garblingContext, tmpCase3, test, case3);
+
+	int notTest = builder_next_wire(garblingContext);
+	int tmpCase4 = builder_next_wire(garblingContext);
+	int case4 = builder_next_wire(garblingContext);
+	gate_AND(gc, garblingContext, A, B, tmpCase4);
+	gate_NOT(gc, garblingContext, test, notTest);
+	gate_AND(gc, garblingContext, tmpCase4, notTest, case4);
+
+	int tempFinal1 = builder_next_wire(garblingContext);
+	int tempFinal2 = builder_next_wire(garblingContext);
+	outputs[0] = builder_next_wire(garblingContext);
+	gate_OR(gc, garblingContext, case1, case2, tempFinal1);
+	gate_OR(gc, garblingContext, case3, case4, tempFinal2);
+	gate_OR(gc, garblingContext, tempFinal1, tempFinal2, outputs[0]);
+}
+
 int
 countToN(int *a, int n)
 {
