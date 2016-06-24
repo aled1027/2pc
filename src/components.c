@@ -22,6 +22,7 @@ bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int 
 		new_circuit_mux21(gc, gctxt, the_switch, inps[i], inps[i + split], &outputs[i]);
 	}
 }
+
 void circuit_argmax2(garble_circuit *gc, garble_context *ctxt, 
         int *inputs, int *outputs, int num_len) 
 {
@@ -31,21 +32,23 @@ void circuit_argmax2(garble_circuit *gc, garble_context *ctxt,
      * where the length of idx0, idx1, num0, and num1 is num_len bits
      */
     assert(inputs && outputs && gc && ctxt);
-    printf("Num_len = %d\n", num_len);
 
     // populate idxs and nums by splicing inputs
     int les_ins[2 * num_len];
+
     memcpy(les_ins, &inputs[num_len], sizeof(int) * num_len); // put num0
     memcpy(&les_ins[num_len], &inputs[3 * num_len], sizeof(int) * num_len); // put num1
+    printf("les_ins: %d %d %d %d\n", les_ins[0], les_ins[1], les_ins[2], les_ins[3]);
     int les_out;
 
-    new_circuit_les(gc, ctxt, 2, les_ins, &les_out);
+
+    new_circuit_les(gc, ctxt, num_len * 2, les_ins, &les_out);
 
     // And mux 'em
     int mux_inputs[2 * num_len];
     memcpy(mux_inputs, inputs, sizeof(int) * num_len);
     memcpy(mux_inputs + num_len, &inputs[2 * num_len], sizeof(int) * num_len);
-    bitwiseMUX(gc, ctxt, les_out, mux_inputs, 2 * num_len, outputs);
+    bitwiseMUX(gc, ctxt, les_out, inputs, 4 * num_len, outputs);
 }
 
 void circuit_argmax4(garble_circuit *gc, garble_context *ctxt,
@@ -58,19 +61,18 @@ void circuit_argmax4(garble_circuit *gc, garble_context *ctxt,
     circuit_argmax2(gc, ctxt, inputs, out, num_len);
     
     // argmax second two
-    size_t p = num_len * 4;
-    circuit_argmax2(gc, ctxt, inputs + p, out + (2 * num_len), num_len);
+    circuit_argmax2(gc, ctxt, inputs + (4 * num_len), out + (2 * num_len), num_len);
 
     // argmax their outputs
     circuit_argmax2(gc, ctxt, out, outputs, num_len);
 }
 
-
-
 void new_circuit_gteq(garble_circuit *circuit, garble_context *context, int n,
         int *inputs, int *output) 
 {
-    // courtesy of Arkady
+    /* Assumes that lsb is on the left. i.e. 011 >= 101 is true.
+     * courtesy of Arkady
+     */
     int split = n / 2;
 	int carryWire = wire_one(circuit);
 	int internalWire1, internalWire2, preCarryWire;
@@ -103,7 +105,8 @@ void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
 	// gate_NOT(gc, ctxt, theSwitch, notSwitch);
 
 }
-	void
+
+void
 new_circuit_mux21(garble_circuit *gc, garble_context *ctxt, 
 		int theSwitch, int input0, int input1, int *output)
 {

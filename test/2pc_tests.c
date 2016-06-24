@@ -330,64 +330,70 @@ static void MUXTest()
     }
 }
 
-//static void argMax4Test() 
-//{
-//    int n = 8; // 1 bit for input, 1 bit for index
-//    int m = 1;
-//    bool inputs[n];
-//    int inputWires[n];
-//    int outputWires[m];
-//    block inputLabels[2*n];
-//    block extractedLabels[n];
-//    block computedOutputMap[m];
-//    block outputMap[2*m];
-//    bool outputs[m];
-//
-//    /* Inputs */
-//    for (int i = 0; i < n; i++)
-//        inputs[i] = rand() % 2;
-//    inputs[0] = 0;
-//    inputs[2] = 1;
-//
-//    /* Build Circuit */
-//    garble_create_input_labels(inputLabels, n, NULL, false);
-//    garble_circuit gc;
-//	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
-//    garble_context gcContext;
-//	builder_start_building(&gc, &gcContext);
-//
-//    countToN(inputWires, n);
-//    new_circuit_les(&gc, &gcContext, n, inputWires, outputWires);
-//
-//	builder_finish_building(&gc, &gcContext, outputWires);
-//
-//    /* Garble */
-//    garble_garble(&gc, inputLabels, outputMap);
-//
-//    /* Evaluate */
-//    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
-//    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
-//    garble_delete(&gc);
-//
-//    /* Results */
-//    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
-//
-//    /* Automated checking */
-//    printf("arg max test--------------------------\n");
-//    printf("\tinputs: ");
-//    for (int i = 0; i < n; i++) {
-//        if (i == (n/2))
-//            printf("|| ");
-//        printf("%d ", inputs[i]);
-//    }
-//    printf("\n");
-//    printf("\toutputs: %d\n", outputs[0]);
-//}
+static void argMax4Test() 
+{
+    int num_len = 2;
+    int n = num_len * 8; // 2 bits for each index, 2 bits for each value
+    int m = 4;
+    bool inputs[n];
+    int inputWires[n];
+    int outputWires[m];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
+
+    /* Inputs */
+    for (int i = 0; i < n; i++)
+        inputs[i] = rand() % 2;
+
+    convertToBinary(0, &inputs[0], num_len);
+    convertToBinary(1, &inputs[4], num_len);
+    convertToBinary(2, &inputs[8], num_len);
+    convertToBinary(3, &inputs[12], num_len);
+
+
+    /* Build Circuit */
+    garble_create_input_labels(inputLabels, n, NULL, false);
+    garble_circuit gc;
+	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+    garble_context gcContext;
+	builder_start_building(&gc, &gcContext);
+
+    countToN(inputWires, n);
+    circuit_argmax4(&gc, &gcContext, inputWires, outputWires, num_len);
+	builder_finish_building(&gc, &gcContext, outputWires);
+
+    /* Garble */
+    garble_garble(&gc, inputLabels, outputMap);
+
+    /* Evaluate */
+    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
+    garble_delete(&gc);
+
+    /* Results */
+    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+
+    /* Automated checking */
+    printf("argmax4 test--------------------------\n");
+    printf("\tinputs: ");
+    for (int i = 0; i < 4; i++) {
+        int j = 4 * i;
+        printf("(");
+        printf("%d %d, %d %d", inputs[j], inputs[j+1], inputs[j+2], inputs[j+3]);
+        printf(") ");
+    }
+    printf("\n");
+    printf("\toutputs: (%d %d, %d %d)\n", outputs[0], outputs[1], outputs[2], outputs[3]);
+}
 
 static void argMax2Test() 
 {
-    int n = 4; // 1 bit for input, 1 bit for index
-    int m = 1;
+    int num_len = 2;
+    int n = num_len * 4; // 1 bit for input, 1 bit for index
+    int m = 2 * num_len;
     bool inputs[n];
     int inputWires[n];
     int outputWires[m];
@@ -401,7 +407,14 @@ static void argMax2Test()
     for (int i = 0; i < n; i++)
         inputs[i] = rand() % 2;
     inputs[0] = 0;
+    inputs[1] = 0;
     inputs[2] = 1;
+    inputs[3] = 0;
+
+    inputs[4] = 1;
+    inputs[5] = 0;
+    inputs[6] = 1;
+    inputs[7] = 1;
 
     /* Build Circuit */
     garble_create_input_labels(inputLabels, n, NULL, false);
@@ -411,7 +424,7 @@ static void argMax2Test()
 	builder_start_building(&gc, &gcContext);
 
     countToN(inputWires, n);
-    circuit_argmax2(&gc, &gcContext, inputWires, outputWires, 1);
+    circuit_argmax2(&gc, &gcContext, inputWires, outputWires, num_len);
 
 	builder_finish_building(&gc, &gcContext, outputWires);
 
@@ -435,7 +448,7 @@ static void argMax2Test()
         printf("%d ", inputs[i]);
     }
     printf("\n");
-    printf("\toutputs: %d\n", outputs[0]);
+    printf("\toutputs: (%d %d, %d %d)\n", outputs[0], outputs[1], outputs[2], outputs[3]);
 }
 static void LESTest(int n) 
 {
@@ -765,11 +778,16 @@ void runAllTests(void)
     //
     //printf("Running les test\n");
     //for (int i = 0; i < nruns; i++) {
-    //    LESTest(20);
+    //    LESTest(6);
+    //}
+
+    //printf("Running argmax test\n");
+    //for (int i = 0; i < nruns; i++) {
+    //    argMax2Test();
     //}
 
     printf("Running argmax test\n");
     for (int i = 0; i < nruns; i++) {
-        argMax2Test(20);
+        argMax4Test();
     }
 }  
