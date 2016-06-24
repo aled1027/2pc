@@ -9,10 +9,65 @@
 #include <assert.h>
 #include <math.h>
 
-//void new_circuit_les(garble_circuit *circuit, garble_context *context,
-//		int *in1, int *in2, int *out, int len) {
+static void
+bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int *inps, 
+		int ninputs, int *outputs)
+{
+	//assert(ninputs % 2 == 0 && "ninputs should be even because we are muxing");
+	//assert(outputs && "final should already be malloced");
+	int split = ninputs / 2;
 
-void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
+	for (int i = 0; i < split; i++) {
+		//circuit_mux21(gc, gctxt, the_switch, inps[i], inps[i + split], &outputs[i]);
+		new_circuit_mux21(gc, gctxt, the_switch, inps[i], inps[i + split], &outputs[i]);
+	}
+}
+void circuit_argmax2(garble_circuit *gc, garble_context *ctxt, 
+        int *inputs, int *outputs, int num_len) 
+{
+    /* num_len is the length of each number.
+     *
+     * Inputs should look like idx0 || num0 || idx1 || num1
+     * where the length of idx0, idx1, num0, and num1 is num_len bits
+     */
+    assert(inputs && outputs && gc && ctxt);
+    printf("Num_len = %d\n", num_len);
+
+    // populate idxs and nums by splicing inputs
+    int les_ins[2 * num_len];
+    memcpy(les_ins, &inputs[num_len], sizeof(int) * num_len); // put num0
+    memcpy(&les_ins[num_len], &inputs[3 * num_len], sizeof(int) * num_len); // put num1
+    int les_out;
+
+    new_circuit_les(gc, ctxt, 2, les_ins, &les_out);
+
+    // And mux 'em
+    int mux_inputs[2 * num_len];
+    memcpy(mux_inputs, inputs, sizeof(int) * num_len);
+    memcpy(mux_inputs + num_len, &inputs[2 * num_len], sizeof(int) * num_len);
+    bitwiseMUX(gc, ctxt, les_out, mux_inputs, 2 * num_len, outputs);
+}
+
+void circuit_argmax4(garble_circuit *gc, garble_context *ctxt,
+        int *inputs, int *outputs, int num_len) 
+{
+    assert(inputs && outputs && gc && ctxt);
+
+    // argmax first two numbers
+    int out[4 * num_len]; // will hold output of first two argmaxes
+    circuit_argmax2(gc, ctxt, inputs, out, num_len);
+    
+    // argmax second two
+    size_t p = num_len * 4;
+    circuit_argmax2(gc, ctxt, inputs + p, out + (2 * num_len), num_len);
+
+    // argmax their outputs
+    circuit_argmax2(gc, ctxt, out, outputs, num_len);
+}
+
+
+
+void new_circuit_gteq(garble_circuit *circuit, garble_context *context, int n,
         int *inputs, int *output) 
 {
     // courtesy of Arkady
@@ -32,15 +87,22 @@ void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
 		carryWire = builder_next_wire(context);
 		gate_XOR(circuit, context, inputs[i], preCarryWire, carryWire);
 	}
-
-    *output = builder_next_wire(context);
-
-	// faking not gate:
-	int fixed_wire_one = wire_one(circuit);
-	gate_XOR(circuit, context, carryWire, fixed_wire_one, *output);
-	// gate_NOT(gc, ctxt, theSwitch, notSwitch);
+    *output = carryWire;
 }
 
+void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
+        int *inputs, int *output) 
+{
+    int gteq_out;
+    new_circuit_gteq(circuit, context, n, inputs, &gteq_out);
+
+    // faking not gate:
+    *output = builder_next_wire(context);
+	int fixed_wire_one = wire_one(circuit);
+	gate_XOR(circuit, context, gteq_out, fixed_wire_one, *output);
+	// gate_NOT(gc, ctxt, theSwitch, notSwitch);
+
+}
 	void
 new_circuit_mux21(garble_circuit *gc, garble_context *ctxt, 
 		int theSwitch, int input0, int input1, int *output)
@@ -50,7 +112,6 @@ new_circuit_mux21(garble_circuit *gc, garble_context *ctxt,
 	 * If the switch is 0, then it ouptut input0. 
 	 * If the switch is 1, then it outputs input1.
 	 */
-	printf("In new mux21\n");
 	uint64_t notSwitch = builder_next_wire(ctxt);
 	// faking not gate:
 	int fixed_wire_one = wire_one(gc);
@@ -212,20 +273,6 @@ INCCircuitWithSwitch(garble_circuit *gc, garble_context *ctxt,
 		gate_AND(gc, ctxt, and_out, the_switch, carry);
 	}
 	return 0;
-}
-
-
-	static void
-bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int *inps, 
-		int ninputs, int *outputs)
-{
-	//assert(ninputs % 2 == 0 && "ninputs should be even because we are muxing");
-	//assert(outputs && "final should already be malloced");
-	int split = ninputs / 2;
-
-	for (int i = 0; i < split; i++) {
-		circuit_mux21(gc, gctxt, the_switch, inps[i], inps[i + split], &outputs[i]);
-	}
 }
 
 	static int
