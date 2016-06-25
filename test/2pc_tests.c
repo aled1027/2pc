@@ -135,75 +135,111 @@ static void minCheck(bool *inputs, int nints, bool *output)
         memcpy(output, inputs + split, sizeof(int) * split);
 }
 
-static void notGateTest()
+static void innerProductTest()
 {
-    /* A test that takes one input, and performs 3 sequential
-     * not gates. The evaluation happens locally (ie no networking and OT).
-     * The reason this tests exists in some cases with sequential not gates, 
-     * the output would be incorrect. I believe the problem was fixed
-     * when I 
-     */
     /* Paramters */
-    int n = 1;
-    int m = 3;
+    int num_len = 32; // bits per number
+    int num_num = 8; // number of numbers
+    int n = num_len * num_num;
+    int m = num_len;
+    bool inputs[n];
+    int inputWires[n];
+    int outputWires[m];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
 
     /* Inputs */
-    bool *inputs = calloc(n, sizeof(bool));
-    inputs[0] = 0;
+    for (uint32_t i = 0; i < n; i++) {
+        inputs[i] = rand() % 2;
+    }
 
     /* Build Circuit */
-    block *inputLabels = garble_allocate_blocks(2*n);
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
     garble_context gcContext;
 	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
 	builder_start_building(&gc, &gcContext);
 
-    int *inputWires = allocate_ints(n);
-    int *outputWires = allocate_ints(m);
     countToN(inputWires, n);
-    gate_NOT(&gc, &gcContext, 0, 1);
-    gate_NOT(&gc, &gcContext, 1, 2);
-    gate_NOT(&gc, &gcContext, 2, 3);
+    outputWires[0] = builder_next_wire(&gcContext);
 
-    countToN(outputWires, m);
-    block *outputMap = garble_allocate_blocks(2*m);
+    //circuit_mult_n(&gc, &gcContext, n, inputWires, outputWires);
+    circuit_inner_product(&gc, &gcContext, n, num_len, inputWires, outputWires);
+
 	builder_finish_building(&gc, &gcContext, outputWires);
 
     /* Garble */
     garble_garble(&gc, inputLabels, outputMap);
 
     /* Evaluate */
-    block *extractedLabels = garble_allocate_blocks(2*n);
     garble_extract_labels(extractedLabels, inputLabels, inputs, n);
-    block *computedOutputMap = garble_allocate_blocks(2*m);
     garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
     garble_delete(&gc);
 
     /* Results */
-    bool *outputs = calloc(m, sizeof(bool));
-    for (int i=0; i<m; i++)
-        outputs[i] = 55;
     garble_map_outputs(outputMap, computedOutputMap, outputs, m);
-    bool failed = false;
 
-    for (int i = 0; i < m; i++) {
-        if (outputs[i] != (i % 2)) {
-            printf("Output %d is incorrect\n", i);
-            failed = true;
-        }
-    }
+    /* Print Results */
+    //printf("Inputs:");
+    //for (uint32_t i = 0; i < n; ++i) {
+    //    printf(" %d", inputs[i]);
+    //}
+    //printf("\n");
 
-    if (failed)
-        printf("Not gate test failed\n");
-    free(inputs);
-    free(outputs);
-    free(inputLabels);
-    free(extractedLabels);
-    free(computedOutputMap);
-    free(outputMap);
-    free(inputWires);
-    free(outputWires);
+    //printf("Outputs:");
+    //for (uint32_t i = 0; i < m; ++i) {
+    //    printf(" %d", outputs[i]);
+    //}
+    //printf("\n");
+}
+
+static void orGateTest()
+{
+    /* Paramters */
+    int n = 2;
+    int m = 1;
+    bool inputs[n];
+    int inputWires[n];
+    int outputWires[m];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
+
+    /* Inputs */
+    inputs[0] = 0;
+    inputs[1] = 1;
+
+    /* Build Circuit */
+    garble_create_input_labels(inputLabels, n, NULL, false);
+    garble_circuit gc;
+    garble_context gcContext;
+	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(&gc, &gcContext);
+
+    countToN(inputWires, n);
+    outputWires[0] = builder_next_wire(&gcContext);
+    //gate_NOT(&gc, &gcContext, 0, outputWires[0]);
+    gate_OR(&gc, &gcContext, inputs[0], inputs[1], outputWires[0]);
+
+	builder_finish_building(&gc, &gcContext, outputWires);
+
+    /* Garble */
+    garble_garble(&gc, inputLabels, outputMap);
+
+    /* Evaluate */
+    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
+    garble_delete(&gc);
+
+    /* Results */
+    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+    printf("Inputs: %d %d\n", inputs[0], inputs[1]);
+    printf("Outputs: %d\n", outputs[0]);
 }
 
 static void minTest() 
@@ -725,7 +761,7 @@ void incWithSwitchTest()
 
 void runAllTests(void)
 { 
-    int nruns = 10; 
+    int nruns = 1000; 
 
     // TODO these two tests are failing!
     //for (int i = 0; i < nruns; i++)
@@ -759,10 +795,15 @@ void runAllTests(void)
     //for (int i = 0; i < nruns; i++) 
     //    minTest(); 
     //printf("Ran min test %d times\n", nruns); 
+    
+
+    printf("Running inner product test\n"); 
+    for (int i = 0; i < nruns; i++) 
+        innerProductTest(); 
 
     //printf("Running not gate test\n"); 
     //for (int i = 0; i < nruns; i++) 
-    //    notGateTest(); 
+    //    orGateTest(); 
     //printf("Ran note gate test %d times\n", nruns); 
 
     //printf("Running OR test\n"); 
@@ -786,8 +827,8 @@ void runAllTests(void)
     //    argMax2Test();
     //}
 
-    printf("Running argmax test\n");
-    for (int i = 0; i < nruns; i++) {
-        argMax4Test();
-    }
+    //printf("Running argmax test\n");
+    //for (int i = 0; i < nruns; i++) {
+    //    argMax4Test();
+    //}
 }  

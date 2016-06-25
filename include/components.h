@@ -18,6 +18,13 @@ typedef enum {
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
+void 
+circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
+        uint32_t n, uint32_t num_len, int *inputs, int *outputs);
+
+void circuit_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
+        int *inputs, int *outputs);
+
 void circuit_argmax4(garble_circuit *gc, garble_context *ctxt,
         int *inputs, int *outputs, int num_len);
 

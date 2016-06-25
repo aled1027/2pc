@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <math.h>
 
-static void
+	static void
 bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int *inps, 
 		int ninputs, int *outputs)
 {
@@ -23,57 +23,170 @@ bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int 
 	}
 }
 
-void circuit_argmax2(garble_circuit *gc, garble_context *ctxt, 
-        int *inputs, int *outputs, int num_len) 
+void 
+circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
+        uint32_t n, uint32_t num_len, int *inputs, int *outputs)
 {
-    /* num_len is the length of each number.
+    /* Performs inner product over the well integers (well, mod 2^num_len)
      *
-     * Inputs should look like idx0 || num0 || idx1 || num1
-     * where the length of idx0, idx1, num0, and num1 is num_len bits
+     * Inputs
+     * n: total number of input bits
+     * num_len: length of each number in bits
+     *
+     * Variables
+     * num_numbers: the number of numbers in the input
+     * vector_length: the number of numbers in each vector
+     * split: index in inputs where second vector begins
      */
-    assert(inputs && outputs && gc && ctxt);
 
-    // populate idxs and nums by splicing inputs
-    int les_ins[2 * num_len];
+    uint32_t num_numbers = n / num_len; // how many numbers in the inputs total
+    uint32_t vector_length = num_numbers / 2; // the size of each input vector
+    uint32_t split = n / 2;
+    int carry = 0;
 
-    memcpy(les_ins, &inputs[num_len], sizeof(int) * num_len); // put num0
-    memcpy(&les_ins[num_len], &inputs[3 * num_len], sizeof(int) * num_len); // put num1
-    printf("les_ins: %d %d %d %d\n", les_ins[0], les_ins[1], les_ins[2], les_ins[3]);
-    int les_out;
+    // linear version TODO: make tree version
+    int running_sum[num_len];
+    int initial_mult_in[2 * num_len];
+    memcpy(initial_mult_in, inputs, num_len * sizeof(int)); 
+    memcpy(&initial_mult_in[num_len], &inputs[split], num_len * sizeof(int));
+    circuit_mult_n(gc, ctxt, 2 * num_len, initial_mult_in, running_sum);
+
+    for (uint32_t i = 1; i < vector_length; ++i) {
+        uint32_t idx0 = i * num_len; // index of number from vector 0
+        uint32_t idx1 = idx0 + split; // index of number from vector 1
+
+        // multiply them
+        int mult_in[2 * num_len], mult_out[num_len];
+        memcpy(mult_in, &inputs[idx0], num_len * sizeof(int)); 
+        memcpy(&mult_in[num_len], &inputs[idx1], num_len * sizeof(int));
+        circuit_mult_n(gc, ctxt, 2 * num_len, mult_in, mult_out);
+
+        // add to running sum
+        int add_in[2 * num_len], add_out[num_len];
+        memcpy(add_in, mult_out, num_len * sizeof(int));
+        memcpy(&add_in[num_len], running_sum, num_len * sizeof(int));
+
+		circuit_add(gc, ctxt, 2 * num_len, add_in, add_out, &carry);
+        memcpy(running_sum, add_out, num_len * sizeof(int));
+    }
+    memcpy(outputs, running_sum, num_len * sizeof(int));
+}
+
+void
+circuit_ak_mux(garble_circuit *circuit, garble_context *context,
+             uint32_t n, int the_switch, int *inputs, int *outputs)
+{
+    /* Slightly altered (didn't change the logic) version of Arkady's mux 
+     * that doesn't appear to be a mux.
+     * 
+     * n = size of inputs array = number of inputs - 1 (ignores switch)
+     */
+
+    int internalWire1, internalWire2;
+    assert(n%2 == 0);
+    int len = n / 2;
+
+    for (int i = 0; i < len; i++) {
+        internalWire1 = builder_next_wire(context);
+        internalWire2 = builder_next_wire(context);
+        outputs[i] = builder_next_wire(context);
+
+        gate_XOR(circuit, context, inputs[i], inputs[len + i], internalWire1);
+        gate_AND(circuit, context, internalWire1, the_switch, internalWire2);                                                                                                                          
+        gate_XOR(circuit, context, internalWire2, inputs[len + i], outputs[i]);
+    }
+}
+
+void                                                                                         
+circuit_mult_n(garble_circuit *circuit, garble_context *context, uint32_t n,
+		int *inputs, int *outputs) {
+	/* Multiplies two n-bit unsigned(?) integers            
+	 * If signed, depends on add circuit.                                                    
+	 * From AK
+	 */
+	assert(n/2 % 2 == 0);
+	uint32_t len = n / 2;
+	int zero_wire = wire_zero(circuit);
+	int carry = 0;
+	int add_in[2*len], add_out[len];
+
+	// put the second input in the second part of add_in
+	memcpy(&add_in[len], &inputs[len], len * sizeof(int)); // shouldn't change in for loop
+	add_in[0] = zero_wire; // shouldn't change in for loop
+
+	for (int i = 0; i < len; i++) {
+		outputs[i] = zero_wire;
+	}                                                             
+
+	for (int i = len - 1; i >= 0; i--) {                                         
+		memcpy(&add_in[1], outputs, (len - 1) * sizeof(int));
+		circuit_add(circuit, context, 2 * len, add_in, add_out, &carry);
+
+		int mux_in[2 * len];
+		// first part of input is the output of the add circuit
+		memcpy(mux_in, add_out, len * sizeof(int));
+
+		// second part is the output of the previous mux
+		memcpy(&mux_in[len], mux_in, len * sizeof(int)); 
+
+		int the_switch = inputs[len + i];
+		circuit_ak_mux(circuit, context, 2 * len, the_switch, mux_in, outputs);
+	}
+}
 
 
-    new_circuit_les(gc, ctxt, num_len * 2, les_ins, &les_out);
 
-    // And mux 'em
-    int mux_inputs[2 * num_len];
-    memcpy(mux_inputs, inputs, sizeof(int) * num_len);
-    memcpy(mux_inputs + num_len, &inputs[2 * num_len], sizeof(int) * num_len);
-    bitwiseMUX(gc, ctxt, les_out, inputs, 4 * num_len, outputs);
+void circuit_argmax2(garble_circuit *gc, garble_context *ctxt, 
+		int *inputs, int *outputs, int num_len) 
+{
+	/* num_len is the length of each number.
+	 *
+	 * Inputs should look like idx0 || num0 || idx1 || num1
+	 * where the length of idx0, idx1, num0, and num1 is num_len bits
+	 */
+	assert(inputs && outputs && gc && ctxt);
+
+	// populate idxs and nums by splicing inputs
+	int les_ins[2 * num_len];
+
+	memcpy(les_ins, &inputs[num_len], sizeof(int) * num_len); // put num0
+	memcpy(&les_ins[num_len], &inputs[3 * num_len], sizeof(int) * num_len); // put num1
+	printf("les_ins: %d %d %d %d\n", les_ins[0], les_ins[1], les_ins[2], les_ins[3]);
+	int les_out;
+
+
+	new_circuit_les(gc, ctxt, num_len * 2, les_ins, &les_out);
+
+	// And mux 'em
+	int mux_inputs[2 * num_len];
+	memcpy(mux_inputs, inputs, sizeof(int) * num_len);
+	memcpy(mux_inputs + num_len, &inputs[2 * num_len], sizeof(int) * num_len);
+	bitwiseMUX(gc, ctxt, les_out, inputs, 4 * num_len, outputs);
 }
 
 void circuit_argmax4(garble_circuit *gc, garble_context *ctxt,
-        int *inputs, int *outputs, int num_len) 
+		int *inputs, int *outputs, int num_len) 
 {
-    assert(inputs && outputs && gc && ctxt);
+	assert(inputs && outputs && gc && ctxt);
 
-    // argmax first two numbers
-    int out[4 * num_len]; // will hold output of first two argmaxes
-    circuit_argmax2(gc, ctxt, inputs, out, num_len);
-    
-    // argmax second two
-    circuit_argmax2(gc, ctxt, inputs + (4 * num_len), out + (2 * num_len), num_len);
+	// argmax first two numbers
+	int out[4 * num_len]; // will hold output of first two argmaxes
+	circuit_argmax2(gc, ctxt, inputs, out, num_len);
 
-    // argmax their outputs
-    circuit_argmax2(gc, ctxt, out, outputs, num_len);
+	// argmax second two
+	circuit_argmax2(gc, ctxt, inputs + (4 * num_len), out + (2 * num_len), num_len);
+
+	// argmax their outputs
+	circuit_argmax2(gc, ctxt, out, outputs, num_len);
 }
 
 void new_circuit_gteq(garble_circuit *circuit, garble_context *context, int n,
-        int *inputs, int *output) 
+		int *inputs, int *output) 
 {
-    /* Assumes that lsb is on the left. i.e. 011 >= 101 is true.
-     * courtesy of Arkady
-     */
-    int split = n / 2;
+	/* Assumes that lsb is on the left. i.e. 011 >= 101 is true.
+	 * courtesy of Arkady
+	 */
+	int split = n / 2;
 	int carryWire = wire_one(circuit);
 	int internalWire1, internalWire2, preCarryWire;
 
@@ -89,24 +202,24 @@ void new_circuit_gteq(garble_circuit *circuit, garble_context *context, int n,
 		carryWire = builder_next_wire(context);
 		gate_XOR(circuit, context, inputs[i], preCarryWire, carryWire);
 	}
-    *output = carryWire;
+	*output = carryWire;
 }
 
 void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
-        int *inputs, int *output) 
+		int *inputs, int *output) 
 {
-    int gteq_out;
-    new_circuit_gteq(circuit, context, n, inputs, &gteq_out);
+	int gteq_out;
+	new_circuit_gteq(circuit, context, n, inputs, &gteq_out);
 
-    // faking not gate:
-    *output = builder_next_wire(context);
+	// faking not gate:
+	*output = builder_next_wire(context);
 	int fixed_wire_one = wire_one(circuit);
 	gate_XOR(circuit, context, gteq_out, fixed_wire_one, *output);
 	// gate_NOT(gc, ctxt, theSwitch, notSwitch);
 
 }
 
-void
+	void
 new_circuit_mux21(garble_circuit *gc, garble_context *ctxt, 
 		int theSwitch, int input0, int input1, int *output)
 {
@@ -129,7 +242,7 @@ new_circuit_mux21(garble_circuit *gc, garble_context *ctxt,
 	gate_OR(gc, ctxt, and0, and1, *output);
 }
 
-int
+	int
 countToN(int *a, int n)
 {
 	for (int i = 0; i < n; i++)
