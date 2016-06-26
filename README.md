@@ -68,3 +68,11 @@ Let D0, D1, D1, S0, S1 represent the inputs to the circuit.
 
 The output of min2 is the minimum(D0,D1,D2) where the switch, which is plugged into the mux21, should be 0
 if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The point here is that when we add, we always add a 1 if D0 or D1 is the min, but if the min is D2, then one is only added if T = 1, in other words, we add T. 
+
+- bits use little-endian, where least signficant bit is on the left. 
+
+- changed or gate
+- now getting some nondeterminism in mux21
+    - run valgrind
+    - check if or gate
+    - check if fixed one wire
