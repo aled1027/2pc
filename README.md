@@ -76,3 +76,16 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - run valgrind
     - check if or gate
     - check if fixed one wire
+
+## TODO
+- parse ml models
+    - load ml model via json
+    - make a new file/module
+    - preferably a path to the model, and then load model through json.
+    - model tells what type it is, and size
+
+- Looks like they multiply by 1e13
+    - but, values look like they need 1e14 or 1e15.
+- make sure operations are signed?
+    - little-endian
+    - 2s complement

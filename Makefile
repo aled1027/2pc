@@ -91,6 +91,24 @@ leven_eval_on:
 	$(BINDIR)/test --eval-on --type LEVEN
 
 ##########
+# LINEAR #
+##########
+linear_garb:
+	gdb --args $(BINDIR)/test --garb-full --type LINEAR
+
+linear_eval:
+	gdb --args $(BINDIR)/test --eval-full --type LINEAR
+
+#########
+# HYPER #
+#########
+hyper_garb:
+	gdb --args $(BINDIR)/test --garb-full --type HYPER
+
+hyper_eval:
+	gdb --args $(BINDIR)/test --eval-full --type HYPER
+
+##########
 # EXTRAS #
 ##########
 valg:

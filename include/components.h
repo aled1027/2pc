@@ -18,6 +18,8 @@ typedef enum {
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
+void buildLinearCircuit(garble_circuit *gc);
+void buildHyperCircuit(garble_circuit *gc);
 void 
 circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
         uint32_t n, uint32_t num_len, int *inputs, int *outputs);

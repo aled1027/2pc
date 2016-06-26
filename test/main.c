@@ -22,7 +22,7 @@
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
-typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN } experiment;
+typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_LINEAR, EXPERIMENT_HYPERPLANE} experiment;
 
 static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD(int l) { return getDIntSize(l) * (l+1); }
@@ -310,6 +310,20 @@ go(struct args *args)
         fn = NULL;              /* set later */
         type = "LEVEN";
         break;
+    case EXPERIMENT_LINEAR:
+        printf("Experiment linear\n");
+        fn = NULL; // TODO add function
+        n_garb_inputs = 4;
+        n_eval_inputs = 4;
+        n_eval_labels = n_eval_inputs;
+        break;
+    case EXPERIMENT_HYPERPLANE:
+        printf("Experiment hyperplane\n");
+        fn = NULL; // TODO add function
+        n_garb_inputs = 4;
+        n_eval_inputs = 4;
+        n_eval_labels = n_eval_inputs;
+        break;
     default:
         fprintf(stderr, "No type specified\n");
         exit(EXIT_FAILURE);
@@ -334,6 +348,12 @@ go(struct args *args)
             break;
         case EXPERIMENT_LEVEN:
             leven_garb_off(l, sigma, args->chaining_type);
+            break;
+        case EXPERIMENT_LINEAR:
+            printf("EXPERIMENT_LINEAR garb off\n");
+            break;
+        case EXPERIMENT_HYPERPLANE:
+            printf("EXPERIMENT_HYPERPLANE garb off\n");
             break;
         }
     } else if (args->eval_off) {
@@ -375,12 +395,21 @@ go(struct args *args)
             buildLevenshteinCircuit(&gc, l, sigma);
             leven = true;
             break;
+        case EXPERIMENT_LINEAR:
+            printf("experiment linear\n");
+            buildLinearCircuit(&gc);
+            break;
+        case EXPERIMENT_HYPERPLANE:
+            printf("experiment hyperplane\n");
+            buildHyperCircuit(&gc);
+            //leven = true;
+            break;
         default:
             assert(false);
             return EXIT_FAILURE;
         }
         garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials, l, sigma, leven);
-        garble_delete(&gc);
+        //garble_delete(&gc);
     } else if (args->eval_full) {
         printf("Full evaluating\n");
         eval_full(n_garb_inputs, n_eval_inputs, noutputs, args->ntrials);
@@ -444,6 +473,10 @@ main(int argc, char *argv[])
                 args.type = EXPERIMENT_CBC;
             } else if (strcmp(optarg, "LEVEN") == 0) {
                 args.type = EXPERIMENT_LEVEN;
+            } else if (strcmp(optarg, "LINEAR") == 0) {
+                args.type = EXPERIMENT_LINEAR;
+            } else if (strcmp(optarg, "HYPER") == 0) {
+                args.type = EXPERIMENT_HYPERPLANE;
             } else {
                 fprintf(stderr, "Unknown circuit type %s\n", optarg);
                 exit(EXIT_FAILURE);

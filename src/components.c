@@ -9,7 +9,8 @@
 #include <assert.h>
 #include <math.h>
 
-	static void
+
+static void
 bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int *inps, 
 		int ninputs, int *outputs)
 {
@@ -71,6 +72,7 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
     }
     memcpy(outputs, running_sum, num_len * sizeof(int));
 }
+
 
 void
 circuit_ak_mux(garble_circuit *circuit, garble_context *context,
@@ -257,7 +259,41 @@ bool isFinalCircuitType(CircuitType type)
 	return false;
 }
 
-	void
+void buildLinearCircuit(garble_circuit *gc) 
+{
+    /* Builds a circuit that performs linear classification.
+     * That is, it takes the dot product of x and w, where x is in the iput
+     * and w is the model, and outputs 1 if <x,w> > 1 and 0 otherwise.
+     */
+    // TODO
+    buildHyperCircuit(gc);
+}
+
+
+
+void buildHyperCircuit(garble_circuit *gc) 
+{
+    int n = 8;
+    int num_len = 2;
+    int m = 2;
+    int input_wires[n];
+	int output_wires[m];
+	garble_context ctxt;
+
+	countToN(input_wires, n);
+
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+
+    circuit_inner_product(gc, &ctxt, n, num_len, input_wires, output_wires);
+
+
+	builder_finish_building(gc, &ctxt, output_wires);
+        
+
+}
+
+void
 buildLevenshteinCircuit(garble_circuit *gc, int l, int sigma)
 {
 	/* The goal of the levenshtein algorithm is
