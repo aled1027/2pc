@@ -24,6 +24,21 @@ bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int 
 	}
 }
 
+void circuit_ge0(garble_circuit *gc, garble_context *ctxt,
+        uint32_t n, int *inputs, int *output)
+{
+    /* Circuit that returns 1 (true) if inputs is greater than 0.0, else returns 0 (false). 
+     * Assumes that two's complement is being used. 
+     * int n is the size of the input numbers in bits. 
+     */
+
+    // just do a NOT gate on (n-1)th input (the msb).
+    // faux NOT gate
+	*output = builder_next_wire(ctxt);
+	int fixed_wire_one = wire_one(gc);
+	gate_XOR(gc, ctxt, inputs[n-1], fixed_wire_one, *output);
+}
+
 void 
 circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
         uint32_t n, uint32_t num_len, int *inputs, int *outputs)
@@ -259,14 +274,32 @@ bool isFinalCircuitType(CircuitType type)
 	return false;
 }
 
+
 void buildLinearCircuit(garble_circuit *gc) 
 {
     /* Builds a circuit that performs linear classification.
      * That is, it takes the dot product of x and w, where x is in the iput
-     * and w is the model, and outputs 1 if <x,w> > 1 and 0 otherwise.
+     * and w is the model, and outputs 1 if (<x,w> > 1) and 0 otherwise.
      */
     // TODO
-    buildHyperCircuit(gc);
+    int n = 8;
+    int num_len = 2;
+    int m = 1;
+    int input_wires[n];
+	int output_wire[1];
+    int ip_output_size = n / (num_len * 2);
+	int ip_output_wires[ip_output_size];
+	garble_context ctxt;
+
+	countToN(input_wires, n);
+
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+
+    circuit_inner_product(gc, &ctxt, n, num_len, input_wires, ip_output_wires);
+    circuit_ge0(gc, &ctxt, ip_output_size, ip_output_wires, output_wire);
+
+	builder_finish_building(gc, &ctxt, output_wire);
 }
 
 
@@ -289,8 +322,6 @@ void buildHyperCircuit(garble_circuit *gc)
 
 
 	builder_finish_building(gc, &ctxt, output_wires);
-        
-
 }
 
 void
