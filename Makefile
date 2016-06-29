@@ -97,6 +97,12 @@ linear_garb:
 linear_eval:
 	gdb --args $(BINDIR)/test --eval-off --type LINEAR
 
+linear_garb_on:
+	gdb --args $(BINDIR)/test --garb-on --type LINEAR
+
+linear_eval_on:
+	gdb --args $(BINDIR)/test --eval-on --type LINEAR
+
 #########
 # HYPER #
 #########

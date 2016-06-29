@@ -28,7 +28,7 @@ void simple_hyperplane_garb_off(char *dir, uint32_t n, uint32_t num_len) {
     garble_create_input_labels(cgc[0].inputLabels, n, &delta, false);
     garble_garble(&cgc[0].gc, cgc[0].inputLabels, cgc[0].outputMap);
 
-    cgc[0].id = 1;
+    cgc[0].id = 0;
     cgc[0].type = INNER_PRODUCT;
 
     build_gr0_circuit(&cgc[1].gc, num_len);

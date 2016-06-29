@@ -128,7 +128,7 @@ results(const char *name, uint64_t *totals, uint64_t *totals_no_load, uint64_t n
 
 static void
 garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
-        ChainingType chainingType, int l, int sigma, bool leven)
+        ChainingType chainingType, int l, int sigma, bool leven, bool is_linear)
 {
     uint64_t *tot_time;
     bool *inputs;
@@ -148,6 +148,9 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
         for (int i = inputsDevotedToD; i < numGarbInputs; i++) {
             inputs[i] = rand() % 2;
         }
+    } else if (is_linear) {
+        printf("IS_LINEAR inside of garb_on\n");
+        load_model_into_inputs(inputs, "wdbc");
     } else {
         for (int i = 0; i < ninputs; i++) {
             inputs[i] = rand() % 2;
@@ -280,6 +283,7 @@ go(struct args *args)
 {
     uint64_t n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs, sigma;
     uint64_t n = 0, l = 0, num_len = 0;
+    bool is_linear = false;
     char *fn, *type;
     /* ChainingType chainingType; */
 
@@ -326,6 +330,8 @@ go(struct args *args)
         n_eval_inputs = n / 2;
         n_eval_labels = n_eval_inputs;
         type = "LINEAR";
+        is_linear = true;
+        fn = "functions/simple_hyperplane.json";
         break;
     case EXPERIMENT_HYPERPLANE:
         printf("Experiment hyperplane\n");
@@ -380,10 +386,10 @@ go(struct args *args)
                 + (int) floor(log10((float) l)) + 2;
             fn = malloc(size);
             (void) snprintf(fn, size, "functions/leven_%d.json", l);
-            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, l, sigma, true);
+            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, l, sigma, true, false);
             free(fn);
         } else {
-            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, 0, 0, false);
+            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, 0, 0, false, is_linear);
         }
     } else if (args->eval_on) {
         printf("Online evaluating\n");

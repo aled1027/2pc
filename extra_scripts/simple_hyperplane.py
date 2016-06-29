@@ -90,4 +90,4 @@ def hyperplane_json(n, num_len):
     print(s)
 
 if __name__=='__main__':
-    hyperplane_json(8, 2)
+    hyperplane_json(2*55*31, 55)

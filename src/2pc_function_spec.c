@@ -34,6 +34,10 @@ get_circuit_type_from_string(const char* type)
         return FULL_CBC;
     } else if (strcmp(type, "LEVEN_CORE") == 0) {
         return LEVEN_CORE;
+    } else if (strcmp(type, "INNER_PRODUCT") == 0) {
+        return INNER_PRODUCT;
+    } else if (strcmp(type, "GR0") == 0) {
+        return GR0;
     } else {
         fprintf(stderr, "circuit type error when loading json: can't detect %s\n", type);
         return CIRCUIT_TYPE_ERR;
@@ -477,6 +481,8 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
                 return FAILURE;
         }
     }
+    printf("idx = %d\n", idx);
+    printf("instructions size = %d\n", instructions->size);
     assert(idx == instructions->size);
     return SUCCESS;
 }
