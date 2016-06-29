@@ -9,6 +9,7 @@
 #include "components.h"
 #include "2pc_garbler.h" 
 #include "2pc_evaluator.h"
+#include "ml_models.h"
 #include "circuits.h"
 #include "utils.h"
 
@@ -759,9 +760,22 @@ void incWithSwitchTest()
     checkIncWithSwitch(inputs, outputs, n);
 }
 
+void test_get_model() 
+{
+    printf("Testing get_model");
+    Model *model;
+    model = get_model("models/wdbc.json");
+    print_model(model);
+    
+    assert(model);
+}
+
 void runAllTests(void)
 { 
-    int nruns = 1000; 
+
+    test_get_model();
+
+    //int nruns = 1000; 
 
     // TODO these two tests are failing!
     //for (int i = 0; i < nruns; i++)
@@ -797,9 +811,9 @@ void runAllTests(void)
     //printf("Ran min test %d times\n", nruns); 
     
 
-    printf("Running inner product test\n"); 
-    for (int i = 0; i < nruns; i++) 
-        innerProductTest(); 
+    //printf("Running inner product test\n"); 
+    //for (int i = 0; i < nruns; i++) 
+    //    innerProductTest(); 
 
     //printf("Running not gate test\n"); 
     //for (int i = 0; i < nruns; i++) 

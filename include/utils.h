@@ -41,7 +41,7 @@ int *
 allocate_ints(size_t nints);
 
 size_t 
-filesize(char *filename);
+filesize(const char *filename);
 
 int 
 writeBufferToFile(char* buffer, size_t buf_size, char* fileName);

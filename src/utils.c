@@ -82,7 +82,7 @@ allocate_ints(size_t nints)
 }
 
 size_t 
-filesize(char *filename) 
+filesize(const char *filename) 
 {
     /* returns size of file in bytes */
 	struct stat st;
