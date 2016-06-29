@@ -88,6 +88,25 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
     memcpy(outputs, running_sum, num_len * sizeof(int));
 }
 
+void build_gr0_circuit(garble_circuit *gc, uint32_t n)
+{
+    int m = 1;
+    int input_wires[n];
+    int output_wires[m];
+
+    garble_context ctxt;
+
+    countToN(input_wires, n);
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+
+    circuit_ge0(gc, &ctxt, n, input_wires, output_wires);
+	builder_finish_building(gc, &ctxt, output_wires);
+    printf("built gr0 circuit\n");
+}
+
+
+
 void build_inner_product_circuit(garble_circuit *gc, uint32_t n, uint32_t num_len)
 {
     int input_wires[n];
@@ -135,7 +154,7 @@ circuit_mult_n(garble_circuit *circuit, garble_context *context, uint32_t n,
 	 * If signed, depends on add circuit.                                                    
 	 * From AK
 	 */
-	assert(n/2 % 2 == 0);
+	assert(n % 2 == 0);
 	uint32_t len = n / 2;
 	int zero_wire = wire_zero(circuit);
 	int carry = 0;
@@ -289,15 +308,13 @@ bool isFinalCircuitType(CircuitType type)
 }
 
 
-void buildLinearCircuit(garble_circuit *gc) 
+void buildLinearCircuit(garble_circuit *gc, int n, int num_len) 
 {
     /* Builds a circuit that performs linear classification.
      * That is, it takes the dot product of x and w, where x is in the iput
      * and w is the model, and outputs 1 if (<x,w> > 1) and 0 otherwise.
      */
     // TODO
-    int n = 8;
-    int num_len = 2;
     int m = 1;
     int input_wires[n];
 	int output_wire[1];

@@ -1,7 +1,10 @@
-#include "ml_models.h"
-#include "utils.h"
 #include <string.h>
 #include <assert.h>
+
+#include "utils.h"
+#include "ml_models.h"
+
+
 
 void destroy_model(Model *model) 
 {
@@ -66,6 +69,11 @@ Model *get_model(const char *path)
     free(temp);
     temp = NULL;
 
+    // get log_num_len
+    j_ptr = json_object_get(j_root, "num_len");
+    assert(json_is_integer(j_ptr));
+    model->num_len = json_integer_value(j_ptr);
+
     // get data
     j_data = json_object_get(j_root, "data");
 
@@ -87,4 +95,23 @@ cleanup:
     return NULL;
 }
 
+void load_model_into_inputs(bool *inputs, const char *model_name)
+{
+    char path[40];
+    if (0 == strcmp(model_name, "wdbc")) {
+        int res = sprintf(path, "%s", "models/wdbc.json");
+        assert(res);
+    }
 
+    Model *model = get_model(path); 
+
+    uint32_t inputs_i = 0;
+    for (uint32_t i = 0; i < model->data_size; ++i) {
+        convertToBinary(model->data[i], inputs + inputs_i, model->num_len);
+        inputs_i += model->num_len;
+    }
+
+
+
+
+}

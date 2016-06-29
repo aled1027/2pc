@@ -86,7 +86,12 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
 
 - Looks like they multiply by 1e13
     - but, values look like they need 1e14 or 1e15.
-    - use `10**17` as multipler for wdbc
 - make sure operations are signed?
     - little-endian
     - 2s complement
+- wdbc
+    - multiplied by `10**17`
+    - used `num_len = 55`
+    - full working
+    - get garb-off working
+    - get eval-off working

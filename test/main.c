@@ -16,6 +16,7 @@
 #include "2pc_hyperplane.h"
 #include "net.h"
 #include "utils.h"
+#include "ml_models.h"
 
 #include "garble.h"
 #include "circuits.h"
@@ -198,7 +199,7 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials,
 
 static void
 garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
-          int ntrials, int l, int sigma, bool leven)
+          int ntrials, int l, int sigma, bool leven, bool is_linear)
 {
     OldInputMapping imap;
     uint64_t start, end;
@@ -222,6 +223,8 @@ garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
                 for (int i = inputsDevotedToD; i < num_garb_inputs; i++) {
                     inputs[i] = rand() % 2;
                 }
+            } else if (is_linear) {
+                load_model_into_inputs(inputs, "wdbc");
             } else {
                 for (int i = 0; i < num_garb_inputs; i++) {
                     inputs[i] = rand() % 2; 
@@ -315,13 +318,14 @@ go(struct args *args)
         printf("Experiment linear\n");
         // TODO ACTUALLY HYPERPLANE WITH 1 vector
         fn = NULL; // TODO add function
-        n = 8;
-        num_len = 2;
+        num_len = 55;
+        n = 31 * 2 * num_len;
         ncircs = 2;
 
         n_garb_inputs = n / 2;
         n_eval_inputs = n / 2;
         n_eval_labels = n_eval_inputs;
+        type = "LINEAR";
         break;
     case EXPERIMENT_HYPERPLANE:
         printf("Experiment hyperplane\n");
@@ -329,6 +333,7 @@ go(struct args *args)
         n_garb_inputs = 4;
         n_eval_inputs = 4;
         n_eval_labels = n_eval_inputs;
+        type = "HYPERPLANE";
         break;
     default:
         fprintf(stderr, "No type specified\n");
@@ -340,8 +345,8 @@ go(struct args *args)
     else
         printf("Using CHAINING_TYPE_STANDARD\n");
 
-    //printf("Running %s with (%d, %d) inputs, %d outputs, %d chains, %d trials\n",
-    //       type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, args->ntrials);
+    printf("Running %s with (%d, %d) inputs, %d outputs, %d chains, %d trials\n",
+           type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, args->ntrials);
 
     if (args->garb_off) {
         printf("Offline garbling\n");
@@ -386,6 +391,7 @@ go(struct args *args)
     } else if (args->garb_full) {
         printf("Full garbling\n");
         bool leven = false;
+        bool is_linear = false;
         garble_circuit gc;
         switch (args->type) {
         case EXPERIMENT_AES:
@@ -403,7 +409,8 @@ go(struct args *args)
             break;
         case EXPERIMENT_LINEAR:
             printf("experiment linear\n");
-            buildLinearCircuit(&gc);
+            buildLinearCircuit(&gc, n, num_len);
+            is_linear = true;
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("experiment hyperplane\n");
@@ -414,7 +421,7 @@ go(struct args *args)
             assert(false);
             return EXIT_FAILURE;
         }
-        garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials, l, sigma, leven);
+        garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials, l, sigma, leven, is_linear);
         //garble_delete(&gc);
     } else if (args->eval_full) {
         printf("Full evaluating\n");

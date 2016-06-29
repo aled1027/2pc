@@ -85,6 +85,12 @@ leven_eval_on:
 ##########
 # LINEAR #
 ##########
+linear_garb_full:
+	$(BINDIR)/test --garb-full --type LINEAR
+
+linear_eval_full:
+	$(BINDIR)/test --eval-full --type LINEAR
+
 linear_garb:
 	gdb --args $(BINDIR)/test --garb-off --type LINEAR
 
