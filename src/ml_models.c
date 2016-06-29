@@ -3,6 +3,11 @@
 #include <string.h>
 #include <assert.h>
 
+void destroy_model(Model *model) 
+{
+    free(model->data);
+}
+
 void print_model(const Model *model) 
 {
     printf("Model:\n");
@@ -11,7 +16,7 @@ void print_model(const Model *model)
     printf("\tdata_size: %lu\n", model->data_size);
     printf("\tdata: [");
     for (uint32_t i = 0; i < model->data_size; ++i) {
-        printf("%lf, ", model->data[i]);
+        printf("%lld, ", model->data[i]);
     }
     printf("]\n");
 
@@ -70,20 +75,16 @@ Model *get_model(const char *path)
 
     for (uint32_t i = 0; i < model->data_size; ++i) {
         j_ptr = json_array_get(j_data, i);
-        assert(json_is_real(j_ptr));
+        assert(json_is_integer(j_ptr));
         model->data[i] = json_integer_value(j_ptr);
     }
 
-
-    
     return model;
-
 
 cleanup:
     free(buffer);
     fclose(f);
     return NULL;
-
 }
 
 

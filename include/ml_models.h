@@ -7,7 +7,7 @@ typedef struct {
     char name[128];
     char type[128];
     uint64_t data_size;
-    long double *data;
+    int64_t *data;
 
 } Model;
 

@@ -766,8 +766,10 @@ void test_get_model()
     Model *model;
     model = get_model("models/wdbc.json");
     print_model(model);
-    
-    assert(model);
+
+    destroy_model(model);
+    free(model);
+    model = NULL;
 }
 
 void runAllTests(void)
