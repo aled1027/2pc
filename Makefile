@@ -11,20 +11,12 @@ SOURCES := $(wildcard $(SRCDIR)/*.c)
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 TESTSOURCES := $(wildcard $(TESTDIR)/*.c)
 TESTOBJECTS := $(TESTSOURCES:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
-# JGSRC := $(wildcard $(JUSTGARBLE)/src/*.c)
-# JGOBJECTS  := $(JGSRC:$(JUSTGARBLE)/src/%.c=$(JUSTGARBLE)/src/%.o)
-# CIRCUITSRC := $(wildcard $(JUSTGARBLE)/circuit/*.c)
-# CIRCUITOBJECTS  := $(CIRCUITSRC:$(JUSTGARBLE)/circuit/%.c=$(JUSTGARBLE)/circuit/%.o)
 
 IDIR =include
 INCLUDES := $(wildcard $(SRCDIR)/*.h) -Iinc -I$(JUSTGARBLE)/include -I$(IDIR)
 
 CC=gcc
-CFLAGS= -g -O3 -ansi -pedantic -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
-# TODO add -Wextra -pedantic and fix errors/warnings
-# TODO get rid of -Wno-unused-result and other flags if no-error/warning flags possible
-# Wno-format is for printing uint64_t as llu.
-# -Wno-typedef-redefinition
+CFLAGS= -g -O0 -ansi -pedantic -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
 CFLAGS += -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
 #CFLAGS += -DNDDEBUG # removes all "assert()" at compile time
 
@@ -94,19 +86,19 @@ leven_eval_on:
 # LINEAR #
 ##########
 linear_garb:
-	gdb --args $(BINDIR)/test --garb-full --type LINEAR
+	gdb --args $(BINDIR)/test --garb-off --type LINEAR
 
 linear_eval:
-	gdb --args $(BINDIR)/test --eval-full --type LINEAR
+	gdb --args $(BINDIR)/test --eval-off --type LINEAR
 
 #########
 # HYPER #
 #########
 hyper_garb:
-	gdb --args $(BINDIR)/test --garb-full --type HYPER
+	gdb --args $(BINDIR)/test --garb-off --type HYPER
 
 hyper_eval:
-	gdb --args $(BINDIR)/test --eval-full --type HYPER
+	gdb --args $(BINDIR)/test --eval-off --type HYPER
 
 ##########
 # EXTRAS #

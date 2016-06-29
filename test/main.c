@@ -13,6 +13,7 @@
 #include "2pc_cbc.h"
 #include "2pc_leven.h"
 #include "2pc_tests.h"
+#include "2pc_hyperplane.h"
 #include "net.h"
 #include "utils.h"
 
@@ -275,7 +276,7 @@ static int
 go(struct args *args)
 {
     uint64_t n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs, sigma;
-    uint64_t l = 0;
+    uint64_t n = 0, l = 0, num_len = 0;
     char *fn, *type;
     /* ChainingType chainingType; */
 
@@ -312,9 +313,14 @@ go(struct args *args)
         break;
     case EXPERIMENT_LINEAR:
         printf("Experiment linear\n");
+        // TODO ACTUALLY HYPERPLANE WITH 1 vector
         fn = NULL; // TODO add function
-        n_garb_inputs = 4;
-        n_eval_inputs = 4;
+        n = 8;
+        num_len = 2;
+        ncircs = 2;
+
+        n_garb_inputs = n / 2;
+        n_eval_inputs = n / 2;
         n_eval_labels = n_eval_inputs;
         break;
     case EXPERIMENT_HYPERPLANE:
@@ -334,8 +340,8 @@ go(struct args *args)
     else
         printf("Using CHAINING_TYPE_STANDARD\n");
 
-    printf("Running %s with (%d, %d) inputs, %d outputs, %d chains, %d chain_type, %d trials\n",
-           type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, args->chaining_type, args->ntrials);
+    //printf("Running %s with (%d, %d) inputs, %d outputs, %d chains, %d trials\n",
+    //       type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, args->ntrials);
 
     if (args->garb_off) {
         printf("Offline garbling\n");
@@ -350,7 +356,7 @@ go(struct args *args)
             leven_garb_off(l, sigma, args->chaining_type);
             break;
         case EXPERIMENT_LINEAR:
-            printf("EXPERIMENT_LINEAR garb off\n");
+            simple_hyperplane_garb_off(GARBLER_DIR, n, num_len);
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("EXPERIMENT_HYPERPLANE garb off\n");

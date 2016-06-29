@@ -88,6 +88,20 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
     memcpy(outputs, running_sum, num_len * sizeof(int));
 }
 
+void build_inner_product_circuit(garble_circuit *gc, uint32_t n, uint32_t num_len)
+{
+    int input_wires[n];
+    int output_wires[num_len];
+
+    garble_context ctxt;
+
+    countToN(input_wires, n);
+	garble_new(gc, n, num_len, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+    circuit_inner_product(gc, &ctxt, n, num_len, input_wires, output_wires);
+	builder_finish_building(gc, &ctxt, output_wires);
+    printf("build inner product circuit\n");
+}
 
 void
 circuit_ak_mux(garble_circuit *circuit, garble_context *context,

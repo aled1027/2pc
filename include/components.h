@@ -15,9 +15,12 @@ typedef enum {
     XOR = 6,
     FULL_CBC = 7,
     LEVEN_CORE = 8,
+    INNER_PRODUCT = 9,
+    GR0 = 10,
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
+void build_inner_product_circuit(garble_circuit *gc, uint32_t n, uint32_t num_len);
 void buildLinearCircuit(garble_circuit *gc);
 void buildHyperCircuit(garble_circuit *gc);
 void 
