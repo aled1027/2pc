@@ -92,6 +92,5 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
 - wdbc
     - multiplied by `10**17`
     - used `num_len = 55`
-    - full working
-    - get garb-off working
-    - get eval-off working
+    - garbler has model
+

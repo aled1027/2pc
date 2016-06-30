@@ -63,6 +63,7 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      *
      */
 
+    printf("evaluator_evaluate\n");
     int savedCircId, offsetIdx;
     uint64_t s,e, eval_time = 0;
     for (int i = 0; i < instructions->size; i++) {
@@ -606,9 +607,12 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     for (int i = 0; i < num_chained_gcs; ++i) {
         freeChainedGarbledCircuit(&chained_gcs[i], false, chainingType);
         free(labels[i]);
+        labels[i] = NULL;
         free(computedOutputMap[i]);
     }
-    free(labels[num_chained_gcs]);
+    //if (labels[num_chained_gcs])
+    //    free(labels[num_chained_gcs]);
+
     free(computedOutputMap[num_chained_gcs]);
     free(chained_gcs);
     free(labels);

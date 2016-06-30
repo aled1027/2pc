@@ -24,7 +24,7 @@
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
-typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_LINEAR, EXPERIMENT_HYPERPLANE} experiment;
+typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_WDBC, EXPERIMENT_HYPERPLANE} experiment;
 
 static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD(int l) { return getDIntSize(l) * (l+1); }
@@ -128,14 +128,14 @@ results(const char *name, uint64_t *totals, uint64_t *totals_no_load, uint64_t n
 
 static void
 garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
-        ChainingType chainingType, int l, int sigma, bool leven, bool is_linear)
+        ChainingType chainingType, int l, int sigma, experiment which_experiment)
 {
     uint64_t *tot_time;
     bool *inputs;
 
     inputs = calloc(ninputs, sizeof(bool));
 
-    if (leven) {
+    if (EXPERIMENT_LEVEN == which_experiment) {
         printf("l = %d, sigma = %d\n", l, sigma);
         int DIntSize = getDIntSize(l);
         int inputsDevotedToD = getInputsDevotedToD(l);
@@ -148,8 +148,7 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
         for (int i = inputsDevotedToD; i < numGarbInputs; i++) {
             inputs[i] = rand() % 2;
         }
-    } else if (is_linear) {
-        printf("IS_LINEAR inside of garb_on\n");
+    } else if (EXPERIMENT_WDBC == which_experiment) {
         load_model_into_inputs(inputs, "wdbc");
     } else {
         for (int i = 0; i < ninputs; i++) {
@@ -202,7 +201,7 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials,
 
 static void
 garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
-          int ntrials, int l, int sigma, bool leven, bool is_linear)
+          int ntrials, int l, int sigma, experiment which_experiment)
 {
     OldInputMapping imap;
     uint64_t start, end;
@@ -217,7 +216,7 @@ garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
             g_bytes_sent = g_bytes_received = 0;
             int DIntSize = (int) floor(log2(l)) + 1;
             int inputsDevotedToD = DIntSize * (l+1);
-            if (leven) {
+            if (EXPERIMENT_LEVEN == which_experiment) {
                 /* The first inputsDevotedToD inputs are the numbers 0 through
                  * l+1 encoded in binary */
                 for (int i = 0; i < l + 1; i++) {
@@ -226,7 +225,7 @@ garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
                 for (int i = inputsDevotedToD; i < num_garb_inputs; i++) {
                     inputs[i] = rand() % 2;
                 }
-            } else if (is_linear) {
+            } else if (EXPERIMENT_WDBC == which_experiment) {
                 load_model_into_inputs(inputs, "wdbc");
             } else {
                 for (int i = 0; i < num_garb_inputs; i++) {
@@ -283,7 +282,6 @@ go(struct args *args)
 {
     uint64_t n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs, sigma;
     uint64_t n = 0, l = 0, num_len = 0;
-    bool is_linear = false;
     char *fn, *type;
     /* ChainingType chainingType; */
 
@@ -318,7 +316,7 @@ go(struct args *args)
         fn = NULL;              /* set later */
         type = "LEVEN";
         break;
-    case EXPERIMENT_LINEAR:
+    case EXPERIMENT_WDBC:
         printf("Experiment linear\n");
         // TODO ACTUALLY HYPERPLANE WITH 1 vector
         fn = NULL; // TODO add function
@@ -330,7 +328,6 @@ go(struct args *args)
         n_eval_inputs = n / 2;
         n_eval_labels = n_eval_inputs;
         type = "LINEAR";
-        is_linear = true;
         fn = "functions/simple_hyperplane.json";
         break;
     case EXPERIMENT_HYPERPLANE:
@@ -366,8 +363,8 @@ go(struct args *args)
         case EXPERIMENT_LEVEN:
             leven_garb_off(l, sigma, args->chaining_type);
             break;
-        case EXPERIMENT_LINEAR:
-            simple_hyperplane_garb_off(GARBLER_DIR, n, num_len);
+        case EXPERIMENT_WDBC:
+            hyperplane_garb_off(GARBLER_DIR, n, num_len, WDBC);
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("EXPERIMENT_HYPERPLANE garb off\n");
@@ -386,18 +383,16 @@ go(struct args *args)
                 + (int) floor(log10((float) l)) + 2;
             fn = malloc(size);
             (void) snprintf(fn, size, "functions/leven_%d.json", l);
-            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, l, sigma, true, false);
+            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, l, sigma, args->type);
             free(fn);
         } else {
-            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, 0, 0, false, is_linear);
+            garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, 0, 0, args->type);
         }
     } else if (args->eval_on) {
         printf("Online evaluating\n");
         eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, args->chaining_type);
     } else if (args->garb_full) {
         printf("Full garbling\n");
-        bool leven = false;
-        bool is_linear = false;
         garble_circuit gc;
         switch (args->type) {
         case EXPERIMENT_AES:
@@ -411,23 +406,20 @@ go(struct args *args)
         }
         case EXPERIMENT_LEVEN:
             buildLevenshteinCircuit(&gc, l, sigma);
-            leven = true;
             break;
-        case EXPERIMENT_LINEAR:
+        case EXPERIMENT_WDBC:
             printf("experiment linear\n");
             buildLinearCircuit(&gc, n, num_len);
-            is_linear = true;
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("experiment hyperplane\n");
             buildHyperCircuit(&gc);
-            //leven = true;
             break;
         default:
             assert(false);
             return EXIT_FAILURE;
         }
-        garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials, l, sigma, leven, is_linear);
+        garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials, l, sigma, args->type);
         //garble_delete(&gc);
     } else if (args->eval_full) {
         printf("Full evaluating\n");
@@ -492,8 +484,8 @@ main(int argc, char *argv[])
                 args.type = EXPERIMENT_CBC;
             } else if (strcmp(optarg, "LEVEN") == 0) {
                 args.type = EXPERIMENT_LEVEN;
-            } else if (strcmp(optarg, "LINEAR") == 0) {
-                args.type = EXPERIMENT_LINEAR;
+            } else if (strcmp(optarg, "WDBC") == 0) {
+                args.type = EXPERIMENT_WDBC;
             } else if (strcmp(optarg, "HYPER") == 0) {
                 args.type = EXPERIMENT_HYPERPLANE;
             } else {

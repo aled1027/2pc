@@ -16,7 +16,7 @@ IDIR =include
 INCLUDES := $(wildcard $(SRCDIR)/*.h) -Iinc -I$(JUSTGARBLE)/include -I$(IDIR)
 
 CC=gcc
-CFLAGS= -g -O0 -ansi -pedantic -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
+CFLAGS= -g -O3 -ansi -pedantic -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
 CFLAGS += -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
 #CFLAGS += -DNDDEBUG # removes all "assert()" at compile time
 
@@ -86,22 +86,22 @@ leven_eval_on:
 # LINEAR #
 ##########
 linear_garb_full:
-	$(BINDIR)/test --garb-full --type LINEAR
+	$(BINDIR)/test --garb-full --type WDBC
 
 linear_eval_full:
-	$(BINDIR)/test --eval-full --type LINEAR
+	$(BINDIR)/test --eval-full --type WDBC
 
 linear_garb:
-	gdb --args $(BINDIR)/test --garb-off --type LINEAR
+	gdb --args $(BINDIR)/test --garb-off --type WDBC
 
 linear_eval:
-	gdb --args $(BINDIR)/test --eval-off --type LINEAR
+	gdb --args $(BINDIR)/test --eval-off --type WDBC
 
 linear_garb_on:
-	gdb --args $(BINDIR)/test --garb-on --type LINEAR
+	gdb --args $(BINDIR)/test --garb-on --type WDBC
 
 linear_eval_on:
-	gdb --args $(BINDIR)/test --eval-on --type LINEAR
+	gdb --args $(BINDIR)/test --eval-on --type WDBC
 
 #########
 # HYPER #
@@ -116,7 +116,9 @@ hyper_eval:
 # EXTRAS #
 ##########
 valg:
-	valgrind --leak-check=full  ./$(BINDIR)/test --test
+	G_SLICE=always-malloc G_DEBUG=gc-friendly  valgrind -v --tool=memcheck --leak-check=full --num-callers=40 --log-file=valgrind.log ./$(BINDIR)/test --test
+
+	#valgrind --leak-check=full  ./$(BINDIR)/test --test
 	#valgrind --leak-check=full  ./$(BINDIR)/test --garb-on --type AES
 
 clean_gcs:

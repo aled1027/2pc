@@ -169,7 +169,6 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
     garble_circuit *gc = &chained_gc->gc;
 
     sprintf(fname, "%s/chained_gc_%d", dir, id); /* XXX: security hole */
-    printf("about to load %s\n", fname);
     if ((f = fopen(fname, "r")) == NULL) {
         perror("fopen");
         return FAILURE;

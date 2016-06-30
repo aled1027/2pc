@@ -481,8 +481,6 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
                 return FAILURE;
         }
     }
-    printf("idx = %d\n", idx);
-    printf("instructions size = %d\n", instructions->size);
     assert(idx == instructions->size);
     return SUCCESS;
 }
