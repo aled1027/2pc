@@ -387,6 +387,7 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
     jInstructions = json_object_get(root, "instructions");
     assert(json_is_array(jInstructions));
     int loop_size = json_array_size(jInstructions); 
+
     if (chainingType == CHAINING_TYPE_STANDARD) {
         instructions->size = num_instructions + imap->size;
     } else {

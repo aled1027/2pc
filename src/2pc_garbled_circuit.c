@@ -139,7 +139,6 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
     /* ChainedGarbleCircuit fields */
     fwrite(&chained_gc->id, sizeof(int), 1, f);
     fwrite(&chained_gc->type, sizeof(CircuitType), 1, f);
-    printf("Saving circuit of type %d\n", chained_gc->type);
     if (isGarbler) {
         fwrite(chained_gc->inputLabels, sizeof(block), 2 * gc->n, f);
         fwrite(chained_gc->outputMap, sizeof(block), 2 * gc->m, f);
@@ -150,7 +149,6 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
                     sizeof(block), chained_gc->simd_info.num_iblocks, f);
             fwrite(chained_gc->simd_info.iblock_map, sizeof(int), chained_gc->gc.n, f);
         }
-        printf("inside of here\n");
     }
 
     if (!isGarbler && chainingType == CHAINING_TYPE_SIMD) {

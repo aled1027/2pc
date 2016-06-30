@@ -158,6 +158,7 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
     tot_time = malloc(sizeof(uint64_t) * ntrials);
 
     for (int i = 0; i < ntrials; i++) {
+        sleep(1);
         g_bytes_sent = g_bytes_received = 0;
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i], chainingType);
@@ -182,7 +183,7 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials,
     inputs = calloc(ninputs, sizeof(int));
 
     for (int i = 0; i < ntrials; i++) {
-        sleep(1); // uncomment this if getting hung up
+        sleep(2); // uncomment this if getting hung up
         g_bytes_sent = g_bytes_received = 0;
         for (int j = 0; j < ninputs; j++) {
             inputs[j] = rand() % 2;

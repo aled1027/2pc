@@ -63,7 +63,6 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      *
      */
 
-    printf("evaluator_evaluate\n");
     int savedCircId, offsetIdx;
     uint64_t s,e, eval_time = 0;
     for (int i = 0; i < instructions->size; i++) {
@@ -82,9 +81,11 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         case CHAIN:
 
             if (chainingType == CHAINING_TYPE_STANDARD) {
-                labels[cur->ch.toCircId][cur->ch.toWireId] = garble_xor(
+
+                block b = garble_xor(
                     computedOutputMap[cur->ch.fromCircId][cur->ch.fromWireId], 
                     offsets[cur->ch.offsetIdx]);
+                memcpy(&labels[cur->ch.toCircId][cur->ch.toWireId], &b, sizeof(b));
 
             } else { 
                 /* CHAINING_TYPE_SIMD */
@@ -451,11 +452,13 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
     block *garb_labels = NULL, *eval_labels = NULL,
-        *outputmap = NULL, **labels = NULL, *offsets = NULL;
+        *outputmap = NULL, *offsets = NULL;
     int *corrections = NULL, *circuitMapping, sockfd;
     uint64_t start, end, _start, _end, loading_time;
     int num_garb_inputs = 0; /* later received from garbler */
     size_t tmp;
+
+    block *labels[num_chained_gcs + 1];
 
     /* start timing after socket connection */
     _start = current_time_();
@@ -464,7 +467,6 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         loadChainedGarbledCircuits(chained_gcs, num_chained_gcs, dir, chainingType);
         loadOTPreprocessing(&eval_labels, &corrections, dir);
-        labels = malloc(sizeof(block *) * (num_chained_gcs + 1));
         for (int i = 1; i < num_chained_gcs + 1; i++) {
             labels[i] = garble_allocate_blocks(chained_gcs[i-1].gc.n);
         }
@@ -485,8 +487,11 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     if (num_eval_inputs > 0) {
         block *recvLabels;
         uint64_t _start, _end;
-        for (int i = 0; i < num_eval_inputs; ++i)
+        for (int i = 0; i < num_eval_inputs; ++i) {
+            assert(corrections[i] == 0 || corrections[i] == 1);
+            assert(eval_inputs[i] == 0 || eval_inputs[i] == 1);
             corrections[i] ^= eval_inputs[i];
+        }
         recvLabels = garble_allocate_blocks(2 * num_eval_inputs);
         /* valgrind is saying corrections is unitialized, but it seems to be */
         _start = current_time_();
@@ -606,22 +611,27 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     free(circuitMapping);
     for (int i = 0; i < num_chained_gcs; ++i) {
         freeChainedGarbledCircuit(&chained_gcs[i], false, chainingType);
+
         free(labels[i]);
-        labels[i] = NULL;
+
         free(computedOutputMap[i]);
+        computedOutputMap[i] = NULL;
     }
-    //if (labels[num_chained_gcs])
-    //    free(labels[num_chained_gcs]);
+    //free(labels[num_chained_gcs]);
 
     free(computedOutputMap[num_chained_gcs]);
     free(chained_gcs);
-    free(labels);
     free(computedOutputMap);
     free(outputmap);
     free(output);
     free(garb_labels);
     free(eval_labels);
-    free(function.instructions.instr);
+
+    if (function.instructions.instr) {
+        free(function.instructions.instr);
+        function.instructions.instr = NULL;
+    }
+
     free(offsets);
 
     end = current_time_();
