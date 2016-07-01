@@ -9,6 +9,74 @@
 #include <assert.h>
 #include <math.h>
 
+void my_not_gate(garble_circuit *gc, garble_context *ctxt, int in, int out) 
+{
+	int fixed_wire_one = wire_one(gc);
+	gate_XOR(gc, ctxt, in, fixed_wire_one, out);
+}
+
+void circuit_signed_negate(garble_circuit *gc, garble_context *ctxt, uint32_t n, int *input, int *output) {
+
+    // not all bits, and put 1 in first half of add_in
+    int zero_wire = wire_zero(gc);
+    int add_in[2 * n];
+    
+    for (uint32_t i = 0; i < n; ++i) {
+        add_in[n + i] = builder_next_wire(ctxt);
+        my_not_gate(gc, ctxt, input[i], add_in[n + i]);
+        add_in[i] = zero_wire;
+    }
+    add_in[n-1] = wire_one(gc);
+
+    int carry; // can ignore
+    circuit_add(gc, ctxt, 2 * n, add_in, output, &carry);
+}
+
+void circuit_signed_compare(garble_circuit *gc, garble_context *ctxt, int n, int *input1, int *input2, int *output) 
+{
+    // assume numbers are in normal two's complement (i.e. big-endian like wikipedia)
+    // |input1| = |input2| = n / 2 = num_len
+    int num_len = n / 2;
+    int add_inputs[n];
+    int add_outputs[num_len];
+
+    // get two's complement of input1
+    circuit_signed_negate(gc, ctxt, num_len, input1, add_inputs); // populates first half of add_inputs
+
+    memcpy(&add_inputs[num_len], input2, num_len * sizeof(int));
+
+    // add two's complement number and input2
+    int carry; // can ignore
+    circuit_add(gc, ctxt, n, add_inputs, add_outputs, &carry);
+
+    // output sign bit
+    *output = add_outputs[0];
+}
+
+void new_circuit_gteq(garble_circuit *circuit, garble_context *context, int n,
+		int *inputs, int *output) 
+{
+	/* Assumes that lsb is on the left. i.e. 011 >= 101 is true.
+	 * courtesy of Arkady
+	 */
+	int split = n / 2;
+	int carryWire = wire_one(circuit);
+	int internalWire1, internalWire2, preCarryWire;
+
+	for (int i = 0; i < split; i++) {
+		internalWire1 = builder_next_wire(context);
+		internalWire2 = builder_next_wire(context);
+		preCarryWire = builder_next_wire(context);
+
+		gate_XOR(circuit, context, inputs[i], carryWire, internalWire1);
+		gate_XOR(circuit, context, inputs[i + split], carryWire, internalWire2);
+		gate_AND(circuit, context, internalWire1, internalWire2, preCarryWire);
+
+		carryWire = builder_next_wire(context);
+		gate_XOR(circuit, context, inputs[i], preCarryWire, carryWire);
+	}
+	*output = carryWire;
+}
 
 static void
 bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int *inps, 
@@ -88,6 +156,43 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
     memcpy(outputs, running_sum, num_len * sizeof(int));
 }
 
+void build_decision_tree_node_circuit(garble_circuit *gc, uint32_t n) 
+{
+    /* Builds the circuit for the node of a decision tree. 
+     * This takes inputs: 1 + 2*num_len.
+     * The zeroith bit is the auxially bit, and 1 through n are the number
+     *
+     * The 2*num_len inputs are fed into a comp circuit. 
+     * The output of the GTEQ circuit is anded with the extra bit. 
+     * And the output of the and gate is the output of the circuit.
+     *
+     * Input: b || x_i || w_i
+     */
+
+    // Initialize
+    uint32_t num_len = (n - 1) / 2;
+    uint32_t m = 1;
+    int input_wires[n];
+    int output_wires[m];
+    int gteq_output;
+    countToN(input_wires, n);
+    int the_bit = input_wires[0];
+
+    // Preliminary work on gc
+    garble_context ctxt;
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+
+    // Add subcircuits
+    new_circuit_gteq(gc, &ctxt, 2 * num_len, input_wires + 1, &gteq_output);
+
+    output_wires[0] = builder_next_wire(&ctxt);
+    gate_AND(gc, &ctxt, gteq_output, the_bit, output_wires[0]);                                                                                                                          
+    // Finalize
+	builder_finish_building(gc, &ctxt, output_wires);
+}
+
+
 void build_gr0_circuit(garble_circuit *gc, uint32_t n)
 {
     int m = 1;
@@ -145,6 +250,64 @@ circuit_ak_mux(garble_circuit *circuit, garble_context *context,
         gate_AND(circuit, context, internalWire1, the_switch, internalWire2);                                                                                                                          
         gate_XOR(circuit, context, internalWire2, inputs[len + i], outputs[i]);
     }
+}
+
+void 
+my_circuit_and(garble_circuit *gc, garble_context *ctxt, uint32_t n,
+        const int *inputs, int select_wire, int *outputs)  {
+    // does and (select_bit, input[i]) for all i = 0 to n
+    // n does not include select_bit
+    //
+    for (uint32_t i = 0; i < n; ++i) {
+        outputs[i] = builder_next_wire(ctxt);
+	    gate_AND(gc, ctxt, inputs[i], select_wire, outputs[i]);
+    }
+
+}
+
+void 
+circuit_signed_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
+        int *inputs, int *outputs) 
+{
+    // http://stackoverflow.com/questions/20793701/how-to-do-two-complement-multiplication-and-division-of-integers
+    assert(0 == n % 2);
+
+    uint32_t split = n / 2;
+    uint32_t split2 = 2 * split;
+    int zero_wire = wire_zero(gc);
+    int one_wire = wire_one(gc);
+    assert(one_wire && zero_wire);
+
+    int accum[split2]; // holds values for going forward
+    assert(accum);
+    for (uint32_t i = 0; i < split2; i++) {
+        accum[i] = zero_wire;
+    }
+
+    for (uint32_t i = 0; i < split; ++i) {
+        // and with the appropritiate digit of second number
+        int *and_out = calloc(split, sizeof(int));
+        int and_select = inputs[n - 1 - i];
+        my_circuit_and(gc, ctxt, split, inputs, and_select, and_out);
+
+        // shift the number first number of i bits, and put into shift
+        int *add_in = calloc(2 * split2, sizeof(int));
+        for (uint32_t j = 0; j < 2 * split2; ++j) {
+            add_in[j] = zero_wire;
+        }
+
+        memcpy(&add_in[split - i], and_out, split * sizeof(int));
+        memcpy(&add_in[split2], accum, split2 * sizeof(int));
+
+        int carry; // can ignore
+		circuit_add(gc, ctxt, 2 * split2, add_in, accum, &carry);
+
+        free(and_out);
+        and_out = NULL;
+        free(add_in);
+        add_in = NULL;
+    }
+    memcpy(outputs, &accum[split], split * sizeof(int));
 }
 
 void                                                                                         
@@ -230,30 +393,7 @@ void circuit_argmax4(garble_circuit *gc, garble_context *ctxt,
 	circuit_argmax2(gc, ctxt, out, outputs, num_len);
 }
 
-void new_circuit_gteq(garble_circuit *circuit, garble_context *context, int n,
-		int *inputs, int *output) 
-{
-	/* Assumes that lsb is on the left. i.e. 011 >= 101 is true.
-	 * courtesy of Arkady
-	 */
-	int split = n / 2;
-	int carryWire = wire_one(circuit);
-	int internalWire1, internalWire2, preCarryWire;
 
-	for (int i = 0; i < split; i++) {
-		internalWire1 = builder_next_wire(context);
-		internalWire2 = builder_next_wire(context);
-		preCarryWire = builder_next_wire(context);
-
-		gate_XOR(circuit, context, inputs[i], carryWire, internalWire1);
-		gate_XOR(circuit, context, inputs[i + split], carryWire, internalWire2);
-		gate_AND(circuit, context, internalWire1, internalWire2, preCarryWire);
-
-		carryWire = builder_next_wire(context);
-		gate_XOR(circuit, context, inputs[i], preCarryWire, carryWire);
-	}
-	*output = carryWire;
-}
 
 void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
 		int *inputs, int *output) 

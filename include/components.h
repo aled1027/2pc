@@ -20,6 +20,11 @@ typedef enum {
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
+void circuit_signed_negate(garble_circuit *gc, garble_context *ctxt, uint32_t n, int *input, int *output);
+void circuit_signed_compare(garble_circuit *gc, garble_context *ctxt, int n, int *input1, int *input2, int *output);
+
+void circuit_signed_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
+        int *inputs, int *outputs);
 void build_gr0_circuit(garble_circuit *gc, uint32_t n);
 void build_inner_product_circuit(garble_circuit *gc, uint32_t n, uint32_t num_len);
 void buildLinearCircuit(garble_circuit *gc, int n, int num_len);
