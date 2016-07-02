@@ -78,19 +78,43 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - check if fixed one wire
 
 ## TODO
-- parse ml models
+- parse naive bayes and decision tree ml models
     - load ml model via json
     - make a new file/module
     - preferably a path to the model, and then load model through json.
     - model tells what type it is, and size
+- all operations should use two's complement. 
+    - multiplication
+    - comparison
+- convertDecimalToBinary
+    - should convert to two's complement
+    - and not little-endian
+- GR0 component
+    - grab the correct bit for big-endian two's complement
+- decision tree
+    - run help on python version to figure out how to save to disk.
+- Components
+    - Inner product
+    - comparison
+    - GR0
+    - AND
+    - OR?
+- `garb_off`
+    - add function to take list of circuitypes, 
+    - and automatically generate them. Useful for abstractions and adding components
+- output of compgc is saying that outputs are matching up. 
+    - debug this
+    - use a simple test case
 
-- Looks like they multiply by 1e13
-    - but, values look like they need 1e14 or 1e15.
-- make sure operations are signed?
-    - little-endian
-    - 2s complement
+### Some details 
 - wdbc
     - multiplied by `10**17`
     - used `num_len = 55`
     - garbler has model
+
+// could generate array of circuit types to save, and simply save those to disk. 
+e.g. leven sends `{leven_core, leven_core, leven_core}` to `circuit_save` method.
+
+
+
 
