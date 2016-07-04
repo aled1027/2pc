@@ -24,7 +24,7 @@
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
-typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_WDBC, EXPERIMENT_HYPERPLANE} experiment;
+typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_WDBC, EXPERIMENT_HYPERPLANE, EXPERIMENT_RANDOM_DT} experiment;
 
 static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD(int l) { return getDIntSize(l) * (l+1); }
@@ -331,6 +331,17 @@ go(struct args *args)
         type = "LINEAR";
         fn = "functions/simple_hyperplane.json";
         break;
+    case EXPERIMENT_RANDOM_DT:
+        printf("Experiment linear\n");
+        // TODO ACTUALLY HYPERPLANE WITH 1 vector
+        n = 31 * 2 * num_len;
+        ncircs = 2;
+        n_garb_inputs = n / 2;
+        n_eval_inputs = n / 2;
+        n_eval_labels = n_eval_inputs;
+        type = "DT";
+        fn = "functions/decision_tree.json";
+        break;
     case EXPERIMENT_HYPERPLANE:
         printf("Experiment hyperplane\n");
         fn = NULL; // TODO add function
@@ -366,6 +377,9 @@ go(struct args *args)
             break;
         case EXPERIMENT_WDBC:
             hyperplane_garb_off(GARBLER_DIR, n, num_len, WDBC);
+            break;
+        case EXPERIMENT_RANDOM_DT:
+            dt_garb_off(GARBLER_DIR, n, num_len, DT_RANDOM);
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("EXPERIMENT_HYPERPLANE garb off\n");
@@ -410,6 +424,11 @@ go(struct args *args)
             break;
         case EXPERIMENT_WDBC:
             printf("experiment linear\n");
+            buildLinearCircuit(&gc, n, num_len);
+            break;
+        case EXPERIMENT_RANDOM_DT:
+            printf("experiment linear\n");
+            // TODO CHANGE THIS
             buildLinearCircuit(&gc, n, num_len);
             break;
         case EXPERIMENT_HYPERPLANE:
@@ -488,7 +507,9 @@ main(int argc, char *argv[])
             } else if (strcmp(optarg, "WDBC") == 0) {
                 args.type = EXPERIMENT_WDBC;
             } else if (strcmp(optarg, "HYPER") == 0) {
-                args.type = EXPERIMENT_HYPERPLANE;
+                args.type = EXPERIMENT_WDBC;
+            } else if (strcmp(optarg, "RANDOM_DT") == 0) {
+                args.type = EXPERIMENT_RANDOM_DT;
             } else {
                 fprintf(stderr, "Unknown circuit type %s\n", optarg);
                 exit(EXIT_FAILURE);

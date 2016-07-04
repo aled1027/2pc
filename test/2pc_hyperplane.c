@@ -15,7 +15,38 @@
 
 #include "2pc_hyperplane.h"
 
+typedef struct {
+    CircuitType circuit_type;
+    int n;
+    int m;
+    int num_len; // if relevant
+} cgc_information;
 
+void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int ncircuits) 
+{
+    block delta = garble_create_delta();
+
+    for (uint32_t i = 0; i < ncircuits; ++i) {
+        int n = cgc_info[i].n;
+        int m = cgc_info[i].m;
+        ChainedGarbledCircuit *cgc = &cgcs[i];
+        CircuitType circuit_type = cgc_info[i].circuit_type;
+
+        if (circuit_type == INNER_PRODUCT) {
+            build_inner_product_circuit(&cgc->gc, n, cgc_info[i].num_len);
+        } else if (circuit_type == AND) {
+            build_and_circuit(&cgc->gc, n);
+        }
+
+        cgc->inputLabels = garble_allocate_blocks(2 * n);
+        cgc->outputMap = garble_allocate_blocks(2 * m);
+        garble_create_input_labels(cgc->inputLabels, n, &delta, false);
+        garble_garble(&cgc->gc, cgc->inputLabels, cgc->outputMap);
+
+        cgc->id = i;
+        cgc->type = circuit_type;
+    }
+}
 
 void hyperplane_garb_off(char *dir, uint32_t n, uint32_t num_len, HYPERPLANE_TYPE type) {
     if (type == WDBC) {
@@ -43,5 +74,28 @@ void hyperplane_garb_off(char *dir, uint32_t n, uint32_t num_len, HYPERPLANE_TYP
         int num_circuits = 2;
 
         garbler_offline(dir, cgc, num_eval_inputs, num_circuits, CHAINING_TYPE_STANDARD);
+    }
+}
+
+void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE type) 
+{
+    if (type == DT_RANDOM) {
+
+        // generate a bunch of chained garbled comparators
+        uint32_t ncircuits = 10;
+        int num_eval_inputs = n / 2;
+
+        cgc_information cgc_info[ncircuits];
+        for (uint32_t i = 0; i < ncircuits; i++) {
+            cgc_info[i].circuit_type = SIGNED_COMPARISON;
+            cgc_info[i].n = 110;
+            cgc_info[i].m = 1;
+        }
+
+        ChainedGarbledCircuit cgcs[ncircuits];
+        generate_cgcs(cgcs, cgc_info, ncircuits);
+                
+
+        garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
     }
 }

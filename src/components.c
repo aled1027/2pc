@@ -9,6 +9,13 @@
 #include <assert.h>
 #include <math.h>
 
+static void print_array(int *arr, uint32_t size, char *name) 
+{
+    for (uint32_t i = 0; i < size; i++) {
+        printf("%s[%d] = %d\n", name, i, arr[i]);
+    }
+}
+
 void my_not_gate(garble_circuit *gc, garble_context *ctxt, int in, int out) 
 {
 	int fixed_wire_one = wire_one(gc);
@@ -113,6 +120,8 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
 {
     /* Performs inner product over the well integers (well, mod 2^num_len)
      *
+     * Assumes little-endian with sign. E.g. 1100 base 2 = -1 base 10
+     *
      * Inputs
      * n: total number of input bits
      * num_len: length of each number in bits
@@ -128,13 +137,13 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
     uint32_t split = n / 2;
     int carry = 0;
 
-    // linear version TODO: make tree version
     int running_sum[num_len];
     int initial_mult_in[2 * num_len];
     memcpy(initial_mult_in, inputs, num_len * sizeof(int)); 
     memcpy(&initial_mult_in[num_len], &inputs[split], num_len * sizeof(int));
     circuit_mult_n(gc, ctxt, 2 * num_len, initial_mult_in, running_sum);
 
+    // linear version TODO: make tree version
     for (uint32_t i = 1; i < vector_length; ++i) {
         uint32_t idx0 = i * num_len; // index of number from vector 0
         uint32_t idx1 = idx0 + split; // index of number from vector 1
@@ -143,7 +152,8 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
         int mult_in[2 * num_len], mult_out[num_len];
         memcpy(mult_in, &inputs[idx0], num_len * sizeof(int)); 
         memcpy(&mult_in[num_len], &inputs[idx1], num_len * sizeof(int));
-        circuit_mult_n(gc, ctxt, 2 * num_len, mult_in, mult_out);
+
+        circuit_signed_mult_n(gc, ctxt, 2 * num_len, mult_in, mult_out);
 
         // add to running sum
         int add_in[2 * num_len], add_out[num_len];
@@ -155,6 +165,12 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
     }
     memcpy(outputs, running_sum, num_len * sizeof(int));
 }
+
+void build_and_circuit(garble_circuit *gc, uint32_t n) 
+{
+
+}
+
 
 void build_decision_tree_node_circuit(garble_circuit *gc, uint32_t n) 
 {
@@ -258,6 +274,10 @@ my_circuit_and(garble_circuit *gc, garble_context *ctxt, uint32_t n,
     // does and (select_bit, input[i]) for all i = 0 to n
     // n does not include select_bit
     //
+    // Loop over inputs and AND each inputs[i] with the select wire
+    // such that outputs[i] = inputs[i] & select_wire
+    
+    // TODO is linear, make tree
     for (uint32_t i = 0; i < n; ++i) {
         outputs[i] = builder_next_wire(ctxt);
 	    gate_AND(gc, ctxt, inputs[i], select_wire, outputs[i]);
@@ -266,7 +286,7 @@ my_circuit_and(garble_circuit *gc, garble_context *ctxt, uint32_t n,
 }
 
 void 
-circuit_signed_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
+circuit_signed_mult_2s_compl_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
         int *inputs, int *outputs) 
 {
     // http://stackoverflow.com/questions/20793701/how-to-do-two-complement-multiplication-and-division-of-integers
@@ -310,44 +330,96 @@ circuit_signed_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
     memcpy(outputs, &accum[split], split * sizeof(int));
 }
 
+
+
 void                                                                                         
-circuit_mult_n(garble_circuit *circuit, garble_context *context, uint32_t n,
-		int *inputs, int *outputs) {
-	/* Multiplies two n-bit unsigned(?) integers            
-	 * If signed, depends on add circuit.                                                    
-	 * From AK
-	 */
-	assert(n % 2 == 0);
-	uint32_t len = n / 2;
-	int zero_wire = wire_zero(circuit);
-	int carry = 0;
-	int add_in[2*len], add_out[len];
+circuit_signed_mult_n(garble_circuit *circuit, garble_context *context, uint32_t n,
+		int *inputs, int *outputs) 
+{
+    /* Performs signed multiplication of 
+     * two signed little-endian numbers (e.g. 1100 base 2 = -1 base 10)
+     *
+     * Method: simply multiply the first split-1 bits with normal multiplication,
+     * and set the sign bit to the xor of the signed bits of the inputs.
+     *
+     *
+     * Note that a negative 0, e.g. 001 (if split = 3) is not well defined. 
+     */
 
-	// put the second input in the second part of add_in
-	memcpy(&add_in[len], &inputs[len], len * sizeof(int)); // shouldn't change in for loop
-	add_in[0] = zero_wire; // shouldn't change in for loop
+    assert(0 == n % 2);
+    uint32_t split = n / 2;
+    int mult_inputs[n - 2];
+    memcpy(mult_inputs, inputs, (split - 1) * sizeof(int));
+    memcpy(&mult_inputs[split - 1], &inputs[split], (split - 1) * sizeof(int));
 
-	for (int i = 0; i < len; i++) {
-		outputs[i] = zero_wire;
-	}                                                             
+    // multiply them. Use n - 2 because ignoring the sign of the inputs
+    circuit_mult_n(circuit, context, n - 2, mult_inputs, outputs);
 
-	for (int i = len - 1; i >= 0; i--) {                                         
-		memcpy(&add_in[1], outputs, (len - 1) * sizeof(int));
-		circuit_add(circuit, context, 2 * len, add_in, add_out, &carry);
-
-		int mux_in[2 * len];
-		// first part of input is the output of the add circuit
-		memcpy(mux_in, add_out, len * sizeof(int));
-
-		// second part is the output of the previous mux
-		memcpy(&mux_in[len], mux_in, len * sizeof(int)); 
-
-		int the_switch = inputs[len + i];
-		circuit_ak_mux(circuit, context, 2 * len, the_switch, mux_in, outputs);
-	}
+    // set the signed bit
+    outputs[split - 1] = builder_next_wire(context);
+	gate_XOR(circuit, context, inputs[split-1], inputs[n-1], outputs[split - 1]);
 }
 
+void 
+circuit_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
+        int *inputs, int *outputs) 
+{
+    /*    10
+     *   *10
+     *   ----
+     *    10
+     *     00
+     *  = 10 (e.g 1 * 1 = 1 in base 10)
+     *
+     * https://en.wikipedia.org/wiki/Binary_multiplier
+     */
 
+    assert(0 == n % 2);
+
+    uint32_t split = n / 2;
+    int zero_wire = wire_zero(gc);
+    int one_wire = wire_one(gc);
+    assert(one_wire && zero_wire); // TODO remove
+
+    int accum[split]; // holds values for going forward
+    for (uint32_t i = 0; i < split; i++) {
+        accum[i] = zero_wire;
+    }
+
+    for (uint32_t i = 0; i < split; ++i) {
+        // get our partial product, as it is called on wikipedia
+        // i.e. the and of the number 1 with shifted digits and number 2
+        int and_select = inputs[split + i];
+        int carry; // can ignore
+        int *and_in = calloc(split, sizeof(int)); // TODO remove memcpy, just use inputs
+        int *add_in = calloc(n, sizeof(int));
+        int *partial_product = calloc(split, sizeof(int));
+        memcpy(and_in, inputs, split * sizeof(int));
+
+        my_circuit_and(gc, ctxt, split, and_in, and_select, partial_product);
+
+        // initialize add_in to zero wire
+        for (int j = 0; j < split; ++j) {
+            add_in[j] = zero_wire;
+        }
+
+        // first put partial_product into add_in
+        memcpy(&add_in[i], partial_product, (split - i) * sizeof(int));
+
+        // put accum into add_in
+        memcpy(&add_in[split], accum, split * sizeof(int));
+
+		circuit_add(gc, ctxt, n, add_in, accum, &carry);
+
+        free(and_in);
+        and_in = NULL;
+        free(partial_product);
+        partial_product = NULL;
+        free(add_in);
+        add_in = NULL;
+    }
+    memcpy(outputs, accum, split * sizeof(int));
+}
 
 void circuit_argmax2(garble_circuit *gc, garble_context *ctxt, 
 		int *inputs, int *outputs, int num_len) 
