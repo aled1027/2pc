@@ -52,6 +52,9 @@ readFileIntoBuffer(char* buffer, char* fileName);
 void
 debug(char *s);
 
+void 
+compgc_print_block(block b);
+
 /* void */
 /* print_gc(garble_circuit *gc); */
 

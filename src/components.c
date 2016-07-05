@@ -22,8 +22,8 @@ void my_not_gate(garble_circuit *gc, garble_context *ctxt, int in, int out)
 	gate_XOR(gc, ctxt, in, fixed_wire_one, out);
 }
 
-void circuit_signed_negate(garble_circuit *gc, garble_context *ctxt, uint32_t n, int *input, int *output) {
-
+void circuit_signed_negate(garble_circuit *gc, garble_context *ctxt, uint32_t n, int *input, int *output) 
+{
     // not all bits, and put 1 in first half of add_in
     int zero_wire = wire_zero(gc);
     int add_in[2 * n];
@@ -99,19 +99,16 @@ bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int 
 	}
 }
 
-void circuit_ge0(garble_circuit *gc, garble_context *ctxt,
+void circuit_gr0(garble_circuit *gc, garble_context *ctxt,
         uint32_t n, int *inputs, int *output)
 {
-    /* Circuit that returns 1 (true) if inputs is greater than 0.0, else returns 0 (false). 
-     * Assumes that two's complement is being used. 
+    /* Circuit that returns 1 (true) if inputs is greater than 0, else returns 0 (false). 
      * int n is the size of the input numbers in bits. 
      */
 
-    // just do a NOT gate on (n-1)th input (the msb).
-    // faux NOT gate
+    // just do a NOT gate on (n-1)th input (the msb), which is the sign bit.
 	*output = builder_next_wire(ctxt);
-	int fixed_wire_one = wire_one(gc);
-	gate_XOR(gc, ctxt, inputs[n-1], fixed_wire_one, *output);
+    my_not_gate(gc, ctxt, inputs[n-1], *output);
 }
 
 void 
@@ -221,7 +218,7 @@ void build_gr0_circuit(garble_circuit *gc, uint32_t n)
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
 	builder_start_building(gc, &ctxt);
 
-    circuit_ge0(gc, &ctxt, n, input_wires, output_wires);
+    circuit_gr0(gc, &ctxt, n, input_wires, output_wires);
 	builder_finish_building(gc, &ctxt, output_wires);
     printf("built gr0 circuit\n");
 }
@@ -540,7 +537,7 @@ void buildLinearCircuit(garble_circuit *gc, int n, int num_len)
 	builder_start_building(gc, &ctxt);
 
     circuit_inner_product(gc, &ctxt, n, num_len, input_wires, ip_output_wires);
-    circuit_ge0(gc, &ctxt, ip_output_size, ip_output_wires, output_wire);
+    circuit_gr0(gc, &ctxt, ip_output_size, ip_output_wires, output_wire);
 
 	builder_finish_building(gc, &ctxt, output_wire);
 }

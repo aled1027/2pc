@@ -276,13 +276,8 @@ json_load_output(json_t *root, FunctionSpec *function)
 int 
 json_load_input_mapping(json_t *root, FunctionSpec* function) 
 {
-    /* "InputMapping: [
-     *      { "gc_id": x, "wire_id: y", "inputter": "garbler"},
-     *      { "gc_id": a, "wire_id: b", "inputter": "evaluator"}
-     * ]
-     * 
-     * where the ith element in the array is where the ith input is mapped to.
-     * 
+    /* Loads in the input mapping section from the json into
+     * the function
      */
     InputMapping* imap = &(function->input_mapping);
     json_t *jInputMapping, *jMap, *jGcId, *jWireIdx, *jInputter, *jInputIdx, *jPtr, *jMetadata;
@@ -295,7 +290,7 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
     jInputMapping = json_object_get(root, "input_mapping");
     assert(json_is_array(jInputMapping));
     int loop_size = json_array_size(jInputMapping);  // size is subject to change in for loop
-    imap->size = loop_size;
+    assert(loop_size == imap->size);  // don't need metadata:input_mapping_size, (maybe used in loading instructions)
     imap->imap_instr = malloc(imap->size * sizeof(InputMappingInstruction));
     assert(imap->imap_instr);
     bool *hasInputBeenUsed[2];

@@ -127,45 +127,12 @@ debug(char *s)
     fflush(stderr);
 }
 
-/* void print_gate(garble_gate *g)  */
-/* { */
-/*     printf("Type: %d, inputs %d %d output: %d\n", */
-/*            g->type, */
-/*            g->input0, */
-/*            g->input0, */
-/*            g->output); */
-/* } */
+void compgc_print_block(block b) 
+{
+    uint16_t *val = (uint16_t*) &b;
+    printf("%i %i %i %i %i %i %i %i \n", 
+           val[0], val[1], val[2], val[3], val[4], val[5], 
+           val[6], val[7]);
 
-/* void print_table(garble_table *gt) */
-/* { */
-/*     FILE* fp = stdout; */
-/*     print_block(fp, gt->table[0]); */
-/*     printf(" "); */
-/*     print_block(fp, gt->table[1]); */
-/*     printf(" "); */
-/*     print_block(fp, gt->table[2]); */
-/*     printf("\n"); */
-/* } */
-
-/* void print_wire(Wire *w) */
-/* { */
-/*     FILE* fp = stdout; */
-/*     print_block(fp, w->label0); */
-/*     printf(" "); */
-/*     print_block(fp, w->label1); */
-/*     printf("\n"); */
-/* } */
-
-/* void */
-/* print_gc(GarbledCircuit *gc) */
-/* { */
-/*     //for (int i = 0; i < gc->q; i++) { */
-/*     //    print_gate(&gc->gates[i]); */
-/*     //    print_table(&gc->garbledTable[i]); */
-/*     //} */
-/*     for (int i = 0; i < 80; i++) { */
-/*         print_wire(&gc->wires[i]); */
-/*     } */
-
-/* } */
+}
 

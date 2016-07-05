@@ -71,7 +71,6 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
         case EVAL:
             s = current_time_();
             savedCircId = circuitMapping[cur->ev.circId];
-
             garble_eval(&chained_gcs[savedCircId].gc, labels[cur->ev.circId],
                         computedOutputMap[cur->ev.circId], NULL);
 
@@ -79,13 +78,34 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
             eval_time += e - s;
             break;
         case CHAIN:
-
             if (chainingType == CHAINING_TYPE_STANDARD) {
 
-                block b = garble_xor(
-                    computedOutputMap[cur->ch.fromCircId][cur->ch.fromWireId], 
-                    offsets[cur->ch.offsetIdx]);
-                memcpy(&labels[cur->ch.toCircId][cur->ch.toWireId], &b, sizeof(b));
+                // if mapping inputs
+                if (cur->ch.fromCircId == 0) {
+                    printf("Moving inputs (%d, %d) -> (%d, %d)!!!\n", 
+                            cur->ch.fromCircId, cur->ch.fromWireId, cur->ch.toCircId, cur->ch.toWireId);
+
+                    int offsetIdx = cur->ch.offsetIdx;
+
+                    for (int j = cur->ch.fromWireId, k = cur->ch.toWireId; 
+                         j < cur->ch.fromWireId + cur->ch.wireDist;
+                         ++j, ++k) {
+
+                        labels[cur->ch.toCircId][k] = garble_xor(
+                            computedOutputMap[cur->ch.fromCircId][j],
+                            offsets[offsetIdx]);
+                    }
+
+                
+
+                } else {
+                    // if not inputs:
+
+                    block b = garble_xor(
+                        computedOutputMap[cur->ch.fromCircId][cur->ch.fromWireId], 
+                        offsets[cur->ch.offsetIdx]);
+                    memcpy(&labels[cur->ch.toCircId][cur->ch.toWireId], &b, sizeof(b));
+                }
 
             } else { 
                 /* CHAINING_TYPE_SIMD */
@@ -158,6 +178,8 @@ evaluator_classic_2pc(const int *input, bool *output,
                    2, eval_labels, new_choice_reader, new_msg_writer);
         state_cleanup(&state);
     }
+
+
 
     /* Start timing after pre-processing of OT as we only want to record online
      * time */

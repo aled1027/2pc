@@ -292,6 +292,7 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
                          function->output_instructions.output_instruction,
                          function->output_instructions.size * sizeof(OutputInstruction));
     }
+
     {
         buffer = realloc(buffer, p + sizeof(int) + sizeof(int) + 
                          (sizeof(Instruction) * function->instructions.size) +
