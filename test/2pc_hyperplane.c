@@ -49,7 +49,7 @@ void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int n
 }
 
 void hyperplane_garb_off(char *dir, uint32_t n, uint32_t num_len, HYPERPLANE_TYPE type) {
-    if (type == WDBC) {
+    if (type == WDBC || type == CREDIT) {
         block delta = garble_create_delta();
         ChainedGarbledCircuit cgc[2];
         build_inner_product_circuit(&cgc[0].gc, n, num_len);

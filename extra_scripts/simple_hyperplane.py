@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import json
+import pprint
 
 def hyperplane_json(n, num_len):
     ret_dict = OrderedDict()
@@ -14,15 +15,16 @@ def hyperplane_json(n, num_len):
         "n": n,
         "m": 1,
         "num_len": num_len,
-        "num_garb_inputs": n / 2,
-        "num_eval_inputs": n / 2
+        "num_garb_inputs": int(n / 2),
+        "num_eval_inputs": int(n / 2),
+        "instructions_size": 60,
+        "input_mapping_size": 2,
     })
 
     ret_dict['input_mapping'] = []
     ret_dict['output'] = []
     ret_dict['instructions'] = []
     ret_dict['components'] = []
-    ret_dict['gcs_used'] = 1
 
     # Components
     ret_dict['components'] = [
@@ -43,18 +45,18 @@ def hyperplane_json(n, num_len):
         OrderedDict({
             "inputter": "garbler",
             "start_input_idx": 0,
-            "end_input_idx": num_len - 1,
+            "end_input_idx": ret_dict['metadata']['num_garb_inputs'] - 1,
             "gc_id": 1,
             "start_wire_idx": 0,
-            "end_wire_idx": num_len - 1,
+            "end_wire_idx": int(n/2 - 1),
         }),
         OrderedDict({
             "inputter": "evaluator",
             "start_input_idx": 0,
-            "end_input_idx": num_len - 1,
+            "end_input_idx": ret_dict['metadata']['num_eval_inputs'] - 1,
             "gc_id": 1,
-            "start_wire_idx": num_len,
-            "end_wire_idx": (2 * num_len) - 1
+            "start_wire_idx": int(n/2),
+            "end_wire_idx": n - 1
         })
     ]
 
@@ -68,10 +70,10 @@ def hyperplane_json(n, num_len):
             "type": "CHAIN",
             "from_gc_id": 1,
             "from_wire_id_start": 0,
-            "from_wire_id_end": num_len,
+            "from_wire_id_end": num_len - 1,
             "to_gc_id": 2,
             "to_wire_id_start": 0,
-            "to_wire_id_end": num_len
+            "to_wire_id_end": num_len - 1
         }),
         OrderedDict({
             "type": "EVAL",
@@ -90,4 +92,5 @@ def hyperplane_json(n, num_len):
     print(s)
 
 if __name__=='__main__':
-    hyperplane_json(2*55*31, 55)
+    #hyperplane_json(2*55*31, 55) # for wdbc
+    hyperplane_json(2*58*48, 58) # for credit

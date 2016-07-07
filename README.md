@@ -76,6 +76,10 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - run valgrind
     - check if or gate
     - check if fixed one wire
+## Circuits
+- libgarble circuit add
+    - uses little-endian unsigned values, and passes all tests
+    - e.g. 010 + 010 = 001
 
 ## TODO
 - parse naive bayes and decision tree ml models
@@ -83,9 +87,6 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - make a new file/module
     - preferably a path to the model, and then load model through json.
     - model tells what type it is, and size
-- all operations should use two's complement. 
-    - multiplication
-    - comparison
 - convertDecimalToBinary
     - should convert to two's complement
     - and not little-endian
@@ -111,6 +112,9 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - multiplied by `10**17`
     - used `num_len = 55`
     - garbler has model
+- credit
+    - multiplied by `10**18`
+    - used `num_len = 58`
 
 // could generate array of circuit types to save, and simply save those to disk. 
 e.g. leven sends `{leven_core, leven_core, leven_core}` to `circuit_save` method.

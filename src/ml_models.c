@@ -101,6 +101,12 @@ void load_model_into_inputs(bool *inputs, const char *model_name)
     if (0 == strcmp(model_name, "wdbc")) {
         int res = sprintf(path, "%s", "models/wdbc.json");
         assert(res);
+    } else if (0 == strcmp(model_name, "credit")) {
+        int res = sprintf(path, "%s", "models/credit.json");
+        assert(res);
+    } else {
+        printf("model_name not detected\n");
+        return;
     }
 
     Model *model = get_model(path); 
@@ -110,8 +116,4 @@ void load_model_into_inputs(bool *inputs, const char *model_name)
         convertToBinary(model->data[i], inputs + inputs_i, model->num_len);
         inputs_i += model->num_len;
     }
-
-
-
-
 }

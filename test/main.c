@@ -24,7 +24,7 @@
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
-typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_WDBC, EXPERIMENT_HYPERPLANE, EXPERIMENT_RANDOM_DT} experiment;
+typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_WDBC, EXPERIMENT_HP_CREDIT, EXPERIMENT_HYPERPLANE, EXPERIMENT_RANDOM_DT} experiment;
 
 static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD(int l) { return getDIntSize(l) * (l+1); }
@@ -150,6 +150,8 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
         }
     } else if (EXPERIMENT_WDBC == which_experiment) {
         load_model_into_inputs(inputs, "wdbc");
+    } else if (EXPERIMENT_HP_CREDIT == which_experiment) {
+        load_model_into_inputs(inputs, "credit");
     } else {
         for (int i = 0; i < ninputs; i++) {
             inputs[i] = rand() % 2;
@@ -228,6 +230,8 @@ garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
                 }
             } else if (EXPERIMENT_WDBC == which_experiment) {
                 load_model_into_inputs(inputs, "wdbc");
+            } else if (EXPERIMENT_HP_CREDIT == which_experiment) {
+                load_model_into_inputs(inputs, "credit");
             } else {
                 for (int i = 0; i < num_garb_inputs; i++) {
                     inputs[i] = rand() % 2; 
@@ -319,8 +323,6 @@ go(struct args *args)
         break;
     case EXPERIMENT_WDBC:
         printf("Experiment linear\n");
-        // TODO ACTUALLY HYPERPLANE WITH 1 vector
-        fn = NULL; // TODO add function
         num_len = 55;
         n = 31 * 2 * num_len;
         ncircs = 2;
@@ -330,6 +332,19 @@ go(struct args *args)
         n_eval_labels = n_eval_inputs;
         type = "LINEAR";
         fn = "functions/simple_hyperplane.json";
+        break;
+    case EXPERIMENT_HP_CREDIT:
+        printf("Experiment linear\n");
+        // TODO ACTUALLY HYPERPLANE WITH 1 vector
+        num_len = 58;
+        n = 48 * 2 * num_len;
+        ncircs = 2;
+
+        n_garb_inputs = n / 2;
+        n_eval_inputs = n / 2;
+        n_eval_labels = n_eval_inputs;
+        type = "LINEAR";
+        fn = "functions/credit.json";
         break;
     case EXPERIMENT_RANDOM_DT:
         printf("Experiment linear\n");
@@ -378,6 +393,9 @@ go(struct args *args)
         case EXPERIMENT_WDBC:
             hyperplane_garb_off(GARBLER_DIR, n, num_len, WDBC);
             break;
+        case EXPERIMENT_HP_CREDIT:
+            hyperplane_garb_off(GARBLER_DIR, n, num_len, CREDIT);
+            break;
         case EXPERIMENT_RANDOM_DT:
             dt_garb_off(GARBLER_DIR, n, num_len, DT_RANDOM);
             break;
@@ -423,7 +441,11 @@ go(struct args *args)
             buildLevenshteinCircuit(&gc, l, sigma);
             break;
         case EXPERIMENT_WDBC:
-            printf("experiment linear\n");
+            printf("experiment wdbc\n");
+            buildLinearCircuit(&gc, n, num_len);
+            break;
+        case EXPERIMENT_HP_CREDIT:
+            printf("experiment credit\n");
             buildLinearCircuit(&gc, n, num_len);
             break;
         case EXPERIMENT_RANDOM_DT:
@@ -506,6 +528,8 @@ main(int argc, char *argv[])
                 args.type = EXPERIMENT_LEVEN;
             } else if (strcmp(optarg, "WDBC") == 0) {
                 args.type = EXPERIMENT_WDBC;
+            } else if (strcmp(optarg, "CREDIT") == 0) {
+                args.type = EXPERIMENT_HP_CREDIT;
             } else if (strcmp(optarg, "HYPER") == 0) {
                 args.type = EXPERIMENT_WDBC;
             } else if (strcmp(optarg, "RANDOM_DT") == 0) {

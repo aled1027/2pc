@@ -82,11 +82,7 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 
                 // if mapping inputs
                 if (cur->ch.fromCircId == 0) {
-                    printf("Moving inputs (%d, %d) -> (%d, %d)!!!\n", 
-                            cur->ch.fromCircId, cur->ch.fromWireId, cur->ch.toCircId, cur->ch.toWireId);
-
                     int offsetIdx = cur->ch.offsetIdx;
-
                     for (int j = cur->ch.fromWireId, k = cur->ch.toWireId; 
                          j < cur->ch.fromWireId + cur->ch.wireDist;
                          ++j, ++k) {
