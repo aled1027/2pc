@@ -82,6 +82,11 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - e.g. 010 + 010 = 001
 
 ## TODO
+- make a little-endian less than circuit
+    - adapt gteq
+- then make a signed little-endian circuit
+
+## Old TODO
 - parse naive bayes and decision tree ml models
     - load ml model via json
     - make a new file/module

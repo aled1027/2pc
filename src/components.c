@@ -39,31 +39,86 @@ void circuit_signed_negate(garble_circuit *gc, garble_context *ctxt, uint32_t n,
     circuit_add(gc, ctxt, 2 * n, add_in, output, &carry);
 }
 
-void circuit_signed_compare(garble_circuit *gc, garble_context *ctxt, int n, int *input1, int *input2, int *output) 
+void my_or_gate(garble_circuit *gc, garble_context *ctxt, int in0, int in1, int out) 
 {
-    // assume numbers are in normal two's complement (i.e. big-endian like wikipedia)
+    // OR gate because the libgarble one isn't working?
+    // XOR(AND(in0, in1), XOR(in0, in1)))
+    int and_out = builder_next_wire(ctxt);
+    int xor_out = builder_next_wire(ctxt);
+
+    gate_XOR(gc, ctxt, in0, in1, xor_out);
+    gate_AND(gc, ctxt, in0, in1, and_out);
+    gate_XOR(gc, ctxt, xor_out, and_out, out);
+}
+
+void circuit_signed_less_than(garble_circuit *gc, garble_context *ctxt, int n, int *input1, int *input2, int *output) 
+{
+    // Inputs are signed little-endian
     // |input1| = |input2| = n / 2 = num_len
-    int num_len = n / 2;
-    int add_inputs[n];
-    int add_outputs[num_len];
+    assert(n % 2 == 0);
+    int split = n / 2;
+    int les_in[n - 2];
+    memcpy(les_in, input1 + 1, (split-1) * sizeof(int));
+    memcpy(&les_in[split-1], input2 + 1, (split-1) * sizeof(int));
 
-    // get two's complement of input1
-    circuit_signed_negate(gc, ctxt, num_len, input1, add_inputs); // populates first half of add_inputs
+    int les_out;
+	new_circuit_les(gc, ctxt, n-2, les_in, &les_out);
 
-    memcpy(&add_inputs[num_len], input2, num_len * sizeof(int));
+    //       les_out       middle_bool                  right_bool
+    // out = [sign1 AND [NOT AND(sign2, les_out)]] OR [AND(NOT sign2, les_out)]
+    
+    int sign1 = input1[0];
+    int sign2 = input2[0];
+    int and_out = builder_next_wire(ctxt);
+    int middle_bool = builder_next_wire(ctxt);
+    int right_bool = builder_next_wire(ctxt);
+    int not_sign2 = builder_next_wire(ctxt);
+    int temp_and = builder_next_wire(ctxt);
+    int final_out = builder_next_wire(ctxt);
 
-    // add two's complement number and input2
-    int carry; // can ignore
-    circuit_add(gc, ctxt, n, add_inputs, add_outputs, &carry);
+    // middle
+    gate_AND(gc, ctxt, sign2, les_out, and_out);
+    my_not_gate(gc, ctxt, and_out, middle_bool);
+    
+    // right
+    my_not_gate(gc, ctxt, sign2, not_sign2);
+    gate_AND(gc, ctxt, not_sign2, les_out, right_bool);
 
-    // output sign bit
-    *output = add_outputs[0];
+    // OR(les_out, middle_bool, right_bool)
+    gate_AND(gc, ctxt, sign1, middle_bool, temp_and);
+    my_or_gate(gc, ctxt, temp_and, right_bool, final_out);
+    *output = final_out;
 }
 
 void new_circuit_gteq(garble_circuit *circuit, garble_context *context, int n,
 		int *inputs, int *output) 
 {
+	/* Assumes that lsb is on the right. i.e. 101 >= 011 is true.
+     * i.e. little-endian
+	 */
+	int split = n / 2;
+	int carryWire = wire_one(circuit);
+	int internalWire1, internalWire2, preCarryWire;
+
+	for (int i = split - 1; i >= 0; i--) {
+		internalWire1 = builder_next_wire(context);
+		internalWire2 = builder_next_wire(context);
+		preCarryWire = builder_next_wire(context);
+
+		gate_XOR(circuit, context, inputs[i], carryWire, internalWire1);
+		gate_XOR(circuit, context, inputs[i + split], carryWire, internalWire2);
+		gate_AND(circuit, context, internalWire1, internalWire2, preCarryWire);
+
+		carryWire = builder_next_wire(context);
+		gate_XOR(circuit, context, inputs[i], preCarryWire, carryWire);
+	}
+	*output = carryWire;
+}
+void new_circuit_gteq_big_endian(garble_circuit *circuit, garble_context *context, int n,
+		int *inputs, int *output) 
+{
 	/* Assumes that lsb is on the left. i.e. 011 >= 101 is true.
+     * i.e. not little-endian
 	 * courtesy of Arkady
 	 */
 	int split = n / 2;
@@ -467,6 +522,9 @@ void circuit_argmax4(garble_circuit *gc, garble_context *ctxt,
 void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
 		int *inputs, int *output) 
 {
+    /* Inputs are unsigned little-endian 
+     * Outputs 1 if inputs[0:split-1] < inputs[split:n-1], else 0
+     */
 	int gteq_out;
 	new_circuit_gteq(circuit, context, n, inputs, &gteq_out);
 

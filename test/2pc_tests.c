@@ -45,6 +45,71 @@ static int lessThanCheck(bool *inputs, int nints)
 
 }
 
+static void test_signed_comparison()
+{
+    printf("Signed comparison test\n");
+    /* Paramters */
+    int n = 6; // bits per number
+    int m = 1;
+    bool inputs[n];
+    int inputWires[n];
+    int outputWires[m];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
+
+    /* Inputs */
+    inputs[0] = 1;
+    inputs[1] = 1;
+    inputs[2] = 1;
+    inputs[3] = 1;
+    inputs[4] = 1;
+    inputs[5] = 0;
+    
+    /* Build Circuit */
+    garble_create_input_labels(inputLabels, n, NULL, false);
+    garble_circuit gc;
+    garble_context gcContext;
+	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(&gc, &gcContext);
+
+    // build
+    countToN(inputWires, n);
+
+    circuit_signed_less_than(&gc, &gcContext, n, inputWires, inputWires + (n/2), outputWires);
+
+
+	builder_finish_building(&gc, &gcContext, outputWires);
+
+    /* Garble */
+    garble_garble(&gc, inputLabels, outputMap);
+
+    /* Evaluate */
+    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
+    garble_delete(&gc);
+
+    /* Results */
+    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+
+    /* Print Results */
+    printf("Inputs:");
+    for (uint32_t i = 0; i < n; ++i) {
+        if (i == n / 2) {
+            printf(" |");
+        }
+        printf(" %d", inputs[i]);
+    }
+    printf("\n");
+
+    for (uint32_t i = 0; i < m; ++i) {
+        printf("outputs[%d] = %d\n", i, outputs[i]);
+    }
+    printf("\n");
+}
+
 static void signedMultTest()
 {
     printf("Signed mult test\n");
@@ -415,6 +480,7 @@ void runAllTests(void)
 
     int nruns = 1; 
 
+
     for (int i = 0; i < nruns; i++)
-        signedMultTest();
+        test_signed_comparison();
 }  

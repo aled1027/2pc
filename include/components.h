@@ -26,7 +26,8 @@ typedef enum {
 void circuit_signed_mult_2s_compl_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
         int *inputs, int *outputs);
 void circuit_signed_negate(garble_circuit *gc, garble_context *ctxt, uint32_t n, int *input, int *output);
-void circuit_signed_compare(garble_circuit *gc, garble_context *ctxt, int n, int *input1, int *input2, int *output);
+void circuit_signed_less_than(garble_circuit *gc, garble_context *ctxt, int n, int *input1, int *input2, int *output);
+void my_or_gate(garble_circuit *gc, garble_context *ctxt, int in0, int in1, int out);
 
 void circuit_signed_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
         int *inputs, int *outputs);
