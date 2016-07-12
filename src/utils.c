@@ -22,6 +22,37 @@ void convertToBinary(int x, bool *arr, int narr)
         arr[j] = 0;
 }
 
+void convertToSignedBinary(int x, bool *arr, int narr)
+{
+    /* Converts numbers to signed little-endian. 
+     * Examples:
+     *  (3, arr, 4) ->  arr = [0,0,1,1]
+     *  (-3, arr, 4) -> arr = [1,0,1,1]
+     */
+
+    // assume that x fits into arr
+    assert(arr);
+    assert(narr >= 2);
+
+    // find sign and force x to be positive
+    if (x < 0) {
+        arr[0] = 1;
+        x *= -1;
+    } else {
+        arr[1] = 0;
+    }
+
+    // find the absolute value of x
+    int i = narr - 1;
+    while (x > 0) {
+        arr[i] = (x % 2);
+        x >>= 1;
+        i--;
+    }
+    for (int j = i; j >= 1; j--)
+        arr[j] = 0;
+}
+
 void
 reverse_array(int *arr, size_t nints) 
 {

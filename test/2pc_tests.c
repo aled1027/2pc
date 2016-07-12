@@ -45,6 +45,23 @@ static int lessThanCheck(bool *inputs, int nints)
 
 }
 
+static void test_convert_to_signed_binary()
+{
+
+    int number = -1;
+    int narr = 5;
+    bool arr[narr];
+
+    convertToSignedBinary(number, arr, narr);
+    printf("number = %d, arr = [", number);
+    for (uint32_t i = 0; i < narr; i++) {
+        printf("%d, ", arr[i]);
+    }
+    printf("]\n");
+
+}
+
+
 static void test_signed_comparison()
 {
     printf("Signed comparison test\n");
@@ -168,6 +185,7 @@ static void signedMultTest()
     }
     printf("\n");
 }
+
 static void multTest()
 {
     printf("Signed mult test\n");
@@ -482,5 +500,5 @@ void runAllTests(void)
 
 
     for (int i = 0; i < nruns; i++)
-        test_signed_comparison();
+        test_convert_to_signed_binary();
 }  

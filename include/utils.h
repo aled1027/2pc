@@ -22,6 +22,9 @@
 void 
 convertToBinary(int x, bool *arr, int narr);
 
+void 
+convertToSignedBinary(int x, bool *arr, int narr);
+
 void
 reverse_array(int *arr, size_t nints);
 
