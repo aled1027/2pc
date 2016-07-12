@@ -37,9 +37,9 @@ void build_inner_product_circuit(garble_circuit *gc, uint32_t n, uint32_t num_le
 void buildLinearCircuit(garble_circuit *gc, int n, int num_len);
 void buildHyperCircuit(garble_circuit *gc);
 void old_circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
-        uint32_t n, uint32_t num_len, int *inputs, int *outputs);
+        uint32_t n, int num_len, int *inputs, int *outputs);
 void circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
-        uint32_t n, uint32_t num_len, int *inputs, int *outputs);
+        uint32_t n, int num_len, int *inputs, int *outputs);
 
 void circuit_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
         int *inputs, int *outputs);

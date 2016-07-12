@@ -168,7 +168,7 @@ void circuit_gr0(garble_circuit *gc, garble_context *ctxt,
 
 void 
 old_circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
-        uint32_t n, uint32_t num_len, int *inputs, int *outputs)
+        uint32_t n, int num_len, int *inputs, int *outputs)
 {
     /* Prefer circuit_inner_product. It is more efficient because it uses 
      * tree-based addition instead of linear addition.
@@ -199,7 +199,6 @@ old_circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
     memcpy(&initial_mult_in[num_len], &inputs[split], num_len * sizeof(int));
     circuit_mult_n(gc, ctxt, 2 * num_len, initial_mult_in, running_sum);
 
-    // linear version TODO: make tree version
     for (uint32_t i = 1; i < vector_length; ++i) {
         uint32_t idx0 = i * num_len; // index of number from vector 0
         uint32_t idx1 = idx0 + split; // index of number from vector 1
@@ -224,7 +223,7 @@ old_circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
 
 void 
 circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
-        uint32_t n, uint32_t num_len, int *inputs, int *outputs)
+        uint32_t n, int num_len, int *inputs, int *outputs)
 {
     /* Performs inner product over the well integers (well, mod 2^num_len)
      *
@@ -248,7 +247,7 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
     assert(tree_num_numbers % 2 == 0);
 
     // 1. this will house our dataaaaa
-    int tree_wires[tree_num_numbers / 2][num_len];
+    int tree_wires[tree_num_numbers][num_len];
 
     // 2. Do the multiplications and put results in tree_wires
     for (uint32_t i = 0; i < num_numbers / 2; ++i) {

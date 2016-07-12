@@ -17,6 +17,25 @@
 
 #include "2pc_tests.h"
 
+static int lessThanCheck(bool *inputs, int nints) 
+{
+    int split = nints / 2;
+    int sum1 = 0;
+    int sum2 = 0;
+    int pow = 1;
+    for (int i = 0; i < split; i++) {
+        sum1 += pow * inputs[i];
+        sum2 += pow * inputs[split + i];
+        pow = pow * 10;
+    }
+    if (sum1 < sum2)
+        return 1;
+    else 
+        return 0;
+
+}
+
+
 static int convertToDec(const bool *bin, int l) 
 {
     assert(bin && l > 0);
