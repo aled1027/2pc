@@ -167,9 +167,13 @@ void circuit_gr0(garble_circuit *gc, garble_context *ctxt,
 }
 
 void 
-circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
+old_circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
         uint32_t n, uint32_t num_len, int *inputs, int *outputs)
 {
+    /* Prefer circuit_inner_product. It is more efficient because it uses 
+     * tree-based addition instead of linear addition.
+     */
+
     /* Performs inner product over the well integers (well, mod 2^num_len)
      *
      * Assumes little-endian with sign. E.g. 1100 base 2 = -1 base 10
@@ -216,6 +220,83 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
         memcpy(running_sum, add_out, num_len * sizeof(int));
     }
     memcpy(outputs, running_sum, num_len * sizeof(int));
+}
+
+void 
+circuit_inner_product(garble_circuit *gc, garble_context *ctxt, 
+        uint32_t n, uint32_t num_len, int *inputs, int *outputs)
+{
+    /* Performs inner product over the well integers (well, mod 2^num_len)
+     *
+     * Assumes little-endian with sign. E.g. 1100 base 2 = -1 base 10
+     *
+     * Inputs
+     * n: total number of input bits
+     * num_len: length of each number in bits
+     *
+     * Variables
+     * num_numbers: the number of numbers in the input
+     * vector_length: the number of numbers in each vector
+     * split: index in inputs where second vector begins
+     */
+
+    uint32_t num_numbers = n / num_len; // how many numbers in the inputs total
+    uint32_t split = n / 2;
+    int carry = 0;
+
+    int tree_num_numbers =  pow(2, 1 + floor(log2(num_numbers / 2))); // round num_numbers up to nearest power of 2
+    assert(tree_num_numbers % 2 == 0);
+
+    // 1. this will house our dataaaaa
+    int tree_wires[tree_num_numbers / 2][num_len];
+
+    // 2. Do the multiplications and put results in tree_wires
+    for (uint32_t i = 0; i < num_numbers / 2; ++i) {
+        // 2.1 multiply numbers
+        int idx0 = i * num_len;
+        int idx1 = i + split;
+        int mult_in[2 * num_len];
+        int mult_out[num_len];
+
+        memcpy(mult_in, &inputs[idx0], num_len * sizeof(int)); 
+        memcpy(&mult_in[num_len], &inputs[idx1], num_len * sizeof(int));
+
+        circuit_signed_mult_n(gc, ctxt, 2 * num_len, mult_in, mult_out);
+        memcpy(tree_wires[i], mult_out, num_len * sizeof(int));
+    }
+
+    // Use -1 to indicate that there is no value at this node.
+    for (uint32_t i = num_numbers; i < tree_num_numbers; ++i) {
+        tree_wires[i][0] = -1;
+    }
+
+    // Now do tree-based addition
+    // this works moving from the bottom of the tree to the top
+    // where tree_wires[i] holds the values for ith node in level level 
+    // of the tree. 
+    int levels = floor(log2(tree_num_numbers - 1)) + 1;
+
+    for (uint32_t level = levels - 1; level > 0; --level) {
+        int num_nodes = pow(2, level);
+        for (uint32_t j = 0; j < num_nodes; j+=2) {
+            if ((tree_wires[j][0] == -1) && (tree_wires[j+1][0] == -1)) {
+                // edge case: no addition necessary
+                tree_wires[j / 2][0] = -1;
+            } else if (tree_wires[j+1][0] == -1) {
+                memcpy(&tree_wires[j / 2], &tree_wires[j], num_len * sizeof(int));
+            } else {
+                // add the two numbers
+                int add_in[2 * num_len], add_out[num_len];
+                memcpy(add_in, &tree_wires[j], num_len * sizeof(int));
+                memcpy(&add_in[num_len], &tree_wires[j+1], num_len * sizeof(int));
+		        circuit_add(gc, ctxt, 2 * num_len, add_in, add_out, &carry);
+
+                assert(j % 2 == 0);
+                memcpy(&tree_wires[j / 2], add_out, num_len * sizeof(int));
+            }
+        }
+    }
+    memcpy(outputs, tree_wires[0], num_len * sizeof(int));
 }
 
 void build_and_circuit(garble_circuit *gc, uint32_t n) 
@@ -277,8 +358,6 @@ void build_gr0_circuit(garble_circuit *gc, uint32_t n)
 	builder_finish_building(gc, &ctxt, output_wires);
     printf("built gr0 circuit\n");
 }
-
-
 
 void build_inner_product_circuit(garble_circuit *gc, uint32_t n, uint32_t num_len)
 {

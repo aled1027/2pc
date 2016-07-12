@@ -248,7 +248,7 @@ static void multTest()
 static void innerProductTest()
 {
     /* Paramters */
-    int num_len = 32; // bits per number
+    int num_len = 4; // bits per number
     int num_num = 8; // number of numbers
     int n = num_len * num_num;
     int m = num_len;
@@ -263,7 +263,7 @@ static void innerProductTest()
 
     /* Inputs */
     for (uint32_t i = 0; i < n; i++) {
-        inputs[i] = rand() % 2;
+        inputs[i] = 1;
     }
 
     /* Build Circuit */
@@ -274,9 +274,8 @@ static void innerProductTest()
 	builder_start_building(&gc, &gcContext);
 
     countToN(inputWires, n);
-    //outputWires[0] = builder_next_wire(&gcContext);
-    //circuit_mult_n(&gc, &gcContext, n, inputWires, outputWires);
     circuit_inner_product(&gc, &gcContext, n, num_len, inputWires, outputWires);
+    //old_circuit_inner_product(&gc, &gcContext, n, num_len, inputWires, outputWires);
 
 	builder_finish_building(&gc, &gcContext, outputWires);
 
@@ -292,17 +291,17 @@ static void innerProductTest()
     garble_map_outputs(outputMap, computedOutputMap, outputs, m);
 
     /* Print Results */
-    //printf("Inputs:");
-    //for (uint32_t i = 0; i < n; ++i) {
-    //    printf(" %d", inputs[i]);
-    //}
-    //printf("\n");
+    printf("Inputs:");
+    for (uint32_t i = 0; i < n; ++i) {
+        printf(" %d", inputs[i]);
+    }
+    printf("\n");
 
-    //printf("Outputs:");
-    //for (uint32_t i = 0; i < m; ++i) {
-    //    printf(" %d", outputs[i]);
-    //}
-    //printf("\n");
+    printf("Outputs:");
+    for (uint32_t i = 0; i < m; ++i) {
+        printf(" %d", outputs[i]);
+    }
+    printf("\n");
 }
 
 static void argMax4Test() 
@@ -496,9 +495,6 @@ static void test_get_model()
 void runAllTests(void)
 { 
 
-    int nruns = 1; 
+    innerProductTest();
 
-
-    for (int i = 0; i < nruns; i++)
-        test_convert_to_signed_binary();
 }  
