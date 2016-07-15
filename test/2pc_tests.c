@@ -61,6 +61,64 @@ static void test_convert_to_signed_binary()
 
 }
 
+static void test_decision_tree() 
+{
+    printf("test decision tree\n");
+    int num_len = 3;
+    int n = 4 * num_len;
+    int m = 2;
+    uint32_t depth = 2;
+    uint32_t num_nodes = 3;
+
+    bool inputs[n];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
+
+    /* Inputs */
+    for (int i = 0; i < n; i++) {
+        if (i < n / 2) 
+            inputs[i] = rand() % 2;
+        else
+            inputs[i] = rand() % 2;
+    }
+        
+    /* Build Circuit */
+    garble_create_input_labels(inputLabels, n, NULL, false);
+    garble_circuit gc;
+    build_decision_tree_circuit(&gc, num_nodes, depth, num_len);
+
+
+    /* Garble */
+    garble_garble(&gc, inputLabels, outputMap);
+
+    /* Evaluate */
+    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
+    garble_delete(&gc);
+
+    /* Results */
+    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+
+    /* Print Results */
+    printf("Inputs:");
+    for (uint32_t i = 0; i < n; ++i) {
+        if (i == n / 2) {
+            printf(" |");
+        }
+        printf(" %d", inputs[i]);
+    }
+    printf("\n");
+
+    for (uint32_t i = 0; i < m; ++i) {
+        printf("outputs[%d] = %d\n", i, outputs[i]);
+    }
+    printf("\n");
+
+}
+
 
 static void test_signed_comparison()
 {
@@ -495,6 +553,7 @@ static void test_get_model()
 void runAllTests(void)
 { 
 
-    innerProductTest();
+    //innerProductTest();
+    test_decision_tree();
 
 }  

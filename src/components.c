@@ -298,48 +298,89 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
     memcpy(outputs, tree_wires[0], num_len * sizeof(int));
 }
 
+void circuit_decision_tree_node(garble_circuit *gc, garble_context *ctxt, uint32_t num_len, int *inputs, int *outputs)
+{
+    /* Adds the operation of a single node in a decision tree to the circuit.
+     * In particular, this compares the inputs[:num_len-1] to inputs[num_len:]
+     * And ands that with a single bit from before
+     *
+     * int *inputs should be of size (2*num_len) + 1
+     * where the first num_len bits are the evaluator's x_i
+     * the second num_len bits are the garblers' w_i
+     * and the final bit is the output of the decision tree
+     * immediately above it. 
+     */
+
+    int less_than_out;
+    *outputs = builder_next_wire(ctxt);
+
+    circuit_signed_less_than(gc, ctxt, 2 * num_len, inputs, &inputs[num_len], &less_than_out);
+    gate_AND(gc, ctxt, inputs[2 * num_len], less_than_out, *outputs);
+}
+
+void build_decision_tree_circuit(garble_circuit *gc, uint32_t num_nodes, uint32_t depth, uint32_t num_len)
+{
+    /* Builds a decision tree circuit with the given depth and num_nodes.
+     * Each node consists of a less than circuit, comparing an integer 
+     *
+     * I am first making the decision tree from figure 2 of raluca et al., assuming 
+     * that each operation is a < operation.
+     */
+    assert(3 == num_nodes);
+    assert(2 == depth);
+
+    uint32_t num_garbler_inputs = num_len * 2;
+    uint32_t num_evaluator_inputs = num_len * 2;
+    int n = 4 * num_len;
+    int m = 2; // num_leaf nodes
+    int split = n / 2;
+    int inputs[n];
+    int outputs[m];
+    garble_context ctxt;
+
+    assert(n == num_garbler_inputs + num_evaluator_inputs);
+
+    countToN(inputs, n);
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+
+    int node_one_out;
+    int node_two_out;
+    int node_three_out;
+    
+    // node 1
+    int dt_inputs[n + 1];
+    memcpy(dt_inputs, inputs, num_len * sizeof(int));
+    memcpy(dt_inputs + num_len, inputs + split, num_len * sizeof(int));
+    dt_inputs[2 * num_len] = wire_one(gc);
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_one_out);
+
+    // for the right child of node 1 (i.e. node 3)
+    int not_node_one_out = builder_next_wire(&ctxt);
+    my_not_gate(gc, &ctxt, node_one_out, not_node_one_out);
+
+    //node 2
+    memcpy(dt_inputs, inputs + num_len, num_len * sizeof(int));
+    memcpy(dt_inputs + num_len, inputs + split + num_len, num_len * sizeof(int));
+    dt_inputs[2 * num_len] = node_one_out;
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_two_out);
+
+    // node 3
+    memcpy(dt_inputs, inputs + (2 * num_len), num_len * sizeof(int));
+    memcpy(dt_inputs + num_len, inputs + split + (2 * num_len), num_len * sizeof(int));
+    dt_inputs[2 * num_len] = not_node_one_out;
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_three_out);
+
+    outputs[0] = node_two_out;
+    outputs[1] = node_three_out;
+
+	builder_finish_building(gc, &ctxt, outputs);
+}
+
 void build_and_circuit(garble_circuit *gc, uint32_t n) 
 {
 
 }
-
-
-void build_decision_tree_node_circuit(garble_circuit *gc, uint32_t n) 
-{
-    /* Builds the circuit for the node of a decision tree. 
-     * This takes inputs: 1 + 2*num_len.
-     * The zeroith bit is the auxially bit, and 1 through n are the number
-     *
-     * The 2*num_len inputs are fed into a comp circuit. 
-     * The output of the GTEQ circuit is anded with the extra bit. 
-     * And the output of the and gate is the output of the circuit.
-     *
-     * Input: b || x_i || w_i
-     */
-
-    // Initialize
-    uint32_t num_len = (n - 1) / 2;
-    uint32_t m = 1;
-    int input_wires[n];
-    int output_wires[m];
-    int gteq_output;
-    countToN(input_wires, n);
-    int the_bit = input_wires[0];
-
-    // Preliminary work on gc
-    garble_context ctxt;
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
-	builder_start_building(gc, &ctxt);
-
-    // Add subcircuits
-    new_circuit_gteq(gc, &ctxt, 2 * num_len, input_wires + 1, &gteq_output);
-
-    output_wires[0] = builder_next_wire(&ctxt);
-    gate_AND(gc, &ctxt, gteq_output, the_bit, output_wires[0]);                                                                                                                          
-    // Finalize
-	builder_finish_building(gc, &ctxt, output_wires);
-}
-
 
 void build_gr0_circuit(garble_circuit *gc, uint32_t n)
 {

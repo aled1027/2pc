@@ -347,8 +347,7 @@ go(struct args *args)
         fn = "functions/credit.json";
         break;
     case EXPERIMENT_RANDOM_DT:
-        printf("Experiment linear\n");
-        // TODO ACTUALLY HYPERPLANE WITH 1 vector
+        printf("Experiment random dt\n");
         n = 31 * 2 * num_len;
         ncircs = 2;
         n_garb_inputs = n / 2;
