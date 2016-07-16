@@ -97,5 +97,8 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
                 
 
         garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
+    } else if (type == DT_NURSERY) {
+        // do something here
     }
+
 }
