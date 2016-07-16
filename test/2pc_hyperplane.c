@@ -24,6 +24,10 @@ typedef struct {
 
 void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int ncircuits) 
 {
+    /* Fills the cgcs array with built and garbled chained garbled circuits
+     * whose information is sotred in cgc_info. ncircuits is the size
+     * of the preallocated cgcs and cgc_info arrays.
+     */
     block delta = garble_create_delta();
 
     for (uint32_t i = 0; i < ncircuits; ++i) {
@@ -32,10 +36,20 @@ void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int n
         ChainedGarbledCircuit *cgc = &cgcs[i];
         CircuitType circuit_type = cgc_info[i].circuit_type;
 
-        if (circuit_type == INNER_PRODUCT) {
-            build_inner_product_circuit(&cgc->gc, n, cgc_info[i].num_len);
-        } else if (circuit_type == AND) {
-            build_and_circuit(&cgc->gc, n);
+        switch(circuit_type) {
+            case INNER_PRODUCT:
+                build_inner_product_circuit(&cgc->gc, n, cgc_info[i].num_len);
+                break;
+            case SIGNED_COMPARISON:
+                build_signed_comparison_circuit(&cgc->gc, cgc_info[i].num_len);
+                break;
+            case AND:
+                build_and_circuit(&cgc->gc);
+                break;
+            default:
+                fprintf(stderr, "Nothing here yet!\n");
+                assert(false);
+                break;
         }
 
         cgc->inputLabels = garble_allocate_blocks(2 * n);
@@ -88,7 +102,7 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
         cgc_information cgc_info[ncircuits];
         for (uint32_t i = 0; i < ncircuits; i++) {
             cgc_info[i].circuit_type = SIGNED_COMPARISON;
-            cgc_info[i].n = 110;
+            cgc_info[i].n = num_len * 2;
             cgc_info[i].m = 1;
         }
 
@@ -98,7 +112,31 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
 
         garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
     } else if (type == DT_NURSERY) {
-        // do something here
+        printf("n = %d\n, num_len = %d\n");
+        // generate 4 comparators and 3 ANDs
+        uint32_t ncircuits = 7;
+        int num_eval_inputs = n / 2;
+
+        cgc_information cgc_info[ncircuits];
+        for (uint32_t i = 0; i < 4; i++) {
+            cgc_info[i].circuit_type = SIGNED_COMPARISON;
+            cgc_info[i].n = 2 * num_len;
+            cgc_info[i].m = 1;
+            cgc_info[i].num_len = num_len;
+        }
+
+        for (uint32_t i = 4; i < 7; i++) {
+            cgc_info[i].circuit_type = AND;
+            cgc_info[i].n = 2;
+            cgc_info[i].m = 1;
+            cgc_info[i].num_len = num_len;
+        }
+
+        ChainedGarbledCircuit cgcs[ncircuits];
+        generate_cgcs(cgcs, cgc_info, ncircuits);
+                
+
+        garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
     }
 
 }

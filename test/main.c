@@ -360,12 +360,12 @@ go(struct args *args)
         printf("Experiment nursery dt\n");
         num_len = 52;
         n = 4 * 2 * num_len;
-        ncircs = 2;
+        ncircs = 7;
         n_garb_inputs = n / 2;
         n_eval_inputs = n / 2;
         n_eval_labels = n_eval_inputs;
         type = "DT";
-        fn = "functions/dt_nursery.json";
+        fn = "functions/nursery_dt.json";
         break;
     case EXPERIMENT_HYPERPLANE:
         printf("Experiment hyperplane\n");

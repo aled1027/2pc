@@ -298,7 +298,7 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
     memcpy(outputs, tree_wires[0], num_len * sizeof(int));
 }
 
-void circuit_decision_tree_node(garble_circuit *gc, garble_context *ctxt, uint32_t num_len, int *inputs, int *outputs)
+void circuit_decision_tree_node(garble_circuit *gc, garble_context *ctxt, int num_len, int *inputs, int *outputs)
 {
     /* Adds the operation of a single node in a decision tree to the circuit.
      * In particular, this compares the inputs[:num_len-1] to inputs[num_len:]
@@ -316,6 +316,27 @@ void circuit_decision_tree_node(garble_circuit *gc, garble_context *ctxt, uint32
 
     circuit_signed_less_than(gc, ctxt, 2 * num_len, inputs, &inputs[num_len], &less_than_out);
     gate_AND(gc, ctxt, inputs[2 * num_len], less_than_out, *outputs);
+}
+
+void build_signed_comparison_circuit(garble_circuit *gc, int num_len)
+{
+    /* Builds circuit for performing signed comparison. 
+     * Form of numbers is dictatd by circuit_signed_less_than, which
+     * at the time of writing, is little-endian with a the msb being
+     * the signed bit.
+     */
+    int n = 2 * num_len;
+    int m = 1;
+    int inputs[n];
+    int outputs[m];
+    garble_context ctxt;
+    
+    countToN(inputs, n);
+
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+    circuit_signed_less_than(gc, &ctxt, 2 * num_len, inputs, inputs + num_len, outputs);
+	builder_finish_building(gc, &ctxt, outputs);
 }
 
 void build_decision_tree_nursery_circuit(garble_circuit *gc, int num_len)
@@ -442,9 +463,20 @@ void build_decision_tree_circuit(garble_circuit *gc, uint32_t num_nodes, uint32_
 	builder_finish_building(gc, &ctxt, outputs);
 }
 
-void build_and_circuit(garble_circuit *gc, uint32_t n) 
+void build_and_circuit(garble_circuit *gc) 
 {
-
+    // Circuit with only a single AND gate
+    int n = 2;
+    int m = 1;
+    int inputs[n];
+    int outputs[m];
+    countToN(inputs, n);
+    garble_context ctxt;
+    garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+    builder_start_building(gc, &ctxt);
+    outputs[0] = builder_next_wire(&ctxt);
+    gate_AND(gc, &ctxt, inputs[0], inputs[1], outputs[0]);
+    builder_finish_building(gc, &ctxt, outputs);
 }
 
 void build_gr0_circuit(garble_circuit *gc, uint32_t n)

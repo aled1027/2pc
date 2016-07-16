@@ -23,6 +23,7 @@ typedef enum {
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
+void build_signed_comparison_circuit(garble_circuit *gc, int num_len);
 void build_decision_tree_nursery_circuit(garble_circuit *gc, int num_len);
 void build_decision_tree_circuit(garble_circuit *gc, uint32_t num_nodes, uint32_t depth, uint32_t num_len);
 void circuit_signed_mult_2s_compl_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
@@ -33,7 +34,7 @@ void my_or_gate(garble_circuit *gc, garble_context *ctxt, int in0, int in1, int 
 
 void circuit_signed_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
         int *inputs, int *outputs);
-void build_and_circuit(garble_circuit *gc, uint32_t n);
+void build_and_circuit(garble_circuit *gc);
 void build_gr0_circuit(garble_circuit *gc, uint32_t n);
 void build_inner_product_circuit(garble_circuit *gc, uint32_t n, uint32_t num_len);
 void buildLinearCircuit(garble_circuit *gc, int n, int num_len);
