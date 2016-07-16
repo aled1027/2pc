@@ -81,38 +81,12 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - uses little-endian unsigned values, and passes all tests
     - e.g. 010 + 010 = 001
 
-## TODO
-- make a little-endian less than circuit
-    - adapt gteq
-- then make a signed little-endian circuit
-
-## Old TODO
-- parse naive bayes and decision tree ml models
-    - load ml model via json
-    - make a new file/module
-    - preferably a path to the model, and then load model through json.
-    - model tells what type it is, and size
-- convertDecimalToBinary
-    - should convert to two's complement
-    - and not little-endian
+## Notes and TODO
 - GR0 component
-    - grab the correct bit for big-endian two's complement
-- decision tree
-    - run help on python version to figure out how to save to disk.
-- Components
-    - Inner product
-    - comparison
-    - GR0
-    - AND
-    - OR?
-- `garb_off`
-    - add function to take list of circuitypes, 
-    - and automatically generate them. Useful for abstractions and adding components
-- output of compgc is saying that outputs are matching up. 
-    - debug this
-    - use a simple test case
+    - make sure grabbing the correct bit for big-endian two's complement
+- problem with creating circuit mapping
 
-### Some details 
+### The deets
 - wdbc
     - multiplied by `10**17`
     - used `num_len = 55`
@@ -120,10 +94,3 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
 - credit
     - multiplied by `10**18`
     - used `num_len = 58`
-
-// could generate array of circuit types to save, and simply save those to disk. 
-e.g. leven sends `{leven_core, leven_core, leven_core}` to `circuit_save` method.
-
-
-
-

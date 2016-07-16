@@ -36,6 +36,10 @@ get_circuit_type_from_string(const char* type)
         return LEVEN_CORE;
     } else if (strcmp(type, "INNER_PRODUCT") == 0) {
         return INNER_PRODUCT;
+    } else if (strcmp(type, "SIGNED_COMPARISON") == 0) {
+        return SIGNED_COMPARISON;
+    } else if (strcmp(type, "AND") == 0) {
+        return AND;
     } else if (strcmp(type, "GR0") == 0) {
         return GR0;
     } else {
@@ -271,7 +275,6 @@ json_load_output(json_t *root, FunctionSpec *function)
     return SUCCESS;
 
 }
-
 
 int 
 json_load_input_mapping(json_t *root, FunctionSpec* function) 

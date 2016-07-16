@@ -58,6 +58,9 @@ debug(char *s);
 void 
 compgc_print_block(block b);
 
+void 
+print_array(int *arr, uint32_t size, char *name);
+
 /* void */
 /* print_gc(garble_circuit *gc); */
 

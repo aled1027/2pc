@@ -167,3 +167,11 @@ void compgc_print_block(block b)
 
 }
 
+void print_array(int *arr, uint32_t size, char *name) 
+{
+    for (uint32_t i = 0; i < size; i++) {
+        printf("%s[%d] = %d\n", name, i, arr[i]);
+    }
+}
+
+

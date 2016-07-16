@@ -9,13 +9,6 @@
 #include <assert.h>
 #include <math.h>
 
-static void print_array(int *arr, uint32_t size, char *name) 
-{
-    for (uint32_t i = 0; i < size; i++) {
-        printf("%s[%d] = %d\n", name, i, arr[i]);
-    }
-}
-
 void my_not_gate(garble_circuit *gc, garble_context *ctxt, int in, int out) 
 {
 	int fixed_wire_one = wire_one(gc);
