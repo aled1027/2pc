@@ -19,19 +19,19 @@ def go(num_len):
         "depth": depth,
         "num_garb_inputs": num_garb_inputs,
         "num_eval_inputs": num_eval_inputs,
-        "instructions_size": 60,
+        "instructions_size": 13,
         "input_mapping_size": 8,
     })
 
     ret_dict['components'] = [
         OrderedDict({
-            "type": "SIGNED_LESS_THAN",
-            "num": 3,
+            "type": "SIGNED_COMPARISON",
+            "num": 4,
             "circuit_ids": [1,2,3,4]
         }),
         OrderedDict({
             "type": "AND",
-            "num": 2,
+            "num": 3,
             "circuit_ids": [5,6,7]
         }),
     ]
@@ -123,12 +123,25 @@ def go(num_len):
         # plug outputs of comparisons into AND gates
         OrderedDict({
             "type": "CHAIN",
-            "from_gc_id": 2,
+            "from_gc_id": 1,
             "from_wire_id_start": 0,
             "from_wire_id_end": 0,
             "to_gc_id": 5,
             "to_wire_id_start": 0,
             "to_wire_id_end": 0,
+        }),
+        OrderedDict({
+            "type": "CHAIN",
+            "from_gc_id": 2,
+            "from_wire_id_start": 0,
+            "from_wire_id_end": 0,
+            "to_gc_id": 5,
+            "to_wire_id_start": 1,
+            "to_wire_id_end": 1,
+        }),
+        OrderedDict({
+            "type": "EVAL",
+            "gc_id": 5
         }),
         OrderedDict({
             "type": "CHAIN",
@@ -139,30 +152,7 @@ def go(num_len):
             "to_wire_id_start": 0,
             "to_wire_id_end": 0,
         }),
-        OrderedDict({
-            "type": "CHAIN",
-            "from_gc_id": 4,
-            "from_wire_id_start": 0,
-            "from_wire_id_end": 0,
-            "to_gc_id": 7,
-            "to_wire_id_start": 0,
-            "to_wire_id_end": 0,
-        }),
         # Plug output of circuit 1 into AND gate
-        OrderedDict({
-            "type": "CHAIN",
-            "from_gc_id": 1,
-            "from_wire_id_start": 0,
-            "from_wire_id_end": 0,
-            "to_gc_id": 5,
-            "to_wire_id_start": 1,
-            "to_wire_id_end": 1,
-        }),
-        # Plug output of not circuit 1 into and gate
-        OrderedDict({
-            "type": "EVAL",
-            "gc_id": 5
-        }),
         OrderedDict({
             "type": "CHAIN",
             "from_gc_id": 5,
@@ -176,6 +166,17 @@ def go(num_len):
             "type": "EVAL",
             "gc_id": 6
         }),
+
+        OrderedDict({
+            "type": "CHAIN",
+            "from_gc_id": 4,
+            "from_wire_id_start": 0,
+            "from_wire_id_end": 0,
+            "to_gc_id": 7,
+            "to_wire_id_start": 0,
+            "to_wire_id_end": 0,
+        }),
+        # Plug output of circuit 1 into AND gate
         OrderedDict({
             "type": "CHAIN",
             "from_gc_id": 6,
@@ -188,7 +189,7 @@ def go(num_len):
         OrderedDict({
             "type": "EVAL",
             "gc_id": 7
-        }),
+        })
     ]
 
     # Output
@@ -219,5 +220,5 @@ def go(num_len):
     print(s)
 
 if __name__ == '__main__':
-    num_len = 3
+    num_len = 52
     go(num_len)
