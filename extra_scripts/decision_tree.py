@@ -8,7 +8,7 @@ def ecg(num_len):
     num_eval_inputs = 6 * num_len
     num_garb_inputs = num_eval_inputs
     n = num_eval_inputs + num_garb_inputs
-    m = 5
+    m = 4
     ret_dict = OrderedDict()
     ret_dict['metadata'] =  OrderedDict({
         "n": n,
@@ -18,7 +18,7 @@ def ecg(num_len):
         "depth": depth,
         "num_garb_inputs": num_garb_inputs,
         "num_eval_inputs": num_eval_inputs,
-        "instructions_size": 24,
+        "instructions_size": 25,
         "input_mapping_size": 12,
     })
 
@@ -200,7 +200,10 @@ def ecg(num_len):
             "to_wire_id_start": 1,
             "to_wire_id_end": 1,
         }),
-
+        OrderedDict({
+            "type": "EVAL",
+            "gc_id": 7
+        }),
         # Node two not
         OrderedDict({
             "type": "CHAIN",
@@ -232,8 +235,8 @@ def ecg(num_len):
             "from_wire_id_start": 0,
             "from_wire_id_end": 0,
             "to_gc_id": 8,
-            "to_wire_id_start": 0,
-            "to_wire_id_end": 0,
+            "to_wire_id_start": 1,
+            "to_wire_id_end": 1,
         }),
         OrderedDict({
             "type": "EVAL",
@@ -256,8 +259,8 @@ def ecg(num_len):
             "from_wire_id_start": 0,
             "from_wire_id_end": 0,
             "to_gc_id": 9,
-            "to_wire_id_start": 0,
-            "to_wire_id_end": 0,
+            "to_wire_id_start": 1,
+            "to_wire_id_end": 1,
         }),
         OrderedDict({
             "type": "EVAL",
@@ -280,8 +283,8 @@ def ecg(num_len):
             "from_wire_id_start": 0,
             "from_wire_id_end": 0,
             "to_gc_id": 10,
-            "to_wire_id_start": 0,
-            "to_wire_id_end": 0,
+            "to_wire_id_start": 1,
+            "to_wire_id_end": 1,
         }),
         OrderedDict({
             "type": "EVAL",
@@ -304,8 +307,8 @@ def ecg(num_len):
             "from_wire_id_start": 0,
             "from_wire_id_end": 0,
             "to_gc_id": 11,
-            "to_wire_id_start": 0,
-            "to_wire_id_end": 0,
+            "to_wire_id_start": 1,
+            "to_wire_id_end": 1,
         }),
         OrderedDict({
             "type": "EVAL",

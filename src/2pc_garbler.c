@@ -291,6 +291,7 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         p += addToBuffer(buffer + p,
                          function->output_instructions.output_instruction,
                          function->output_instructions.size * sizeof(OutputInstruction));
+
     }
 
     {
@@ -588,7 +589,6 @@ int
 garbler_online(char *function_path, char *dir, bool *inputs, int num_garb_inputs,
                int num_chained_gcs, uint64_t *tot_time, ChainingType chainingType) 
 {
-    printf("num_garb_inputs = %d\n", num_garb_inputs);
     /*runs the garbler code
      * First, initializes and loads function, and then calls garbler_go which
      * runs the core of the garbler's code

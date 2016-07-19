@@ -242,9 +242,10 @@ json_load_output(json_t *root, FunctionSpec *function)
 
     jOutputs = json_object_get(root, "output");
     assert(json_is_array(jOutputs));
-    int array_size = json_array_size(jOutputs);
 
+    int array_size = json_array_size(jOutputs);
     output_instructions->size = function->m;
+
     output_instructions->output_instruction = 
         malloc(output_instructions->size * sizeof(OutputInstruction));
 
@@ -274,6 +275,7 @@ json_load_output(json_t *root, FunctionSpec *function)
             ++idx;
         }
     }
+    assert(idx == output_instructions->size);
     return SUCCESS;
 
 }
