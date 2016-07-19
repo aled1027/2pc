@@ -370,7 +370,7 @@ go(struct args *args)
         printf("Experiment cg dt\n");
         num_len = 52;
         n = 6 * 2 * num_len;
-        ncircs = 7;
+        ncircs = 13;
         n_garb_inputs = n / 2;
         n_eval_inputs = n / 2;
         n_eval_labels = n_eval_inputs;

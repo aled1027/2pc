@@ -46,6 +46,9 @@ void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int n
             case AND:
                 build_and_circuit(&cgc->gc);
                 break;
+            case NOT:
+                build_not_circuit(&cgc->gc);
+                break;
             default:
                 fprintf(stderr, "Nothing here yet!\n");
                 assert(false);
@@ -136,6 +139,37 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
         generate_cgcs(cgcs, cgc_info, ncircuits);
                 
 
+        garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
+    } else if (type == DT_ECG) {
+        printf("n = %d\n, num_len = %d\n");
+        // generate 4 comparators and 3 ANDs
+        uint32_t ncircuits = 13;
+        int num_eval_inputs = n / 2;
+
+        cgc_information cgc_info[ncircuits];
+        for (uint32_t i = 0; i < 6; i++) {
+            cgc_info[i].circuit_type = SIGNED_COMPARISON;
+            cgc_info[i].n = 2 * num_len;
+            cgc_info[i].m = 1;
+            cgc_info[i].num_len = num_len;
+        }
+
+        for (uint32_t i = 6; i < 11; i++) {
+            cgc_info[i].circuit_type = AND;
+            cgc_info[i].n = 2;
+            cgc_info[i].m = 1;
+            cgc_info[i].num_len = num_len;
+        }
+
+        for (uint32_t i = 11; i < 13; i++) {
+            cgc_info[i].circuit_type = NOT;
+            cgc_info[i].n = 1;
+            cgc_info[i].m = 1;
+            cgc_info[i].num_len = num_len;
+        }
+
+        ChainedGarbledCircuit cgcs[ncircuits];
+        generate_cgcs(cgcs, cgc_info, ncircuits);
         garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
     }
 

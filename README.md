@@ -84,7 +84,8 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
 ## Notes and TODO
 - GR0 component
     - make sure grabbing the correct bit for big-endian two's complement
-- problem with creating circuit mapping
+- double check ecg instructions on paper first
+- then debug via computer
 
 ### The deets
 - wdbc

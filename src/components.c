@@ -406,7 +406,7 @@ void build_decision_tree_ecg_circuit(garble_circuit *gc, int num_len)
      * So each node is also an output.
      */
     int n = 12 * num_len;
-    int m = 5;
+    int m = 4;
     int split = n / 2;
     int inputs[n];
     int outputs[m];
@@ -472,8 +472,7 @@ void build_decision_tree_ecg_circuit(garble_circuit *gc, int num_len)
     outputs[0] = node_four_out;
     outputs[1] = node_five_out;
     outputs[2] = node_six_out;
-    outputs[3] = node_four_out;
-    outputs[4] = not_node_two;
+    outputs[3] = not_node_two;
 
 	builder_finish_building(gc, &ctxt, outputs);
 }
@@ -537,6 +536,21 @@ void build_decision_tree_circuit(garble_circuit *gc, uint32_t num_nodes, uint32_
 	builder_finish_building(gc, &ctxt, outputs);
 }
 
+void build_not_circuit(garble_circuit *gc) 
+{
+    // Circuit with only a single AND gate
+    int n = 1;
+    int m = 1;
+    int inputs[n];
+    int outputs[m];
+    countToN(inputs, n);
+    garble_context ctxt;
+    garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+    builder_start_building(gc, &ctxt);
+    outputs[0] = builder_next_wire(&ctxt);
+    my_not_gate(gc, &ctxt, inputs[0], outputs[0]);
+    builder_finish_building(gc, &ctxt, outputs);
+}
 void build_and_circuit(garble_circuit *gc) 
 {
     // Circuit with only a single AND gate

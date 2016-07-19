@@ -1,13 +1,15 @@
 #!/bin/bash
 
-NTIMES=100
+NTIMES=1
 CTYPE=STANDARD
-#TYPE=AES
-TYPE=WDBC
+#TYPE=NURSERY_DT
+TYPE=ECG_DT
 
-./bin/test --chaining $CTYPE --type $TYPE --times $NTIMES --garb-full  2> logs/$TYPE-garb-full.txt 
+#gdb --args ./bin/test --chaining $CTYPE --type $TYPE --times $NTIMES --garb-full
+#./bin/test --chaining $CTYPE --type $TYPE --times $NTIMES --garb-full
 
-#./bin/test --chaining $CTYPE --type $TYPE --times $NTIMES --garb-off 2> logs/$TYPE-garb-off.txt
+#gdb --args ./bin/test --chaining $CTYPE --type $TYPE --times $NTIMES --garb-off
+#gdb -- args ./bin/test --chaining $CTYPE --type $TYPE --times $NTIMES --garb-off 2> logs/$TYPE-garb-off.txt
 #sleep 1.5
 #./bin/test --chaining $CTYPE --type $TYPE --times $NTIMES --garb-on  2> logs/$TYPE-garb-on.txt
-#./bin/test --chaining $CTYPE --type $TYPE --times $NTIMES --garb-on 
+gdb --args ./bin/test --chaining $CTYPE --type $TYPE --times $NTIMES --garb-on 

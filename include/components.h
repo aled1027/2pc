@@ -20,6 +20,7 @@ typedef enum {
     SIGNED_COMPARISON = 11,
     AND = 12,
     OR = 13,
+    NOT = 14,
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
@@ -35,6 +36,7 @@ void my_or_gate(garble_circuit *gc, garble_context *ctxt, int in0, int in1, int 
 
 void circuit_signed_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
         int *inputs, int *outputs);
+void build_not_circuit(garble_circuit *gc);
 void build_and_circuit(garble_circuit *gc);
 void build_gr0_circuit(garble_circuit *gc, uint32_t n);
 void build_inner_product_circuit(garble_circuit *gc, uint32_t n, uint32_t num_len);

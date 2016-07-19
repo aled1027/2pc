@@ -42,6 +42,8 @@ get_circuit_type_from_string(const char* type)
         return AND;
     } else if (strcmp(type, "GR0") == 0) {
         return GR0;
+    } else if (strcmp(type, "NOT") == 0) {
+        return NOT;
     } else {
         fprintf(stderr, "circuit type error when loading json: can't detect %s\n", type);
         return CIRCUIT_TYPE_ERR;
