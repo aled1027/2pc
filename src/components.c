@@ -397,6 +397,87 @@ void build_decision_tree_nursery_circuit(garble_circuit *gc, int num_len)
 	builder_finish_building(gc, &ctxt, outputs);
 }
 
+void build_decision_tree_ecg_circuit(garble_circuit *gc, int num_len)
+{
+    /* Builds a decision tree circuit with the given depth and num_nodes.
+     * Each node consists of a less than circuit, comparing an integer 
+     *
+     * This circuit has four nodes a a depth of four nodes.
+     * So each node is also an output.
+     */
+    int n = 12 * num_len;
+    int m = 5;
+    int split = n / 2;
+    int inputs[n];
+    int outputs[m];
+    garble_context ctxt;
+    
+    countToN(inputs, n);
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+
+    int node_one_out;
+    int node_two_out;
+    int node_three_out;
+    int node_four_out;
+    int node_five_out;
+    int node_six_out;
+    
+    int not_node_one;
+    int not_node_two;
+
+    // node 1
+    int dt_inputs[n + 1];
+    memcpy(dt_inputs, inputs, num_len * sizeof(int));
+    memcpy(dt_inputs + num_len, inputs + split, num_len * sizeof(int));
+    dt_inputs[2 * num_len] = wire_one(gc);
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_one_out);
+
+    not_node_one = builder_next_wire(&ctxt);
+    my_not_gate(gc, &ctxt, node_one_out, not_node_one);
+
+    //node 2
+    memcpy(dt_inputs, inputs + num_len, num_len * sizeof(int));
+    memcpy(dt_inputs + num_len, inputs + split + num_len, num_len * sizeof(int));
+    dt_inputs[2 * num_len] = node_one_out;
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_two_out);
+
+    not_node_two = builder_next_wire(&ctxt);
+    my_not_gate(gc, &ctxt, node_two_out, not_node_two);
+
+    // node 3
+    memcpy(dt_inputs, inputs + (2 * num_len), num_len * sizeof(int));
+    memcpy(dt_inputs + num_len, inputs + split + (2 * num_len), num_len * sizeof(int));
+    dt_inputs[2 * num_len] = not_node_one;
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_three_out);
+
+    // node 4
+    memcpy(dt_inputs, inputs + (3 * num_len), num_len * sizeof(int));
+    memcpy(dt_inputs + num_len, inputs + split + (3 * num_len), num_len * sizeof(int));
+    dt_inputs[2 * num_len] = node_two_out;
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_four_out);
+
+    // node 5
+    memcpy(dt_inputs, inputs + (4 * num_len), num_len * sizeof(int));
+    memcpy(dt_inputs + num_len, inputs + split + (4 * num_len), num_len * sizeof(int));
+    dt_inputs[2 * num_len] = not_node_two;
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_five_out);
+
+    // node 6
+    memcpy(dt_inputs, inputs + (5 * num_len), num_len * sizeof(int));
+    memcpy(dt_inputs + num_len, inputs + split + (5 * num_len), num_len * sizeof(int));
+    dt_inputs[2 * num_len] = node_three_out;
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_six_out);
+
+    outputs[0] = node_four_out;
+    outputs[1] = node_five_out;
+    outputs[2] = node_six_out;
+    outputs[3] = node_four_out;
+    outputs[4] = not_node_two;
+
+	builder_finish_building(gc, &ctxt, outputs);
+}
+
 void build_decision_tree_circuit(garble_circuit *gc, uint32_t num_nodes, uint32_t depth, uint32_t num_len)
 {
     /* Builds a decision tree circuit with the given depth and num_nodes.

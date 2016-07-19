@@ -24,7 +24,7 @@
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
-typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_WDBC, EXPERIMENT_HP_CREDIT, EXPERIMENT_HYPERPLANE, EXPERIMENT_RANDOM_DT, EXPERIMENT_DT_NURSERY} experiment;
+typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_WDBC, EXPERIMENT_HP_CREDIT, EXPERIMENT_HYPERPLANE, EXPERIMENT_RANDOM_DT, EXPERIMENT_DT_NURSERY, EXPERIMENT_DT_ECG} experiment;
 
 static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD(int l) { return getDIntSize(l) * (l+1); }
@@ -366,7 +366,18 @@ go(struct args *args)
         n_eval_labels = n_eval_inputs;
         type = "DT";
         fn = "functions/nursery_dt.json";
+     case EXPERIMENT_DT_ECG:
+        printf("Experiment cg dt\n");
+        num_len = 52;
+        n = 6 * 2 * num_len;
+        ncircs = 7;
+        n_garb_inputs = n / 2;
+        n_eval_inputs = n / 2;
+        n_eval_labels = n_eval_inputs;
+        type = "DT";
+        fn = "functions/ecg_dt.json";
         break;
+   break;
     case EXPERIMENT_HYPERPLANE:
         printf("Experiment hyperplane\n");
         fn = NULL; // TODO add function
@@ -411,6 +422,9 @@ go(struct args *args)
             break;
         case EXPERIMENT_DT_NURSERY:
             dt_garb_off(GARBLER_DIR, n, num_len, DT_NURSERY);
+            break;
+        case EXPERIMENT_DT_ECG:
+            dt_garb_off(GARBLER_DIR, n, num_len, DT_ECG);
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("EXPERIMENT_HYPERPLANE garb off\n");
@@ -468,6 +482,10 @@ go(struct args *args)
         case EXPERIMENT_DT_NURSERY:
             printf("experiment nursery dt\n");
             build_decision_tree_nursery_circuit(&gc, num_len);
+            break;
+        case EXPERIMENT_DT_ECG:
+            printf("experiment ecg dt\n");
+            build_decision_tree_ecg_circuit(&gc, num_len);
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("experiment hyperplane\n");
@@ -552,6 +570,8 @@ main(int argc, char *argv[])
                 args.type = EXPERIMENT_RANDOM_DT;
             } else if (strcmp(optarg, "NURSERY_DT") == 0) {
                 args.type = EXPERIMENT_DT_NURSERY;
+            } else if (strcmp(optarg, "ECG_DT") == 0) {
+                args.type = EXPERIMENT_DT_ECG;
             } else {
                 fprintf(stderr, "Unknown circuit type %s\n", optarg);
                 exit(EXIT_FAILURE);
