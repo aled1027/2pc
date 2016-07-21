@@ -304,12 +304,16 @@ void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
      * n (num_inputs) = (num_len * array_size) + array_size
      *
      * Algorithm: 
-     * Use a tree and todo write this out. 
+     * Loop over array of numbers, muxing every pair( e.g. mux(arr[0], arr[1]), mux(arr[2], arr[3]), ..
+     * Put results into an int array.
+     * Loop over new array, muxing each pair as before.
+     * Eventually, there will only be one value in the array, return this value. 
+     *
+     * TODO deal with padding; clearly the above only works if array has a size that is a power of 2. 
      */
+
     assert(inputs && outputs);
     assert(array_size % 2 == 0);
-
-    // TODO add padding if 
     
     // array of switches in order that they will be used
     int switches[index_size];

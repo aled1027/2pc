@@ -1,6 +1,10 @@
 # CompGC
 - offline/online 2PC
 
+- misisng eval 7
+- missing ones at end for to_wires
+    - 11, 10, 9, 8
+
 ## Dependencies
 1. [libgarble](https://github.com/amaloz/libgarble)
 1. [jannson](http://www.digip.org/jansson/)
@@ -82,12 +86,14 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - e.g. 010 + 010 = 001
 
 ## Notes and TODO
+- Add padding when neccessary to `circuit_select`.
+- See Arkady's email.
 - GR0 component
-    - make sure grabbing the correct bit for big-endian two's complement
-- double check ecg instructions on paper first
-- then debug via computer
+    - make sure grabbing the correct bit
+
 
 ### The deets
+- everything should be signed little-endian. see decision tree node less than circuit reference.
 - wdbc
     - multiplied by `10**17`
     - used `num_len = 55`
@@ -95,3 +101,11 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
 - credit
     - multiplied by `10**18`
     - used `num_len = 58`
+- naive bayes
+    - v ranges from `0 to num_classes * |x| (number of components in vector x)`
+         - v is big for audiology dataset
+
+
+
+
+
