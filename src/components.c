@@ -85,6 +85,7 @@ void circuit_signed_less_than(garble_circuit *gc, garble_context *ctxt, int n, i
 
 void new_circuit_gteq(garble_circuit *circuit, garble_context *context, int n,
 		int *inputs, int *output) 
+
 {
 	/* Assumes that lsb is on the right. i.e. 101 >= 011 is true.
      * i.e. little-endian
@@ -289,6 +290,96 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
         }
     }
     memcpy(outputs, tree_wires[0], num_len * sizeof(int));
+}
+
+void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
+        int array_size, int index_size, int *inputs, int *outputs)
+{
+    /* Builds a select circuit. 
+     * It takes as input an array of array_size numbers, each of num_len bits, 
+     * and an index, a value of num_len bits. 
+     *
+     * It returns the index'th value of the array, i.e. arr[idx]
+     *
+     * n (num_inputs) = (num_len * array_size) + array_size
+     *
+     * Algorithm: 
+     * Use a tree and todo write this out. 
+     */
+    assert(inputs && outputs);
+    assert(array_size % 2 == 0);
+
+    // TODO add padding if 
+    
+    // array of switches in order that they will be used
+    int switches[index_size];
+    memcpy(switches, inputs + (num_len * array_size), array_size * sizeof(int));
+    
+    int *tree_vals, *new_tree_vals;
+
+    tree_vals = calloc(num_len * array_size, sizeof(int));
+    memcpy(tree_vals, inputs, num_len * array_size * sizeof(int));
+
+    // loop from bottom to top of tree
+    // tree has height array_size
+    int tree_depth = floor(log2(array_size));
+    for (int tree_level = 0; tree_level < tree_depth; tree_level++) {
+        // num_nodes in tree at leve
+        int num_nodes = pow(2, tree_depth - tree_level);
+        assert(tree_level < index_size);
+        int the_switch = switches[tree_level];
+
+        new_tree_vals = calloc(num_len * (num_nodes / 2), sizeof(int)); // values for next level of tree
+
+        assert(num_nodes % 2 == 0);
+        // loop over nodes two at a time
+        for (int node = 0; node < num_nodes; node+=2) {
+            int mux_in[2 * num_len];
+            memcpy(mux_in, &tree_vals[num_len * node], num_len * sizeof(int));
+            memcpy(mux_in + num_len, &tree_vals[num_len * (node + 1)], num_len * sizeof(int));
+            bitwiseMUX(gc, ctxt, the_switch, mux_in, num_len * 2, new_tree_vals + (num_len * (node / 2)));
+        }
+        free(tree_vals); 
+        tree_vals = NULL;
+        tree_vals = new_tree_vals;
+    }
+    memcpy(outputs, tree_vals, num_len * sizeof(int));
+    free(tree_vals);
+}
+
+
+void circuit_bitwiseMUX41(garble_circuit *gc, garble_context *ctxt,
+        int num_len, int *inputs, int *outputs)
+{
+    /* A 4 to 1 for mux for inputs of size of num_len. 
+     * 
+     * On input of four numbers, each consisting of num_len bits, and two select bits,
+     * this outputs the number indicated by the select bits.
+     *
+     * Formula MUX(s1, MUX(s0, arr[0],arr[2]), MUX(s0, arr[1], arr[3]))
+     * where arr[i] refers to the ith input number.
+     */
+    int switch0 = inputs[4 * num_len];
+    int switch1 = inputs[(4 * num_len) + 1];
+
+    int mux_in0[2 * num_len];
+    int mux_out0[num_len];
+    int mux_in1[2 * num_len];
+    int mux_out1[num_len];
+    int mux_in2[2 * num_len];
+
+    memcpy(mux_in0, inputs, num_len * sizeof(int));
+    memcpy(&mux_in0[num_len], &inputs[2 * num_len], num_len * sizeof(int));
+    bitwiseMUX(gc, ctxt, switch0, mux_in0, 2 * num_len, mux_out0);
+
+    memcpy(mux_in1, &inputs[num_len], num_len * sizeof(int));
+    memcpy(&mux_in1[num_len], &inputs[3 * num_len], num_len * sizeof(int));
+    bitwiseMUX(gc, ctxt, switch0, mux_in1, 2 * num_len, mux_out1);
+
+
+    memcpy(mux_in2, mux_out0, num_len * sizeof(int));
+    memcpy(mux_in2 + num_len, mux_out1, num_len * sizeof(int));
+    bitwiseMUX(gc, ctxt, switch1, mux_in2, 2 * num_len, outputs);
 }
 
 void circuit_decision_tree_node(garble_circuit *gc, garble_context *ctxt, int num_len, int *inputs, int *outputs)
@@ -551,6 +642,7 @@ void build_not_circuit(garble_circuit *gc)
     my_not_gate(gc, &ctxt, inputs[0], outputs[0]);
     builder_finish_building(gc, &ctxt, outputs);
 }
+
 void build_and_circuit(garble_circuit *gc) 
 {
     // Circuit with only a single AND gate
@@ -840,7 +932,7 @@ void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
 
 }
 
-	void
+void
 new_circuit_mux21(garble_circuit *gc, garble_context *ctxt, 
 		int theSwitch, int input0, int input1, int *output)
 {
@@ -849,18 +941,15 @@ new_circuit_mux21(garble_circuit *gc, garble_context *ctxt,
 	 * If the switch is 0, then it ouptut input0. 
 	 * If the switch is 1, then it outputs input1.
 	 */
-	uint64_t notSwitch = builder_next_wire(ctxt);
-	// faking not gate:
-	int fixed_wire_one = wire_one(gc);
-	gate_XOR(gc, ctxt, theSwitch, fixed_wire_one, notSwitch);
-	// gate_NOT(gc, ctxt, theSwitch, notSwitch);
-
+    int notSwitch = builder_next_wire(ctxt);
 	int and0 = builder_next_wire(ctxt);
-	gate_AND(gc, ctxt, notSwitch, input0, and0);
 	int and1 = builder_next_wire(ctxt);
-	gate_AND(gc, ctxt, theSwitch, input1, and1);
 	*output = builder_next_wire(ctxt);
-	gate_OR(gc, ctxt, and0, and1, *output);
+
+	my_not_gate(gc, ctxt, theSwitch, notSwitch);
+	gate_AND(gc, ctxt, notSwitch, input0, and0);
+	gate_AND(gc, ctxt, theSwitch, input1, and1);
+	my_or_gate(gc, ctxt, and0, and1, *output);
 }
 
 	int

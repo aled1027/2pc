@@ -248,63 +248,7 @@ static void minTest()
     free(computedOutputMap);
 }
 
-static void MUXTest() 
-{
-    int n = 3;
-    int m = 1;
-    bool inputs[n];
-    int inputWires[n];
-    int outputWires[m];
-    block inputLabels[2*n];
-    block extractedLabels[n];
-    block computedOutputMap[m];
-    block outputMap[2*m];
-    bool outputs[m];
 
-    /* Inputs */
-
-    inputs[0] = rand() % 2;
-    inputs[1] = rand() % 2;
-    inputs[2] = rand() % 2;
-
-    /* Build Circuit */
-    garble_create_input_labels(inputLabels, n, NULL, false);
-    garble_circuit gc;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
-    garble_context gcContext;
-	builder_start_building(&gc, &gcContext);
-
-    countToN(inputWires, n);
-    new_circuit_mux21(&gc, &gcContext, inputWires[0], inputWires[1], inputWires[2], outputWires);
-	builder_finish_building(&gc, &gcContext, outputWires);
-
-    /* Garble */
-    garble_garble(&gc, inputLabels, outputMap);
-
-    /* Evaluate */
-    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
-    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
-    garble_delete(&gc);
-
-    /* Results */
-    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
-    bool failed = false;
-    if (inputs[0] == 0) {
-        if (outputs[0] != inputs[1]) { 
-            failed = true;
-        }
-    } else {
-        if (outputs[0] != inputs[2]) {
-            failed = true;
-        }
-    }
-    
-    if (failed) {
-        printf("MUX test failed--------------------------\n");
-        printf("\tinputs: %d %d %d\n", inputs[0], inputs[1], inputs[2]);
-        printf("\toutputs: %d\n", outputs[0]);
-    }
-}
 
 static void levenTest(int l, int sigma)
 {

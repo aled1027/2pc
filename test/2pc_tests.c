@@ -61,6 +61,130 @@ static void test_convert_to_signed_binary()
 
 }
 
+static void MUXTest() 
+{
+    printf("mux test\n");
+    int n = 3;
+    int m = 1;
+    bool inputs[n];
+    int inputWires[n];
+    int outputWires[m];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
+
+    /* Inputs */
+
+    inputs[0] = rand() % 2;
+    inputs[1] = rand() % 2;
+    inputs[2] = rand() % 2;
+
+    /* Build Circuit */
+    garble_create_input_labels(inputLabels, n, NULL, false);
+    garble_circuit gc;
+	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+    garble_context gcContext;
+	builder_start_building(&gc, &gcContext);
+
+    countToN(inputWires, n);
+    new_circuit_mux21(&gc, &gcContext, inputWires[0], inputWires[1], inputWires[2], outputWires);
+	builder_finish_building(&gc, &gcContext, outputWires);
+
+    /* Garble */
+    garble_garble(&gc, inputLabels, outputMap);
+
+    /* Evaluate */
+    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
+    garble_delete(&gc);
+
+    /* Results */
+    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+    bool failed = false;
+    if (inputs[0] == 0) {
+        if (outputs[0] != inputs[1]) { 
+            failed = true;
+        }
+    } else {
+        if (outputs[0] != inputs[2]) {
+            failed = true;
+        }
+    }
+    
+    if (failed) {
+        printf("MUX test failed--------------------------\n");
+        printf("\tinputs: %d %d %d\n", inputs[0], inputs[1], inputs[2]);
+        printf("\toutputs: %d\n", outputs[0]);
+    }
+}
+
+static void test_select_circuit()
+{
+    printf("test select circuit\n");
+    int num_len = 2;
+    int array_size = 8;
+    int index_size = 3;
+    int n = (array_size * num_len) + index_size;
+    int m = num_len;
+
+    bool inputs[n];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
+    int inputWires[n];
+    int outputWires[m];
+
+    /* Inputs */
+    for (int i = 0; i < n; i++) {
+        inputs[i] = rand() % 2;
+    }
+    inputs[n-3] = 1;
+    inputs[n-2] = 1;
+    inputs[n-1] = 1;
+        
+    /* Build Circuit */
+    garble_create_input_labels(inputLabels, n, NULL, false);
+    garble_circuit gc;
+    garble_context gcContext;
+	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(&gc, &gcContext);
+
+    /* Add circuits */
+    countToN(inputWires, n);
+    circuit_select(&gc, &gcContext, num_len, array_size, index_size, inputWires, outputWires);
+
+    /* Garble */
+	builder_finish_building(&gc, &gcContext, outputWires);
+    garble_garble(&gc, inputLabels, outputMap);
+
+    /* Evaluate */
+    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
+    garble_delete(&gc);
+
+    /* Results */
+    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+
+    /* Print Results */
+    printf("Inputs:");
+    for (uint32_t i = 0; i < n; ++i) {
+        if (i == n / 2) {
+            printf(" |");
+        }
+        printf(" %d", inputs[i]);
+    }
+    printf("\n");
+
+    for (uint32_t i = 0; i < m; ++i) {
+        printf("outputs[%d] = %d\n", i, outputs[i]);
+    }
+    printf("\n");
+}
+
 static void test_decision_tree() 
 {
     printf("test decision tree\n");
@@ -118,7 +242,6 @@ static void test_decision_tree()
     printf("\n");
 
 }
-
 
 static void test_signed_comparison()
 {
@@ -553,7 +676,6 @@ static void test_get_model()
 void runAllTests(void)
 { 
 
-    //innerProductTest();
-    test_decision_tree();
+    test_select_circuit();
 
 }  

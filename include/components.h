@@ -24,6 +24,8 @@ typedef enum {
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
+void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
+        int array_size, int index_size, int *inputs, int *outputs);
 void build_signed_comparison_circuit(garble_circuit *gc, int num_len);
 void build_decision_tree_nursery_circuit(garble_circuit *gc, int num_len);
 void build_decision_tree_ecg_circuit(garble_circuit *gc, int num_len);
@@ -62,7 +64,10 @@ void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
 void new_circuit_or(garble_circuit *gc, garble_context *ctxt, int *input, int *output);
 
 void new_circuit_mux21(garble_circuit *gc, garble_context *ctxt, 
-              int theSwitch, int input0, int input1, int output[1]);
+              int theSwitch, int input0, int input1, int *output);
+
+void circuit_bitwiseMUX41(garble_circuit *gc, garble_context *ctxt,
+        int num_len, int *inputs, int *outputs);
 int
 countToN(int *a, int n);
 
