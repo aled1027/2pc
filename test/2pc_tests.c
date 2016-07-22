@@ -123,9 +123,11 @@ static void MUXTest()
 static void test_select_circuit()
 {
     printf("test select circuit\n");
+    // TODO: add assertion to circuit_select in components.c to verify
+    // that index_size is large enough.
     int num_len = 2;
-    int array_size = 8;
-    int index_size = 3;
+    int array_size = 5; 
+    int index_size = 4;
     int n = (array_size * num_len) + index_size;
     int m = num_len;
 
@@ -142,9 +144,10 @@ static void test_select_circuit()
     for (int i = 0; i < n; i++) {
         inputs[i] = rand() % 2;
     }
-    inputs[n-3] = 1;
-    inputs[n-2] = 1;
-    inputs[n-1] = 1;
+    inputs[n-4] = 0; // doesn't matter, sign bit
+    inputs[n-3] = 0;
+    inputs[n-2] = 0;
+    inputs[n-1] = 0;
         
     /* Build Circuit */
     garble_create_input_labels(inputLabels, n, NULL, false);
@@ -172,7 +175,7 @@ static void test_select_circuit()
     /* Print Results */
     printf("Inputs:");
     for (uint32_t i = 0; i < n; ++i) {
-        if (i == n / 2) {
+        if (0 == i % num_len) {
             printf(" |");
         }
         printf(" %d", inputs[i]);
@@ -185,6 +188,72 @@ static void test_select_circuit()
     printf("\n");
 }
 
+static void test_naive_bayes() 
+{
+    printf("test decision tree\n");
+    int num_len = 2;
+
+    int num_classes = 2;
+    int vector_size = 2;
+    int domain_size = 3;
+
+    int client_input_size = vector_size * num_len; 
+    int C_size = num_classes * num_len;
+    int T_size = num_classes * vector_size * domain_size * num_len;
+    int n = client_input_size + C_size + T_size;
+
+    int m = num_len;
+
+    bool inputs[n];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
+
+    /* Inputs */
+    for (int i = 0; i < n; i++) {
+        if (i < n / 2) 
+            inputs[i] = rand() % 2;
+        else
+            inputs[i] = rand() % 2;
+    }
+        
+    /* Build Circuit */
+    garble_create_input_labels(inputLabels, n, NULL, false);
+    garble_circuit gc;
+
+    build_naive_bayes_circuit(&gc, num_classes, vector_size, domain_size, num_len);
+
+    /* Garble */
+    garble_garble(&gc, inputLabels, outputMap);
+
+    /* Evaluate */
+    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
+    garble_delete(&gc);
+
+    /* Results */
+    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+
+    /* Print Results */
+    printf("\nC, T, client inputs\n");
+    printf("Inputs:");
+    for (uint32_t i = 0; i < n; ++i) {
+        if (i == C_size ||
+            i == (C_size + T_size)) {
+            printf(" |");
+        }
+        printf(" %d", inputs[i]);
+    }
+    printf("\n");
+
+    for (uint32_t i = 0; i < m; ++i) {
+        printf("outputs[%d] = %d\n", i, outputs[i]);
+    }
+    printf("\n");
+
+}
 static void test_decision_tree() 
 {
     printf("test decision tree\n");
@@ -676,6 +745,7 @@ static void test_get_model()
 void runAllTests(void)
 { 
 
+    //test_naive_bayes();
     test_select_circuit();
 
 }  

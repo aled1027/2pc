@@ -30,6 +30,8 @@ void build_signed_comparison_circuit(garble_circuit *gc, int num_len);
 void build_decision_tree_nursery_circuit(garble_circuit *gc, int num_len);
 void build_decision_tree_ecg_circuit(garble_circuit *gc, int num_len);
 void build_decision_tree_circuit(garble_circuit *gc, uint32_t num_nodes, uint32_t depth, uint32_t num_len);
+void build_naive_bayes_circuit(garble_circuit *gc, 
+        int num_classes, int vector_size, int domain_size, int num_len);
 void circuit_signed_mult_2s_compl_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
         int *inputs, int *outputs);
 void circuit_signed_negate(garble_circuit *gc, garble_context *ctxt, uint32_t n, int *input, int *output);

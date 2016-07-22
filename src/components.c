@@ -293,7 +293,7 @@ circuit_inner_product(garble_circuit *gc, garble_context *ctxt,
 }
 
 void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
-        int array_size, int index_size, int *inputs, int *outputs)
+        int input_array_size, int index_size, int *inputs, int *outputs)
 {
     /* Builds a select circuit. 
      * It takes as input an array of array_size numbers, each of num_len bits, 
@@ -310,38 +310,69 @@ void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
      * Eventually, there will only be one value in the array, return this value. 
      *
      * TODO deal with padding; clearly the above only works if array has a size that is a power of 2. 
+     *
+     * Warning: index_size is always truncated to the size of the tree. 
+     * There is no use of the extra bits. 
+     *
+     * All inputs, include the index, should be signed little-endian.
      */
 
+
     assert(inputs && outputs);
-    assert(array_size % 2 == 0);
+
+    // set array_size to smallest power of 2 greater than input_array_size
+    int array_size = pow(2, ceil(log2(input_array_size)));
+
     
     // array of switches in order that they will be used
-    int switches[index_size];
-    memcpy(switches, inputs + (num_len * array_size), array_size * sizeof(int));
+    // add one and subtract one to ignore the sign bit
+    int switches[index_size - 1];
+    memcpy(switches, inputs + 1 + (num_len * array_size), array_size * sizeof(int));
     
     int *tree_vals, *new_tree_vals;
 
+    // initialize tree_vals to all -1
     tree_vals = calloc(num_len * array_size, sizeof(int));
-    memcpy(tree_vals, inputs, num_len * array_size * sizeof(int));
+    for (int i = 0; i < num_len * array_size; i++) {
+        tree_vals[i] = -1;
+    }
+    memcpy(tree_vals, inputs, num_len * input_array_size * sizeof(int));
 
     // loop from bottom to top of tree
     // tree has height array_size
     int tree_depth = floor(log2(array_size));
     for (int tree_level = 0; tree_level < tree_depth; tree_level++) {
-        // num_nodes in tree at leve
+        // num_nodes in tree at level
         int num_nodes = pow(2, tree_depth - tree_level);
         assert(tree_level < index_size);
         int the_switch = switches[tree_level];
 
-        new_tree_vals = calloc(num_len * (num_nodes / 2), sizeof(int)); // values for next level of tree
+        // initialize new_tree_vals to all -1
+        int new_tree_size = num_len * (num_nodes / 2);
+        new_tree_vals = calloc(new_tree_size, sizeof(int)); // values for next level of tree
+        for (int i = 0; i < new_tree_size; i++) {
+            new_tree_vals[i] = -1;
+        }
 
         assert(num_nodes % 2 == 0);
         // loop over nodes two at a time
         for (int node = 0; node < num_nodes; node+=2) {
-            int mux_in[2 * num_len];
-            memcpy(mux_in, &tree_vals[num_len * node], num_len * sizeof(int));
-            memcpy(mux_in + num_len, &tree_vals[num_len * (node + 1)], num_len * sizeof(int));
-            bitwiseMUX(gc, ctxt, the_switch, mux_in, num_len * 2, new_tree_vals + (num_len * (node / 2)));
+            if (tree_vals[num_len * node] == -1 && tree_vals[num_len * (node + 1)]) {
+                printf("if\n");
+                // both values are negative one, so leave new_tree_vals as -1
+                // do nothing
+            } else if (tree_vals[num_len * (node + 1)] == -1) {
+                printf("else if\n");
+                // only one value is -1, so set new_tree_vals equal to 
+                // the other value
+                memcpy(new_tree_vals + (num_len * (node / 2)), tree_vals + (num_len * node), num_len * sizeof(int));
+            } else {
+                // both values are eligible, so use a mux to determine which value moves on.
+                int mux_in[2 * num_len];
+                memcpy(mux_in, &tree_vals[num_len * node], num_len * sizeof(int));
+                memcpy(mux_in + num_len, &tree_vals[num_len * (node + 1)], num_len * sizeof(int));
+                bitwiseMUX(gc, ctxt, the_switch, mux_in, num_len * 2, new_tree_vals + (num_len * (node / 2)));
+            }
         }
         free(tree_vals); 
         tree_vals = NULL;
@@ -630,6 +661,81 @@ void build_decision_tree_circuit(garble_circuit *gc, uint32_t num_nodes, uint32_
 
 	builder_finish_building(gc, &ctxt, outputs);
 }
+
+void build_naive_bayes_circuit(garble_circuit *gc, 
+        int num_classes, int vector_size, int domain_size, int num_len)
+{
+    /*
+     * PSEUDOCODE of algorithm:
+     * for i in range(num_classes):
+     *     t_val[i] = C_inputs[i]
+     *     for j in range(vector_size):
+     *         int t_val[num_len];
+     *         v = client_input[j] # is this correct?
+     *         t_val[i] += circuit_select(T_inputs, index=i*j*v)
+     * the_argmax = argmax(t_val)
+     * return the_argmax
+     */
+
+    // sizes in bits, not values
+    int client_input_size = vector_size * num_len; 
+    int C_size = num_classes * num_len;
+    int T_size = num_classes * vector_size * domain_size * num_len;
+    int n = client_input_size + C_size + T_size;
+    int m = num_len;
+    int inputs[n];
+    int outputs[m];
+    garble_context ctxt;
+
+    countToN(inputs, n);
+    printf("C_size: %d\n", C_size);
+    printf("T_size: %d\n", T_size);
+    printf("client_input_size: %d\n", client_input_size);
+
+    int client_inputs[client_input_size];
+    int C_inputs[C_size];
+    int T_inputs[T_size];
+
+    memcpy(C_inputs, inputs, C_size * sizeof(int));
+    memcpy(T_inputs, inputs + C_size, T_size * sizeof(int));
+    memcpy(client_inputs, inputs + C_size + T_size , client_input_size * sizeof(int));
+
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+
+
+    
+    // these nested for loops populate probs with
+    // the correct value as defined by naive bayes algo.
+    int probs[num_len * num_classes];
+    memcpy(probs, C_inputs, C_size * sizeof(int));
+
+    int select_in[T_size + num_len];
+    memcpy(select_in, T_inputs, T_size * sizeof(int));
+    int carry;
+
+    for (int i = 0; i < num_classes; ++i) {
+
+        int *cur_prob = &probs[i * num_len];
+        for (int j = 0; i < vector_size; ++j) {
+            int add_out[num_len];
+            int select_out[2 * num_len]; // also used as input to add
+            memcpy(select_in + T_size, client_inputs + (j * num_len), num_len * sizeof(int));
+            circuit_select(gc, &ctxt, num_len, T_size / num_len, num_len, select_in, select_out);
+
+            memcpy(select_out + num_len, cur_prob, num_len * sizeof(int));
+		    circuit_add(gc, &ctxt, 2 * num_len, select_out, add_out, &carry);
+            memcpy(cur_prob, add_out, num_len * sizeof(int));
+        }
+    }
+
+    memcpy(outputs, inputs, num_len * sizeof(int));
+
+
+
+	builder_finish_building(gc, &ctxt, outputs);
+}
+
 
 void build_not_circuit(garble_circuit *gc) 
 {

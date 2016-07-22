@@ -102,8 +102,37 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - multiplied by `10**18`
     - used `num_len = 58`
 - naive bayes
+    - FINISH SELECT CIRCUIT
+        - not producing correct output for array_size = 5 
+        - tests
     - v ranges from `0 to num_classes * |x| (number of components in vector x)`
          - v is big for audiology dataset
+    - server inputs:
+        - C = {log Pr[C=c_1], ..., log Pr[C=c_k]}
+            - theoretically, a three dimensional array of shape (k, |x|, | domain(x_i))
+        - T = {log Pr[x_j=v | C=c_i] | for all i in [k], j in |x|, v in domain of x_j}
+            - in the code, we say:
+                - k = `num_classes`
+                - |x| = `vector_size`
+                - `domain_size` is the size of domain of x_j
+                - size of T is k * |x| * domain_size * num_len
+                - v is indexed most inner, then j, the i on the outside.
+                - e.g., k = |x| = domain_size = 2 
+                    - {Pr[x_1=1 | C=c_1, Pr[x_1=2 | C=c_1], Pr[x_1=1 | C=c_2], Pr[x_1=2 | C=c_2], Pr[x_2=1 | C=c_1], Pr[x_2=2 | C=c_1], ...
+                    - note that I don't write log.
+                    - flatten in "numpy c" style
+            - theoretically, we would T is 3-d dimensional array, where
+                - T[i][j][v] = log Pr[x_j=v | C=c_i]
+        - Algorithm
+            ```
+            for i in range(num_classes):
+                probs[i] = C_inputs[i]
+                for j in range(vector_size):
+                    v = client_input[j] # is this correct?
+                    probs[i] += circuit_select(T_inputs, index=i*j*v)
+            the_argmax = argmax(t_val)
+            return the_argmax
+            ```
 
 
 
