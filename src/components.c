@@ -317,7 +317,6 @@ void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
      * All inputs, include the index, should be signed little-endian.
      */
 
-
     assert(inputs && outputs);
 
     // set array_size to smallest power of 2 greater than input_array_size
@@ -327,7 +326,7 @@ void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
     // array of switches in order that they will be used
     // add one and subtract one to ignore the sign bit
     int switches[index_size - 1];
-    memcpy(switches, inputs + 1 + (num_len * array_size), array_size * sizeof(int));
+    memcpy(switches, inputs + 1 + (num_len * input_array_size), array_size * sizeof(int));
     
     int *tree_vals, *new_tree_vals;
 
@@ -356,17 +355,22 @@ void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
 
         assert(num_nodes % 2 == 0);
         // loop over nodes two at a time
+        printf("looping over nodes\n");
         for (int node = 0; node < num_nodes; node+=2) {
+            printf("node = %d\n", node);
+            printf("the_switch = %d\n", the_switch);
             if (tree_vals[num_len * node] == -1 && tree_vals[num_len * (node + 1)]) {
                 printf("if\n");
                 // both values are negative one, so leave new_tree_vals as -1
                 // do nothing
             } else if (tree_vals[num_len * (node + 1)] == -1) {
                 printf("else if\n");
+
                 // only one value is -1, so set new_tree_vals equal to 
                 // the other value
                 memcpy(new_tree_vals + (num_len * (node / 2)), tree_vals + (num_len * node), num_len * sizeof(int));
             } else {
+                printf("else\n");
                 // both values are eligible, so use a mux to determine which value moves on.
                 int mux_in[2 * num_len];
                 memcpy(mux_in, &tree_vals[num_len * node], num_len * sizeof(int));

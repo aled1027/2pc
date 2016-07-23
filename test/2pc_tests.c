@@ -125,9 +125,9 @@ static void test_select_circuit()
     printf("test select circuit\n");
     // TODO: add assertion to circuit_select in components.c to verify
     // that index_size is large enough.
-    int num_len = 2;
+    int num_len = 4;
     int array_size = 5; 
-    int index_size = 4;
+    int index_size = num_len;
     int n = (array_size * num_len) + index_size;
     int m = num_len;
 
@@ -146,7 +146,7 @@ static void test_select_circuit()
     }
     inputs[n-4] = 0; // doesn't matter, sign bit
     inputs[n-3] = 0;
-    inputs[n-2] = 0;
+    inputs[n-2] = 1;
     inputs[n-1] = 0;
         
     /* Build Circuit */
