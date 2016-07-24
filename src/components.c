@@ -309,37 +309,34 @@ void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
      * Loop over new array, muxing each pair as before.
      * Eventually, there will only be one value in the array, return this value. 
      *
-     * TODO deal with padding; clearly the above only works if array has a size that is a power of 2. 
-     *
      * Warning: index_size is always truncated to the size of the tree. 
      * There is no use of the extra bits. 
      *
      * All inputs, include the index, should be signed little-endian.
      */
-
     assert(inputs && outputs);
 
     // set array_size to smallest power of 2 greater than input_array_size
     int array_size = pow(2, ceil(log2(input_array_size)));
+    assert(input_array_size <= array_size);
 
-    
     // array of switches in order that they will be used
     // add one and subtract one to ignore the sign bit
     int switches[index_size - 1];
     memcpy(switches, inputs + 1 + (num_len * input_array_size), array_size * sizeof(int));
     
-    int *tree_vals, *new_tree_vals;
-
-    // initialize tree_vals to all -1
-    tree_vals = calloc(num_len * array_size, sizeof(int));
-    for (int i = 0; i < num_len * array_size; i++) {
+    // redoing tree_vals and new_tree_vals
+    // going to lose memory with current scheme
+    int tree_vals[num_len * array_size];
+    memcpy(tree_vals, inputs, num_len * input_array_size * sizeof(int));
+    for (int i = num_len * input_array_size; i < num_len * array_size; ++i) {
         tree_vals[i] = -1;
     }
-    memcpy(tree_vals, inputs, num_len * input_array_size * sizeof(int));
 
     // loop from bottom to top of tree
     // tree has height array_size
     int tree_depth = floor(log2(array_size));
+    assert(index_size - 1 >= tree_depth && "otherwise not enough bits to mux");
     for (int tree_level = 0; tree_level < tree_depth; tree_level++) {
         // num_nodes in tree at level
         int num_nodes = pow(2, tree_depth - tree_level);
@@ -348,29 +345,22 @@ void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
 
         // initialize new_tree_vals to all -1
         int new_tree_size = num_len * (num_nodes / 2);
-        new_tree_vals = calloc(new_tree_size, sizeof(int)); // values for next level of tree
+        int new_tree_vals[new_tree_size]; // values for next level of tree
         for (int i = 0; i < new_tree_size; i++) {
             new_tree_vals[i] = -1;
         }
 
-        assert(num_nodes % 2 == 0);
         // loop over nodes two at a time
-        printf("looping over nodes\n");
+        assert(num_nodes % 2 == 0);
         for (int node = 0; node < num_nodes; node+=2) {
-            printf("node = %d\n", node);
-            printf("the_switch = %d\n", the_switch);
             if (tree_vals[num_len * node] == -1 && tree_vals[num_len * (node + 1)]) {
-                printf("if\n");
                 // both values are negative one, so leave new_tree_vals as -1
                 // do nothing
             } else if (tree_vals[num_len * (node + 1)] == -1) {
-                printf("else if\n");
-
                 // only one value is -1, so set new_tree_vals equal to 
                 // the other value
                 memcpy(new_tree_vals + (num_len * (node / 2)), tree_vals + (num_len * node), num_len * sizeof(int));
             } else {
-                printf("else\n");
                 // both values are eligible, so use a mux to determine which value moves on.
                 int mux_in[2 * num_len];
                 memcpy(mux_in, &tree_vals[num_len * node], num_len * sizeof(int));
@@ -378,12 +368,9 @@ void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
                 bitwiseMUX(gc, ctxt, the_switch, mux_in, num_len * 2, new_tree_vals + (num_len * (node / 2)));
             }
         }
-        free(tree_vals); 
-        tree_vals = NULL;
-        tree_vals = new_tree_vals;
+        memcpy(tree_vals, new_tree_vals, new_tree_size * sizeof(int));
     }
     memcpy(outputs, tree_vals, num_len * sizeof(int));
-    free(tree_vals);
 }
 
 
@@ -479,7 +466,6 @@ void build_decision_tree_nursery_circuit(garble_circuit *gc, int num_len)
     int outputs[m];
     garble_context ctxt;
     
-    printf("Using num_len  %d\n", num_len);
 
     assert(n == num_garbler_inputs + num_evaluator_inputs);
 
@@ -493,7 +479,6 @@ void build_decision_tree_nursery_circuit(garble_circuit *gc, int num_len)
     int node_four_out;
     
     // node 1
-    printf("making node 1\n");
     int dt_inputs[n + 1];
     memcpy(dt_inputs, inputs, num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split, num_len * sizeof(int));
@@ -501,7 +486,6 @@ void build_decision_tree_nursery_circuit(garble_circuit *gc, int num_len)
     circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_one_out);
 
     //node 2
-    printf("making node 2\n");
     memcpy(dt_inputs, inputs + num_len, num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + num_len, num_len * sizeof(int));
     dt_inputs[2 * num_len] = node_one_out;
@@ -706,8 +690,6 @@ void build_naive_bayes_circuit(garble_circuit *gc,
 
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
 	builder_start_building(gc, &ctxt);
-
-
     
     // these nested for loops populate probs with
     // the correct value as defined by naive bayes algo.
@@ -719,9 +701,8 @@ void build_naive_bayes_circuit(garble_circuit *gc,
     int carry;
 
     for (int i = 0; i < num_classes; ++i) {
-
         int *cur_prob = &probs[i * num_len];
-        for (int j = 0; i < vector_size; ++j) {
+        for (int j = 0; j < vector_size; ++j) {
             int add_out[num_len];
             int select_out[2 * num_len]; // also used as input to add
             memcpy(select_in + T_size, client_inputs + (j * num_len), num_len * sizeof(int));
@@ -732,11 +713,10 @@ void build_naive_bayes_circuit(garble_circuit *gc,
             memcpy(cur_prob, add_out, num_len * sizeof(int));
         }
     }
+    
+    // argmax on probs
 
     memcpy(outputs, inputs, num_len * sizeof(int));
-
-
-
 	builder_finish_building(gc, &ctxt, outputs);
 }
 
@@ -940,8 +920,7 @@ circuit_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
 
     uint32_t split = n / 2;
     int zero_wire = wire_zero(gc);
-    int one_wire = wire_one(gc);
-    assert(one_wire && zero_wire); // TODO remove
+    //int one_wire = wire_one(gc);
 
     int accum[split]; // holds values for going forward
     for (uint32_t i = 0; i < split; i++) {
@@ -998,16 +977,15 @@ void circuit_argmax2(garble_circuit *gc, garble_context *ctxt,
 
 	memcpy(les_ins, &inputs[num_len], sizeof(int) * num_len); // put num0
 	memcpy(&les_ins[num_len], &inputs[3 * num_len], sizeof(int) * num_len); // put num1
-	printf("les_ins: %d %d %d %d\n", les_ins[0], les_ins[1], les_ins[2], les_ins[3]);
 	int les_out;
 
 
 	new_circuit_les(gc, ctxt, num_len * 2, les_ins, &les_out);
 
 	// And mux 'em
-	int mux_inputs[2 * num_len];
-	memcpy(mux_inputs, inputs, sizeof(int) * num_len);
-	memcpy(mux_inputs + num_len, &inputs[2 * num_len], sizeof(int) * num_len);
+	//int mux_inputs[2 * num_len];
+	//memcpy(mux_inputs, inputs, sizeof(int) * num_len);
+	//memcpy(mux_inputs + num_len, &inputs[2 * num_len], sizeof(int) * num_len);
 	bitwiseMUX(gc, ctxt, les_out, inputs, 4 * num_len, outputs);
 }
 
@@ -1025,6 +1003,106 @@ void circuit_argmax4(garble_circuit *gc, garble_context *ctxt,
 
 	// argmax their outputs
 	circuit_argmax2(gc, ctxt, out, outputs, num_len);
+}
+
+void circuit_argmax(garble_circuit *gc, garble_context *ctxt, 
+        int *inputs, int *outputs, int input_array_size, int num_len) 
+{
+    /* Performs argmax on arbitrary size arrays
+     *
+     *
+     * Inputs should have length array_size * num_len
+     *
+     * Idea: turn array into a binary tree. 
+     * take argmax of every other input, and move the output 
+     * up the tree. very similar to how other tree-based circuits 
+     * are constructed here.
+     *
+	 * Inputs to circuit_argmax2 should look like idx0 || num0 || idx1 || num1 || ...
+	 * where the length of idx0, idx1, num0, and num1 is num_len bits
+     */
+
+    int max_num_len_val = pow(2, num_len) - 1; // max value that num_len bits can represent
+    assert(input_array_size <= max_num_len_val);
+
+    // Make a new array called idx_val_inputs which puts the index
+    // of element of the list before each value.
+    // e.g. if inputs looks like [1,0,0,1] where num_len is 2, 
+    // then idx_val_inputs will look like [0, 0, 1, 0, 1, 0, 0, 1]
+    // where 00 and 10 are the insert indices, and 10, 01 are the values.
+    int zero_wire = wire_zero(gc);
+    int one_wire = wire_one(gc);
+    int idx_val_len = 2 * num_len; // the length of the value plus the index
+    int idx_val_inputs[input_array_size * idx_val_len];
+
+    for (int i = 0; i < input_array_size; ++i) {
+        bool bin[num_len];
+        convertToBinary(i, bin, num_len);
+
+        // convert 1 to fix_one_wire and 0 to fix_zero_wire
+        int bin_wires[num_len];
+        for (int j = 0; j < num_len; ++j) {
+            if (bin[j] == 0) {
+                bin_wires[j] = zero_wire;
+            } else {
+                bin_wires[j] = one_wire;
+            }
+        }
+
+        // copy bin_wires into idx_val_inputs
+        memcpy(idx_val_inputs + (i * idx_val_len), bin_wires, num_len * sizeof(int));
+
+        // copy value into idx_val_inputs
+        memcpy(idx_val_inputs + (i * idx_val_len) + num_len, 
+               inputs + (i * num_len),
+               num_len * sizeof(int));
+    }
+        
+    // prepare values for tree
+    int array_size = pow(2, ceil(log2(input_array_size)));
+    assert(input_array_size <= array_size);
+
+    int tree_depth = floor(log2(array_size));
+    int tree_vals[array_size * idx_val_len];
+    memcpy(tree_vals, inputs, idx_val_len * input_array_size * sizeof(int));
+    for (int i = idx_val_len * input_array_size; i < idx_val_len * array_size; ++i) {
+        tree_vals[i] = -1;
+    }
+
+    // loop over tree from bottom to the top
+    for (int tree_level = 0; tree_level < tree_depth; ++tree_level) {
+        int num_nodes = pow(2, tree_depth - tree_level);
+        assert(num_nodes % 2 == 0);
+
+        int new_tree_size = idx_val_len * (num_nodes / 2);
+        int new_tree_vals[new_tree_size]; // values for next level of tree
+        assert(new_tree_vals);
+        for (int i = 0; i < new_tree_size; i++) {
+            new_tree_vals[i] = -1;
+        }
+        for (int node = 0; node < num_nodes; node+=2) {
+            if (tree_vals[idx_val_len * node] == -1 && tree_vals[idx_val_len * (node + 1)]) {
+                // both values are negative one, so leave new_tree_vals as -1
+                // do nothing
+            } else if (tree_vals[idx_val_len * (node + 1)] == -1) {
+                // only one value is -1, so set new_tree_vals equal to 
+                // the other value
+                memcpy(new_tree_vals + (idx_val_len * (node / 2)), 
+                        tree_vals + (idx_val_len * node), idx_val_len * sizeof(int));
+            } else {
+                // argmax these guys
+                circuit_argmax2(
+                        gc, 
+                        ctxt, 
+                        &tree_vals[idx_val_len * node], 
+                        &new_tree_vals[idx_val_len * (node / 2)], 
+                        num_len
+                );
+            }
+        }
+        memcpy(tree_vals, new_tree_vals, new_tree_size * sizeof(int));
+    }
+    memcpy(outputs, tree_vals, idx_val_len * sizeof(int));
 }
 
 
@@ -1088,7 +1166,6 @@ void buildLinearCircuit(garble_circuit *gc, int n, int num_len)
      * That is, it takes the dot product of x and w, where x is in the iput
      * and w is the model, and outputs 1 if (<x,w> > 1) and 0 otherwise.
      */
-    // TODO
     int m = 1;
     int input_wires[n];
 	int output_wire[1];
@@ -1431,7 +1508,6 @@ buildCBCFullCircuit (garble_circuit *gc, int num_message_blocks, int num_aes_rou
 {
 	int n = (num_message_blocks * 128) + (num_message_blocks * num_aes_rounds * 128) + 128;
 	int m = num_message_blocks*128;
-	// TODO figure out a rough estimate for q based on num_aes_rounds and num_message_blocks 
 	int num_evaluator_inputs = 128 * num_message_blocks;
 	int num_garbler_inputs = n - num_evaluator_inputs;
 

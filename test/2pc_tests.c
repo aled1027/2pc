@@ -120,13 +120,74 @@ static void MUXTest()
     }
 }
 
+static void test_argmax()
+{
+    printf("test argmax circuit\n");
+    int num_len = 3;
+    int array_size = 5; 
+    int n = array_size * num_len;
+    int m = 2 * num_len;
+
+    bool inputs[n];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
+    int inputWires[n];
+    int outputWires[m];
+
+    // idx then value
+    /* Inputs */
+    for (int i = 0; i < n; ++i) {
+        inputs[i] = 1;
+    }
+                
+    /* Build Circuit */
+    garble_create_input_labels(inputLabels, n, NULL, false);
+    garble_circuit gc;
+    garble_context gcContext;
+	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(&gc, &gcContext);
+
+    /* Add circuits */
+    countToN(inputWires, n);
+    circuit_argmax(&gc, &gcContext, inputWires, outputWires, array_size, num_len);
+
+    /* Garble */
+	builder_finish_building(&gc, &gcContext, outputWires);
+    garble_garble(&gc, inputLabels, outputMap);
+
+    /* Evaluate */
+    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
+    garble_delete(&gc);
+
+    /* Results */
+    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+
+    /* Print Results */
+    printf("Inputs:");
+    for (uint32_t i = 0; i < n; ++i) {
+        if (0 == i % num_len) {
+            printf(" |");
+        }
+        printf(" %d", inputs[i]);
+    }
+    printf("\n");
+
+    for (uint32_t i = 0; i < m; ++i) {
+        printf("outputs[%d] = %d\n", i, outputs[i]);
+    }
+    printf("\n");
+}
+
+
 static void test_select_circuit()
 {
     printf("test select circuit\n");
-    // TODO: add assertion to circuit_select in components.c to verify
-    // that index_size is large enough.
     int num_len = 4;
-    int array_size = 5; 
+    int array_size = 12; 
     int index_size = num_len;
     int n = (array_size * num_len) + index_size;
     int m = num_len;
@@ -191,7 +252,7 @@ static void test_select_circuit()
 static void test_naive_bayes() 
 {
     printf("test decision tree\n");
-    int num_len = 2;
+    int num_len = 5;
 
     int num_classes = 2;
     int vector_size = 2;
@@ -746,6 +807,5 @@ void runAllTests(void)
 { 
 
     //test_naive_bayes();
-    test_select_circuit();
-
+    test_argmax();
 }  

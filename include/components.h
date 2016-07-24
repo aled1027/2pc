@@ -24,6 +24,8 @@ typedef enum {
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
+void circuit_argmax(garble_circuit *gc, garble_context *ctxt, 
+        int *inputs, int *outputs, int input_array_size, int num_len);
 void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
         int array_size, int index_size, int *inputs, int *outputs);
 void build_signed_comparison_circuit(garble_circuit *gc, int num_len);
