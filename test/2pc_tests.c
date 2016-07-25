@@ -263,10 +263,10 @@ static void test_naive_bayes()
     int n = client_input_size + C_size + T_size;
     printf("n = %d\n", n);
     
-    //if (n > 5000) {
-    //    printf("not running\n");
-    //    return;
-    //}
+    if (n > 8000) {
+        printf("not running\n");
+        return;
+    }
 
     int m = num_len;
     

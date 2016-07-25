@@ -24,7 +24,7 @@
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
-typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_WDBC, EXPERIMENT_HP_CREDIT, EXPERIMENT_HYPERPLANE, EXPERIMENT_RANDOM_DT, EXPERIMENT_DT_NURSERY, EXPERIMENT_DT_ECG} experiment;
+typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_WDBC, EXPERIMENT_HP_CREDIT, EXPERIMENT_HYPERPLANE, EXPERIMENT_RANDOM_DT, EXPERIMENT_DT_NURSERY, EXPERIMENT_DT_ECG, EXPERIMENT_NB_WDBC} experiment;
 
 static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD(int l) { return getDIntSize(l) * (l+1); }
@@ -287,7 +287,13 @@ go(struct args *args)
 {
     uint64_t n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs, sigma;
     uint64_t n = 0, l = 0, num_len = 0;
+
     char *fn, *type;
+
+    // these are for naive bayes only
+    int num_classes = 0, vector_size = 0, domain_size = 0, client_input_size = 0;
+    int C_size = 0, T_size = 0;
+
     /* ChainingType chainingType; */
 
     /* chainingType = CHAINING_TYPE_SIMD; */
@@ -366,6 +372,7 @@ go(struct args *args)
         n_eval_labels = n_eval_inputs;
         type = "DT";
         fn = "functions/nursery_dt.json";
+        break;
      case EXPERIMENT_DT_ECG:
         printf("Experiment cg dt\n");
         num_len = 52;
@@ -377,7 +384,24 @@ go(struct args *args)
         type = "DT";
         fn = "functions/ecg_dt.json";
         break;
-   break;
+    case EXPERIMENT_NB_WDBC:
+        printf("Experiment cg dt\n");
+        num_len = 52;
+        num_classes = 6;
+        vector_size = 4;
+        domain_size = 4;
+        client_input_size = vector_size * num_len; 
+        C_size = num_classes * num_len;
+        T_size = num_classes * vector_size * domain_size * num_len;
+        n = client_input_size + C_size + T_size;
+
+        ncircs = 13;
+        n_garb_inputs = client_input_size;
+        n_eval_inputs = n - client_input_size;
+        n_eval_labels = n_eval_inputs;
+        type = "DT";
+        fn = "functions/ecg_dt.json";
+        break;
     case EXPERIMENT_HYPERPLANE:
         printf("Experiment hyperplane\n");
         fn = NULL; // TODO add function
@@ -425,6 +449,9 @@ go(struct args *args)
             break;
         case EXPERIMENT_DT_ECG:
             dt_garb_off(GARBLER_DIR, n, num_len, DT_ECG);
+            break;
+        case EXPERIMENT_NB_WDBC:
+            dt_garb_off(GARBLER_DIR, n, num_len, NB_WDBC);
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("EXPERIMENT_HYPERPLANE garb off\n");
@@ -486,6 +513,10 @@ go(struct args *args)
         case EXPERIMENT_DT_ECG:
             printf("experiment ecg dt\n");
             build_decision_tree_ecg_circuit(&gc, num_len);
+            break;
+        case EXPERIMENT_NB_WDBC:
+            printf("experiment ecg dt\n");
+            build_naive_bayes_circuit(&gc, num_classes, vector_size, domain_size, num_len);
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("experiment hyperplane\n");
@@ -572,6 +603,8 @@ main(int argc, char *argv[])
                 args.type = EXPERIMENT_DT_NURSERY;
             } else if (strcmp(optarg, "ECG_DT") == 0) {
                 args.type = EXPERIMENT_DT_ECG;
+            } else if (strcmp(optarg, "WDBC_NB") == 0) {
+                args.type = EXPERIMENT_NB_WDBC;
             } else {
                 fprintf(stderr, "Unknown circuit type %s\n", optarg);
                 exit(EXIT_FAILURE);
