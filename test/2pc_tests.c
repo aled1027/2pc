@@ -124,7 +124,7 @@ static void test_argmax()
 {
     printf("test argmax circuit\n");
     int num_len = 3;
-    int array_size = 5; 
+    int array_size = 2; 
     int n = array_size * num_len;
     int m = 2 * num_len;
 
@@ -252,10 +252,9 @@ static void test_select_circuit()
 static void test_naive_bayes() 
 {
     printf("test decision tree\n");
-    int num_len = 5;
-
-    int num_classes = 2;
-    int vector_size = 2;
+    int num_len = 6;
+    int num_classes = 3; // nothing works when these vals are set to 4
+    int vector_size = 4;
     int domain_size = 3;
 
     int client_input_size = vector_size * num_len; 
@@ -283,7 +282,6 @@ static void test_naive_bayes()
     /* Build Circuit */
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
-
     build_naive_bayes_circuit(&gc, num_classes, vector_size, domain_size, num_len);
 
     /* Garble */
@@ -806,6 +804,6 @@ static void test_get_model()
 void runAllTests(void)
 { 
 
-    //test_naive_bayes();
-    test_argmax();
+    test_naive_bayes();
+    //test_argmax();
 }  

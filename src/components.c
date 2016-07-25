@@ -138,9 +138,10 @@ static void
 bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int *inps, 
 		int ninputs, int *outputs)
 {
-	//assert(ninputs % 2 == 0 && "ninputs should be even because we are muxing");
-	//assert(outputs && "final should already be malloced");
+	assert(ninputs % 2 == 0 && "ninputs should be even because we are muxing");
+	assert(outputs && "final should already be malloced");
 	int split = ninputs / 2;
+
 
 	for (int i = 0; i < split; i++) {
 		//circuit_mux21(gc, gctxt, the_switch, inps[i], inps[i + split], &outputs[i]);
@@ -676,9 +677,6 @@ void build_naive_bayes_circuit(garble_circuit *gc,
     garble_context ctxt;
 
     countToN(inputs, n);
-    printf("C_size: %d\n", C_size);
-    printf("T_size: %d\n", T_size);
-    printf("client_input_size: %d\n", client_input_size);
 
     int client_inputs[client_input_size];
     int C_inputs[C_size];
@@ -703,11 +701,11 @@ void build_naive_bayes_circuit(garble_circuit *gc,
     for (int i = 0; i < num_classes; ++i) {
         int *cur_prob = &probs[i * num_len];
         for (int j = 0; j < vector_size; ++j) {
-            int add_out[num_len];
             int select_out[2 * num_len]; // also used as input to add
             memcpy(select_in + T_size, client_inputs + (j * num_len), num_len * sizeof(int));
             circuit_select(gc, &ctxt, num_len, T_size / num_len, num_len, select_in, select_out);
 
+            int add_out[num_len];
             memcpy(select_out + num_len, cur_prob, num_len * sizeof(int));
 		    circuit_add(gc, &ctxt, 2 * num_len, select_out, add_out, &carry);
             memcpy(cur_prob, add_out, num_len * sizeof(int));
@@ -715,8 +713,12 @@ void build_naive_bayes_circuit(garble_circuit *gc,
     }
     
     // argmax on probs
+    int argmax_out[2 * num_len];
+    circuit_argmax(gc, &ctxt, probs, argmax_out, num_classes, num_len);
+    
+    // grab only the index from argmax_out and use it as output
+    memcpy(outputs, argmax_out, num_len * sizeof(int));
 
-    memcpy(outputs, inputs, num_len * sizeof(int));
 	builder_finish_building(gc, &ctxt, outputs);
 }
 
@@ -979,13 +981,12 @@ void circuit_argmax2(garble_circuit *gc, garble_context *ctxt,
 	memcpy(&les_ins[num_len], &inputs[3 * num_len], sizeof(int) * num_len); // put num1
 	int les_out;
 
-
 	new_circuit_les(gc, ctxt, num_len * 2, les_ins, &les_out);
 
 	// And mux 'em
-	//int mux_inputs[2 * num_len];
-	//memcpy(mux_inputs, inputs, sizeof(int) * num_len);
-	//memcpy(mux_inputs + num_len, &inputs[2 * num_len], sizeof(int) * num_len);
+	int mux_inputs[2 * num_len];
+	memcpy(mux_inputs, inputs, sizeof(int) * num_len);
+	memcpy(mux_inputs + num_len, &inputs[2 * num_len], sizeof(int) * num_len);
 	bitwiseMUX(gc, ctxt, les_out, inputs, 4 * num_len, outputs);
 }
 
@@ -1064,10 +1065,12 @@ void circuit_argmax(garble_circuit *gc, garble_context *ctxt,
 
     int tree_depth = floor(log2(array_size));
     int tree_vals[array_size * idx_val_len];
-    memcpy(tree_vals, inputs, idx_val_len * input_array_size * sizeof(int));
+
+    memcpy(tree_vals, idx_val_inputs, idx_val_len * input_array_size * sizeof(int));
     for (int i = idx_val_len * input_array_size; i < idx_val_len * array_size; ++i) {
         tree_vals[i] = -1;
     }
+
 
     // loop over tree from bottom to the top
     for (int tree_level = 0; tree_level < tree_depth; ++tree_level) {
@@ -1096,13 +1099,12 @@ void circuit_argmax(garble_circuit *gc, garble_context *ctxt,
                         ctxt, 
                         &tree_vals[idx_val_len * node], 
                         &new_tree_vals[idx_val_len * (node / 2)], 
-                        num_len
-                );
+                        num_len);
             }
         }
         memcpy(tree_vals, new_tree_vals, new_tree_size * sizeof(int));
     }
-    memcpy(outputs, tree_vals, idx_val_len * sizeof(int));
+    memcpy(outputs, tree_vals, idx_val_len * sizeof(int)); 
 }
 
 
@@ -1140,7 +1142,12 @@ new_circuit_mux21(garble_circuit *gc, garble_context *ctxt,
 
 	my_not_gate(gc, ctxt, theSwitch, notSwitch);
 	gate_AND(gc, ctxt, notSwitch, input0, and0);
+    
+    //if (input1 > 3000) { // TODO REMOVEJ
+    //    printf("ITS greater than 3000\n");
+    //}
 	gate_AND(gc, ctxt, theSwitch, input1, and1);
+
 	my_or_gate(gc, ctxt, and0, and1, *output);
 }
 
