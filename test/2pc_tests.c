@@ -252,17 +252,24 @@ static void test_select_circuit()
 static void test_naive_bayes() 
 {
     printf("test decision tree\n");
-    int num_len = 6;
-    int num_classes = 3; // nothing works when these vals are set to 4
+    int num_len = 52;
+    int num_classes = 6;
     int vector_size = 4;
-    int domain_size = 3;
+    int domain_size = 4;
 
     int client_input_size = vector_size * num_len; 
     int C_size = num_classes * num_len;
     int T_size = num_classes * vector_size * domain_size * num_len;
     int n = client_input_size + C_size + T_size;
+    printf("n = %d\n", n);
+    
+    //if (n > 5000) {
+    //    printf("not running\n");
+    //    return;
+    //}
 
     int m = num_len;
+    
 
     bool inputs[n];
     block inputLabels[2*n];
@@ -273,10 +280,7 @@ static void test_naive_bayes()
 
     /* Inputs */
     for (int i = 0; i < n; i++) {
-        if (i < n / 2) 
-            inputs[i] = rand() % 2;
-        else
-            inputs[i] = rand() % 2;
+        inputs[i] = rand() % 2;
     }
         
     /* Build Circuit */
@@ -301,14 +305,15 @@ static void test_naive_bayes()
     for (uint32_t i = 0; i < n; ++i) {
         if (i == C_size ||
             i == (C_size + T_size)) {
-            printf(" |");
+            printf(" | ");
         }
-        printf(" %d", inputs[i]);
+        printf("%d", inputs[i]);
     }
     printf("\n");
 
+    printf("Outputs:");
     for (uint32_t i = 0; i < m; ++i) {
-        printf("outputs[%d] = %d\n", i, outputs[i]);
+        printf(" %d", outputs[i]);
     }
     printf("\n");
 

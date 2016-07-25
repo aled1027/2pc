@@ -324,7 +324,7 @@ void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
     // array of switches in order that they will be used
     // add one and subtract one to ignore the sign bit
     int switches[index_size - 1];
-    memcpy(switches, inputs + 1 + (num_len * input_array_size), array_size * sizeof(int));
+    memcpy(switches, inputs + 1 + (num_len * input_array_size), (num_len - 1) * sizeof(int));
     
     // redoing tree_vals and new_tree_vals
     // going to lose memory with current scheme
@@ -1023,8 +1023,9 @@ void circuit_argmax(garble_circuit *gc, garble_context *ctxt,
 	 * where the length of idx0, idx1, num0, and num1 is num_len bits
      */
 
-    int max_num_len_val = pow(2, num_len) - 1; // max value that num_len bits can represent
-    assert(input_array_size <= max_num_len_val);
+    // Removed assertoin because overflows for large num_len
+    //int max_num_len_val = pow(2, num_len) - 1; // max value that num_len bits can represent
+    //assert(input_array_size <= max_num_len_val);
 
     // Make a new array called idx_val_inputs which puts the index
     // of element of the list before each value.
