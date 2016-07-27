@@ -19,7 +19,10 @@ typedef struct {
     CircuitType circuit_type;
     int n;
     int m;
-    int num_len; // if relevant
+    int num_len;
+    int num_classes;
+    int vector_size;
+    int domain_size;
 } cgc_information;
 
 void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int ncircuits) 
@@ -36,6 +39,8 @@ void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int n
         ChainedGarbledCircuit *cgc = &cgcs[i];
         CircuitType circuit_type = cgc_info[i].circuit_type;
 
+        int input_array_size = 0;
+        assert(input_array_size == 0);
         switch(circuit_type) {
             case INNER_PRODUCT:
                 build_inner_product_circuit(&cgc->gc, n, cgc_info[i].num_len);
@@ -48,6 +53,17 @@ void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int n
                 break;
             case NOT:
                 build_not_circuit(&cgc->gc);
+                break;
+            case SELECT:
+                input_array_size = cgc_info[i].num_classes * cgc_info[i].vector_size * cgc_info[i].domain_size * cgc_info[i].num_len;
+
+                build_select_circuit(&cgc->gc, cgc_info[i].num_len, input_array_size);
+                break;
+            case ADD:
+                build_add_circuit(&cgc->gc, cgc_info[i].num_len);
+                break;
+            case ARGMAX:
+                build_argmax_circuit(&cgc->gc, cgc_info[i].n, cgc_info[i].num_len);
                 break;
             default:
                 fprintf(stderr, "Nothing here yet!\n");
@@ -115,7 +131,6 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
 
         garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
     } else if (type == DT_NURSERY) {
-        printf("n = %d\n, num_len = %d\n");
         // generate 4 comparators and 3 ANDs
         uint32_t ncircuits = 7;
         int num_eval_inputs = n / 2;
@@ -141,7 +156,6 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
 
         garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
     } else if (type == DT_ECG) {
-        printf("n = %d\n, num_len = %d\n");
         // generate 4 comparators and 3 ANDs
         uint32_t ncircuits = 13;
         int num_eval_inputs = n / 2;
@@ -171,6 +185,53 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
         ChainedGarbledCircuit cgcs[ncircuits];
         generate_cgcs(cgcs, cgc_info, ncircuits);
         garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
+    } else {
+        printf("not doing anything\n");
     }
 
 }
+
+void nb_garb_off(char *dir, int num_len, int num_classes, int vector_size, int domain_size, NAIVE_BAYES_TYPE experiment) {
+    if (experiment == NB_WDBC) {
+        // TODO FINISH THIS
+        int num_select_circs = num_classes * vector_size;
+        int num_add_circs = num_classes * vector_size;
+        int num_argmax_circs = 1;
+        uint32_t ncircuits = num_select_circs + num_add_circs + num_argmax_circs;
+
+        int t_size = num_classes * vector_size * domain_size * num_len;
+        int c_size = num_classes * num_len;
+        int num_eval_inputs = t_size + c_size;
+
+        cgc_information cgc_info[ncircuits];
+        for (uint32_t i = 0; i < num_select_circs; i++) {
+            cgc_info[i].circuit_type = SELECT;
+            cgc_info[i].n = t_size + num_len;
+            cgc_info[i].m = num_len;
+            cgc_info[i].num_len = num_len;
+            cgc_info[i].num_classes = num_classes;
+            cgc_info[i].vector_size = vector_size;
+            cgc_info[i].domain_size = domain_size;
+        }
+
+        for (uint32_t i = num_select_circs; i < num_select_circs + num_add_circs; i++) {
+            cgc_info[i].circuit_type = ADD;
+            cgc_info[i].n = 2 * num_len;
+            cgc_info[i].m = num_len;
+            cgc_info[i].num_len = num_len;
+        }
+
+        // argmax
+        cgc_info[ncircuits-1].circuit_type = ARGMAX;
+        cgc_info[ncircuits-1].n = num_len * num_classes;
+        cgc_info[ncircuits-1].m = num_len;
+        cgc_info[ncircuits-1].num_len = num_len;
+
+        ChainedGarbledCircuit cgcs[ncircuits];
+        generate_cgcs(cgcs, cgc_info, ncircuits);
+        garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
+
+    } else {
+        printf("not doing anything\n");
+    }
+} 

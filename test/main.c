@@ -386,21 +386,21 @@ go(struct args *args)
         break;
     case EXPERIMENT_NB_WDBC:
         printf("Experiment cg dt\n");
-        num_len = 52;
-        num_classes = 6;
-        vector_size = 4;
-        domain_size = 4;
+        num_len = 10;
+        num_classes = 2;
+        vector_size = 2;
+        domain_size = 2;
         client_input_size = vector_size * num_len; 
         C_size = num_classes * num_len;
         T_size = num_classes * vector_size * domain_size * num_len;
         n = client_input_size + C_size + T_size;
 
-        ncircs = 13;
+        ncircs = (num_classes * vector_size) + (num_classes * vector_size) + 1;
         n_garb_inputs = client_input_size;
         n_eval_inputs = n - client_input_size;
         n_eval_labels = n_eval_inputs;
         type = "DT";
-        fn = "functions/ecg_dt.json";
+        fn = "functions/wdbc_nb.json";
         break;
     case EXPERIMENT_HYPERPLANE:
         printf("Experiment hyperplane\n");
@@ -451,7 +451,7 @@ go(struct args *args)
             dt_garb_off(GARBLER_DIR, n, num_len, DT_ECG);
             break;
         case EXPERIMENT_NB_WDBC:
-            dt_garb_off(GARBLER_DIR, n, num_len, NB_WDBC);
+            nb_garb_off(GARBLER_DIR, num_len, num_classes, vector_size, domain_size, NB_WDBC);
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("EXPERIMENT_HYPERPLANE garb off\n");

@@ -21,6 +21,8 @@ typedef enum {
     AND = 12,
     OR = 13,
     NOT = 14,
+    SELECT = 15,
+    ARGMAX = 16,
     CIRCUIT_TYPE_ERR = -1
 } CircuitType;
 
@@ -105,6 +107,9 @@ int INCCircuitWithSwitch(garble_circuit *gc, garble_context *ctxt,
 
 void AddAESCircuit(garble_circuit *gc, garble_context *garblingContext, int numAESRounds, 
         int *inputWires, int *outputWires);
+void build_select_circuit(garble_circuit *gc, int num_len, int input_array_size);
+void build_add_circuit(garble_circuit *gc, int num_len);
+void build_argmax_circuit(garble_circuit *gc, int n, int num_len);
 void buildANDCircuit(garble_circuit *gc, int n, int nlayers);
 void buildCBCFullCircuit(garble_circuit *gc, int num_message_blocks, int num_aes_rounds, block *delta);
 void buildAdderCircuit(garble_circuit *gc);

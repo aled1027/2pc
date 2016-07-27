@@ -1109,7 +1109,60 @@ void circuit_argmax(garble_circuit *gc, garble_context *ctxt,
 }
 
 
+void build_argmax_circuit(garble_circuit *gc, int n, int num_len) 
+{
+    assert(0 == n % num_len);
+    int input_array_size = n / num_len;
 
+    int m = num_len;
+    int inputs[n];
+    int outputs[m];
+    garble_context ctxt;
+    
+    countToN(inputs, n);
+
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+
+    circuit_argmax(gc, &ctxt, inputs, outputs, input_array_size, num_len);
+	builder_finish_building(gc, &ctxt, outputs);
+}
+
+void build_add_circuit(garble_circuit *gc, int num_len) 
+{
+    int n = 2 * num_len;
+    int m = num_len;
+    int inputs[n];
+    int outputs[m];
+    garble_context ctxt;
+    
+    countToN(inputs, n);
+
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+
+    int carry;
+    circuit_add(gc, &ctxt, 2 * num_len, inputs, outputs, &carry);
+	builder_finish_building(gc, &ctxt, outputs);
+}
+
+void build_select_circuit(garble_circuit *gc, int num_len, int input_array_size) 
+{
+    int n = (input_array_size * num_len) + num_len;
+    int m = num_len;
+    int inputs[n];
+    int outputs[m];
+    garble_context ctxt;
+    
+    countToN(inputs, n);
+
+	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(gc, &ctxt);
+
+    circuit_select(gc, &ctxt, num_len, input_array_size, num_len, inputs, outputs);
+
+	builder_finish_building(gc, &ctxt, outputs);
+}
 void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
 		int *inputs, int *output) 
 {
