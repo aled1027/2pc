@@ -386,10 +386,10 @@ go(struct args *args)
         break;
     case EXPERIMENT_NB_WDBC:
         printf("Experiment cg dt\n");
-        num_len = 10;
-        num_classes = 2;
-        vector_size = 2;
-        domain_size = 2;
+        num_len = 52;
+        num_classes = 5;
+        vector_size = 6;
+        domain_size = 7;
         client_input_size = vector_size * num_len; 
         C_size = num_classes * num_len;
         T_size = num_classes * vector_size * domain_size * num_len;
@@ -399,7 +399,7 @@ go(struct args *args)
         n_garb_inputs = client_input_size;
         n_eval_inputs = n - client_input_size;
         n_eval_labels = n_eval_inputs;
-        type = "DT";
+        type = "Naive bayes";
         fn = "functions/wdbc_nb.json";
         break;
     case EXPERIMENT_HYPERPLANE:

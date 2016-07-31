@@ -208,7 +208,8 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
     circuit_argmax(probs_gc_ids)
 
 
-    ret_dict['metadata']["instructions_size"] = 89
+    ret_dict['metadata']["instructions_size"] = 425 + 2756
+    #ret_dict['metadata']["instructions_size"] = 425
     ret_dict['metadata']["input_mapping_size"] = len(ret_dict['input_mapping'])
     del ret_dict['next_select_gc_id']
     del ret_dict['next_add_gc_id']
@@ -216,8 +217,8 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
     print(s)
 
 if __name__ == '__main__':
-    num_len = 10
-    num_classes = 2
-    vector_size = 2
-    domain_size = 2
+    num_len = 52
+    num_classes = 5
+    vector_size = 6
+    domain_size = 7
     wdbc(num_len, num_classes, vector_size, domain_size)

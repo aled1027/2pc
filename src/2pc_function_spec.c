@@ -404,9 +404,6 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
 
     if (chainingType == CHAINING_TYPE_STANDARD) {
         instructions->size = num_instructions + imap->size;
-        printf("imap->size = %d\n", imap->size);
-        printf("num_instructions = %d\n", num_instructions);
-        printf("instructions->size = %d\n", instructions->size);
     } else {
         instructions->size = imap->size + loop_size;
     }
