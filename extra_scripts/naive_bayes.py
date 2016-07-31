@@ -134,7 +134,7 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
 
         if prev_gc_id == 0:
             # grab val from input_mapping
-            o = OrderedDict({
+            o2 = OrderedDict({
                 "inputter": "evaluator", # aka server
                 "start_input_idx": num_len *  c_input_idx,
                 "end_input_idx": (num_len * c_input_idx) + num_len - 1,
@@ -142,8 +142,7 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
                 "start_wire_idx": num_len,
                 "end_wire_idx": num_len + num_len - 1
             })
-
-
+            ret_dict['input_mapping'].append(o2)
         else:
             # chain from prev_gc_id
             o2 = OrderedDict({

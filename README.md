@@ -94,6 +94,10 @@ under this assumption. It is fixable, but I would need to go back and test all o
 
 - GR0 component
     - make sure grabbing the correct bit
+- online naive bayes
+    - 1-4 are outputting correctly. 
+    - 5 is not.
+    - not input mapping to add circuits correctly.
 
 
 ### The deets
