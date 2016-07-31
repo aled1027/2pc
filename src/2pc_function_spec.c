@@ -44,6 +44,12 @@ get_circuit_type_from_string(const char* type)
         return GR0;
     } else if (strcmp(type, "NOT") == 0) {
         return NOT;
+    } else if (strcmp(type, "SELECT") == 0) {
+        return SELECT;
+    } else if (strcmp(type, "ADD") == 0) {
+        return ADD;
+    } else if (strcmp(type, "ARGMAX") == 0) {
+        return ARGMAX;
     } else {
         fprintf(stderr, "circuit type error when loading json: can't detect %s\n", type);
         return CIRCUIT_TYPE_ERR;
@@ -290,13 +296,19 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
     json_t *jInputMapping, *jMap, *jGcId, *jWireIdx, *jInputter, *jInputIdx, *jPtr, *jMetadata;
 
     jMetadata = json_object_get(root, "metadata");
-    jPtr = json_object_get(jMetadata, "input_mapping_size");
-    assert(json_is_integer(jPtr));
-    imap->size = json_integer_value(jPtr);
+    //jPtr = json_object_get(jMetadata, "input_mapping_size");
+    //assert(json_is_integer(jPtr));
+    //imap->size = json_integer_value(jPtr);
 
     jInputMapping = json_object_get(root, "input_mapping");
     assert(json_is_array(jInputMapping));
     int loop_size = json_array_size(jInputMapping);  // size is subject to change in for loop
+    printf("loop_size = %d\n", loop_size);
+
+    imap->size = loop_size;
+
+
+
     assert(loop_size == imap->size);  // don't need metadata:input_mapping_size, (maybe used in loading instructions)
     imap->imap_instr = malloc(imap->size * sizeof(InputMappingInstruction));
     assert(imap->imap_instr);
@@ -392,6 +404,9 @@ json_load_instructions(json_t *root, FunctionSpec *function, ChainingType chaini
 
     if (chainingType == CHAINING_TYPE_STANDARD) {
         instructions->size = num_instructions + imap->size;
+        printf("imap->size = %d\n", imap->size);
+        printf("num_instructions = %d\n", num_instructions);
+        printf("instructions->size = %d\n", instructions->size);
     } else {
         instructions->size = imap->size + loop_size;
     }

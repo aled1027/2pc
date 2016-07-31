@@ -86,8 +86,12 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - e.g. 010 + 010 = 001
 
 ## Notes and TODO
-- Add padding when neccessary to `circuit_select`.
-- See Arkady's email.
+- check that naive bayes offline is working
+- get naive bayes online working
+- put component ids in order from least to greatest. 
+    - there is a bug where labels[i] and computedouptutmap[i] are allocated memory
+under this assumption. It is fixable, but I would need to go back and test all of the other experiments. 
+
 - GR0 component
     - make sure grabbing the correct bit
 
@@ -102,9 +106,6 @@ if the mininimum is either D0,D1, and should be 1 if the minimum is D2. The poin
     - multiplied by `10**18`
     - used `num_len = 58`
 - naive bayes
-    - FINISH SELECT CIRCUIT
-        - not producing correct output for array_size = 5 
-        - tests
     - v ranges from `0 to num_classes * |x| (number of components in vector x)`
          - v is big for audiology dataset
     - server inputs:

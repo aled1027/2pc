@@ -18,6 +18,7 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
     return the_argmax
     """
 
+
     client_input_size = vector_size * num_len
     C_size = num_classes * num_len
     T_size = num_classes * vector_size * domain_size * num_len
@@ -59,17 +60,20 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
     # Some useful constants for the upcoming computation
     t_input_start_idx = C_size
     t_input_end_idx = C_size + T_size - 1
-    ret_dict['next_gc_id'] = 1
     ret_dict['input_mapping'] = []
     ret_dict['instructions'] = []
+
+    num_select_gc_id = num_classes * vector_size
+    ret_dict['next_select_gc_id'] = 1
+    ret_dict['next_add_gc_id'] = num_select_gc_id + 1
 
     def circuit_select(which_client_input):
         """Adds select circuit to input mapping, and instructions
 
         Alters state
         """
-        to_gc_id = ret_dict['next_gc_id']
-        ret_dict['next_gc_id'] += 1
+        to_gc_id = ret_dict['next_select_gc_id']
+        ret_dict['next_select_gc_id'] += 1
 
         # Add to components
         ret_dict['components'][0]['num'] += 1
@@ -109,8 +113,8 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
     def circuit_add(select_gc_id, prev_gc_id, c_input_idx=0):
         """Adds output of select_gc_id and prev_gc_id"""
 
-        to_gc_id = ret_dict['next_gc_id']
-        ret_dict['next_gc_id'] += 1
+        to_gc_id = ret_dict['next_add_gc_id']
+        ret_dict['next_add_gc_id'] += 1
 
         # update components
         ret_dict['components'][1]['num'] += 1
@@ -163,8 +167,8 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
 
     def circuit_argmax(probs_gc_ids):
         # take argmax of probs
-        argmax_gc_id = ret_dict['next_gc_id']
-        ret_dict['next_gc_id'] += 1
+        argmax_gc_id = ret_dict['next_add_gc_id']
+        ret_dict['next_add_gc_id'] += 1
         ret_dict['components'][2]['num'] += 1
         ret_dict['components'][2]['circuit_ids'].append(argmax_gc_id)
 
@@ -205,14 +209,15 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
     circuit_argmax(probs_gc_ids)
 
 
-    ret_dict['metadata']["instructions_size"] = len(ret_dict['instructions'])
+    ret_dict['metadata']["instructions_size"] = 89
     ret_dict['metadata']["input_mapping_size"] = len(ret_dict['input_mapping'])
-    del ret_dict['next_gc_id']
+    del ret_dict['next_select_gc_id']
+    del ret_dict['next_add_gc_id']
     s = json.dumps(ret_dict)
     print(s)
 
 if __name__ == '__main__':
-    num_len = 4
+    num_len = 10
     num_classes = 2
     vector_size = 2
     domain_size = 2

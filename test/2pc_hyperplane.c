@@ -55,7 +55,7 @@ void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int n
                 build_not_circuit(&cgc->gc);
                 break;
             case SELECT:
-                input_array_size = cgc_info[i].num_classes * cgc_info[i].vector_size * cgc_info[i].domain_size * cgc_info[i].num_len;
+                input_array_size = cgc_info[i].num_classes * cgc_info[i].vector_size * cgc_info[i].domain_size;
 
                 build_select_circuit(&cgc->gc, cgc_info[i].num_len, input_array_size);
                 break;
@@ -202,6 +202,8 @@ void nb_garb_off(char *dir, int num_len, int num_classes, int vector_size, int d
         int t_size = num_classes * vector_size * domain_size * num_len;
         int c_size = num_classes * num_len;
         int num_eval_inputs = t_size + c_size;
+
+        printf("t_size = %d\n", t_size);
 
         cgc_information cgc_info[ncircuits];
         for (uint32_t i = 0; i < num_select_circs; i++) {
