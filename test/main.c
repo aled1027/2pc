@@ -152,6 +152,8 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
         load_model_into_inputs(inputs, "wdbc");
     } else if (EXPERIMENT_HP_CREDIT == which_experiment) {
         load_model_into_inputs(inputs, "credit");
+    } else if (EXPERIMENT_NB_WDBC == which_experiment) {
+        load_model_into_inputs(inputs, "nb_wdbc");
     } else {
         for (int i = 0; i < ninputs; i++) {
             inputs[i] = rand() % 2;
@@ -387,18 +389,17 @@ go(struct args *args)
     case EXPERIMENT_NB_WDBC:
         printf("Experiment cg dt\n");
         num_len = 52;
-        num_classes = 5;
-        vector_size = 6;
-        domain_size = 7;
+        num_classes = 2;
+        vector_size = 9;
+        domain_size = 10;
         client_input_size = vector_size * num_len; 
         C_size = num_classes * num_len;
         T_size = num_classes * vector_size * domain_size * num_len;
         n = client_input_size + C_size + T_size;
 
         ncircs = (num_classes * vector_size) + (num_classes * vector_size) + 1;
-        n_garb_inputs = client_input_size;
-        n_eval_inputs = n - client_input_size;
-        n_eval_labels = n_eval_inputs;
+        n_eval_inputs = client_input_size;
+        n_garb_inputs = n - client_input_size;
         type = "Naive bayes";
         fn = "functions/wdbc_nb.json";
         break;

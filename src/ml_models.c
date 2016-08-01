@@ -1,5 +1,6 @@
-#include <string.h>
 #include <assert.h>
+#include <string.h>
+#include <inttypes.h>
 
 #include "utils.h"
 #include "ml_models.h"
@@ -24,7 +25,6 @@ void print_model(const Model *model)
     printf("]\n");
 
 }
-
 
 Model *get_model(const char *path)
 {
@@ -61,14 +61,6 @@ Model *get_model(const char *path)
     free(temp);
     temp = NULL;
 
-    // get type
-    j_ptr = json_object_get(j_root, "type");
-    temp =  (char* ) json_string_value(j_ptr);
-    assert(strlen(temp) + 1 < 128);
-    memcpy(model->type, temp, sizeof(char) * strlen(temp) + 1);
-    free(temp);
-    temp = NULL;
-
     // get log_num_len
     j_ptr = json_object_get(j_root, "num_len");
     assert(json_is_integer(j_ptr));
@@ -79,7 +71,7 @@ Model *get_model(const char *path)
 
     assert(json_is_array(j_data));
     model->data_size = json_array_size(j_data); 
-    model->data = malloc(sizeof(double) * model->data_size);
+    model->data = malloc(sizeof(int64_t) * model->data_size);
 
     for (uint32_t i = 0; i < model->data_size; ++i) {
         j_ptr = json_array_get(j_data, i);
@@ -87,6 +79,7 @@ Model *get_model(const char *path)
         model->data[i] = json_integer_value(j_ptr);
     }
 
+    printf("loaded it\n");
     return model;
 
 cleanup:
@@ -95,8 +88,10 @@ cleanup:
     return NULL;
 }
 
+
 void load_model_into_inputs(bool *inputs, const char *model_name)
 {
+    Model *model;
     char path[40];
     if (0 == strcmp(model_name, "wdbc")) {
         int res = sprintf(path, "%s", "models/wdbc.json");
@@ -104,12 +99,16 @@ void load_model_into_inputs(bool *inputs, const char *model_name)
     } else if (0 == strcmp(model_name, "credit")) {
         int res = sprintf(path, "%s", "models/credit.json");
         assert(res);
+    } else if (0 == strcmp(model_name, "nb_wdbc")) {
+        printf("loading nb_wdbc\n");
+        int res = sprintf(path, "%s", "models/wdbc_nb.json");
+        assert(res);
     } else {
         printf("model_name not detected\n");
         return;
     }
 
-    Model *model = get_model(path); 
+    model = get_model(path); 
 
     uint32_t inputs_i = 0;
     for (uint32_t i = 0; i < model->data_size; ++i) {

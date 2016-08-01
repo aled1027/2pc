@@ -191,7 +191,8 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
 
 }
 
-void nb_garb_off(char *dir, int num_len, int num_classes, int vector_size, int domain_size, NAIVE_BAYES_TYPE experiment) {
+void nb_garb_off(char *dir, int num_len, int num_classes, int vector_size, int domain_size, NAIVE_BAYES_TYPE experiment) 
+{
     if (experiment == NB_WDBC) {
         // TODO FINISH THIS
         int num_select_circs = num_classes * vector_size;
@@ -201,9 +202,7 @@ void nb_garb_off(char *dir, int num_len, int num_classes, int vector_size, int d
 
         int t_size = num_classes * vector_size * domain_size * num_len;
         int c_size = num_classes * num_len;
-        int num_eval_inputs = t_size + c_size;
-
-        printf("t_size = %d\n", t_size);
+        int num_eval_inputs = vector_size * num_len;
 
         cgc_information cgc_info[ncircuits];
         for (uint32_t i = 0; i < num_select_circs; i++) {

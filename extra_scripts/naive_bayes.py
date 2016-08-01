@@ -23,8 +23,8 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
     C_size = num_classes * num_len
     T_size = num_classes * vector_size * domain_size * num_len
     n = client_input_size + C_size + T_size
-    num_garb_inputs = client_input_size
-    num_eval_inputs = n - client_input_size
+    num_eval_inputs = client_input_size
+    num_garb_inputs = n - client_input_size
     m = num_len
 
     ret_dict = OrderedDict()
@@ -82,7 +82,7 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
         # Add to input mapping
         # Get T_inputs put here
         o = OrderedDict({
-            "inputter": "evaluator", # aka server
+            "inputter": "garbler", # aka server
             "start_input_idx": t_input_start_idx,
             "end_input_idx": t_input_end_idx,
             "gc_id": to_gc_id,
@@ -94,7 +94,7 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
         client_input_start_idx = which_client_input * num_len
         client_input_end_idx = (which_client_input * num_len) + num_len - 1
         o = OrderedDict({
-            "inputter": "garbler", # aka client
+            "inputter": "evaluator", # aka client
             "start_input_idx": client_input_start_idx,
             "end_input_idx": client_input_end_idx,
             "gc_id": to_gc_id,
@@ -135,7 +135,7 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
         if prev_gc_id == 0:
             # grab val from input_mapping
             o2 = OrderedDict({
-                "inputter": "evaluator", # aka server
+                "inputter": "garbler", # aka server
                 "start_input_idx": num_len *  c_input_idx,
                 "end_input_idx": (num_len * c_input_idx) + num_len - 1,
                 "gc_id": to_gc_id,
@@ -208,8 +208,7 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
     circuit_argmax(probs_gc_ids)
 
 
-    ret_dict['metadata']["instructions_size"] = 425 + 2756
-    #ret_dict['metadata']["instructions_size"] = 425
+    ret_dict['metadata']["instructions_size"] = 425 + 2756 - 1272
     ret_dict['metadata']["input_mapping_size"] = len(ret_dict['input_mapping'])
     del ret_dict['next_select_gc_id']
     del ret_dict['next_add_gc_id']
@@ -218,7 +217,7 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
 
 if __name__ == '__main__':
     num_len = 52
-    num_classes = 5
-    vector_size = 6
-    domain_size = 7
+    num_classes = 2
+    vector_size = 9
+    domain_size = 10
     wdbc(num_len, num_classes, vector_size, domain_size)
