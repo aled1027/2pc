@@ -218,6 +218,6 @@ def wdbc(num_len, num_classes, vector_size, domain_size):
 if __name__ == '__main__':
     num_len = 52
     num_classes = 5
-    vector_size = 9
+    vector_size = 70
     domain_size = 5
     wdbc(num_len, num_classes, vector_size, domain_size)

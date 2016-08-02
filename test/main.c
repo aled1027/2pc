@@ -35,7 +35,8 @@ typedef enum {
     EXPERIMENT_DT_NURSERY, 
     EXPERIMENT_DT_ECG, 
     EXPERIMENT_NB_WDBC,
-    EXPERIMENT_NB_NURSERY
+    EXPERIMENT_NB_NURSERY,
+    EXPERIMENT_NB_AUD
 } experiment;
 
 static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
@@ -438,7 +439,25 @@ go(struct args *args)
         n_garb_inputs = n - client_input_size;
         type = "Naive bayes";
         fn = "functions/nursery_nb.json";
+        break; 
+    case EXPERIMENT_NB_AUD:
+        printf("Experiment nursery naive bayes\n");
+        num_len = 52;
+        num_classes = 5;
+        vector_size = 70;
+        domain_size = 5;
+        client_input_size = vector_size * num_len; 
+        C_size = num_classes * num_len;
+        T_size = num_classes * vector_size * domain_size * num_len;
+        n = client_input_size + C_size + T_size;
+
+        ncircs = (num_classes * vector_size) + (num_classes * vector_size) + 1;
+        n_eval_inputs = client_input_size;
+        n_garb_inputs = n - client_input_size;
+        type = "Naive bayes";
+        fn = "functions/nursery_nb.json";
         break;
+
 case EXPERIMENT_HYPERPLANE:
         printf("Experiment hyperplane\n");
         fn = NULL; // TODO add function
@@ -492,6 +511,9 @@ case EXPERIMENT_HYPERPLANE:
             break;
         case EXPERIMENT_NB_NURSERY:
             nb_garb_off(GARBLER_DIR, num_len, num_classes, vector_size, domain_size, NB_NURSERY);
+            break;
+        case EXPERIMENT_NB_AUD:
+            nb_garb_off(GARBLER_DIR, num_len, num_classes, vector_size, domain_size, NB_AUD);
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("EXPERIMENT_HYPERPLANE garb off\n");
@@ -560,6 +582,10 @@ case EXPERIMENT_HYPERPLANE:
             break;
         case EXPERIMENT_NB_NURSERY:
             printf("experiment nusery nb\n");
+            build_naive_bayes_circuit(&gc, num_classes, vector_size, domain_size, num_len);
+            break;
+        case EXPERIMENT_NB_AUD:
+            printf("experiment aud nb\n");
             build_naive_bayes_circuit(&gc, num_classes, vector_size, domain_size, num_len);
             break;
         case EXPERIMENT_HYPERPLANE:
@@ -651,6 +677,8 @@ main(int argc, char *argv[])
                 args.type = EXPERIMENT_NB_WDBC;
             } else if (strcmp(optarg, "NURSERY_NB") == 0) {
                 args.type = EXPERIMENT_NB_NURSERY;
+            } else if (strcmp(optarg, "AUD_NB") == 0) {
+                args.type = EXPERIMENT_NB_AUD;
             } else {
                 fprintf(stderr, "Unknown circuit type %s\n", optarg);
                 exit(EXIT_FAILURE);

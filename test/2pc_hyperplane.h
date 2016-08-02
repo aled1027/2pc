@@ -3,7 +3,7 @@
 
 typedef enum { WDBC, CREDIT} HYPERPLANE_TYPE;
 typedef enum { DT_RANDOM, DT_NURSERY, DT_ECG} DECISION_TREE_TYPE;
-typedef enum {NB_WDBC, NB_NURSERY} NAIVE_BAYES_TYPE;
+typedef enum {NB_WDBC, NB_NURSERY, NB_AUD} NAIVE_BAYES_TYPE;
 
 void hyperplane_garb_off(char *dir, uint32_t n, uint32_t num_len, HYPERPLANE_TYPE type);
 void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE type);

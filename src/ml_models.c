@@ -105,7 +105,6 @@ void load_model_into_inputs(bool *inputs, const char *model_name)
 
     uint32_t inputs_i = 0;
     for (uint32_t i = 0; i < model->data_size; ++i) {
-        printf("model->data_size = %lu\n", model->data_size);
         convertToSignedBinary(model->data[i], inputs + inputs_i, model->num_len);
         inputs_i += model->num_len;
     }

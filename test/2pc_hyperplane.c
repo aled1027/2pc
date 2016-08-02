@@ -193,45 +193,41 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
 
 void nb_garb_off(char *dir, int num_len, int num_classes, int vector_size, int domain_size, NAIVE_BAYES_TYPE experiment) 
 {
-    if (experiment == NB_WDBC || experiment == NB_NURSERY) {
-        int num_select_circs = num_classes * vector_size;
-        int num_add_circs = num_classes * vector_size;
-        int num_argmax_circs = 1;
-        uint32_t ncircuits = num_select_circs + num_add_circs + num_argmax_circs;
+    int num_select_circs = num_classes * vector_size;
+    int num_add_circs = num_classes * vector_size;
+    int num_argmax_circs = 1;
+    uint32_t ncircuits = num_select_circs + num_add_circs + num_argmax_circs;
 
-        int t_size = num_classes * vector_size * domain_size * num_len;
-        int c_size = num_classes * num_len;
-        int num_eval_inputs = vector_size * num_len;
+    int t_size = num_classes * vector_size * domain_size * num_len;
+    int c_size = num_classes * num_len;
+    int num_eval_inputs = vector_size * num_len;
 
-        cgc_information cgc_info[ncircuits];
-        for (uint32_t i = 0; i < num_select_circs; i++) {
-            cgc_info[i].circuit_type = SELECT;
-            cgc_info[i].n = t_size + num_len;
-            cgc_info[i].m = num_len;
-            cgc_info[i].num_len = num_len;
-            cgc_info[i].num_classes = num_classes;
-            cgc_info[i].vector_size = vector_size;
-            cgc_info[i].domain_size = domain_size;
-        }
-
-        for (uint32_t i = num_select_circs; i < num_select_circs + num_add_circs; i++) {
-            cgc_info[i].circuit_type = ADD;
-            cgc_info[i].n = 2 * num_len;
-            cgc_info[i].m = num_len;
-            cgc_info[i].num_len = num_len;
-        }
-
-        // argmax
-        cgc_info[ncircuits-1].circuit_type = ARGMAX;
-        cgc_info[ncircuits-1].n = num_len * num_classes;
-        cgc_info[ncircuits-1].m = num_len;
-        cgc_info[ncircuits-1].num_len = num_len;
-
-        ChainedGarbledCircuit cgcs[ncircuits];
-        generate_cgcs(cgcs, cgc_info, ncircuits);
-        garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
-
-    } else {
-        printf("not doing anything\n");
+    cgc_information cgc_info[ncircuits];
+    for (uint32_t i = 0; i < num_select_circs; i++) {
+        cgc_info[i].circuit_type = SELECT;
+        cgc_info[i].n = t_size + num_len;
+        cgc_info[i].m = num_len;
+        cgc_info[i].num_len = num_len;
+        cgc_info[i].num_classes = num_classes;
+        cgc_info[i].vector_size = vector_size;
+        cgc_info[i].domain_size = domain_size;
     }
+
+    for (uint32_t i = num_select_circs; i < num_select_circs + num_add_circs; i++) {
+        cgc_info[i].circuit_type = ADD;
+        cgc_info[i].n = 2 * num_len;
+        cgc_info[i].m = num_len;
+        cgc_info[i].num_len = num_len;
+    }
+
+    // argmax
+    cgc_info[ncircuits-1].circuit_type = ARGMAX;
+    cgc_info[ncircuits-1].n = num_len * num_classes;
+    cgc_info[ncircuits-1].m = num_len;
+    cgc_info[ncircuits-1].num_len = num_len;
+
+    ChainedGarbledCircuit cgcs[ncircuits];
+    generate_cgcs(cgcs, cgc_info, ncircuits);
+    garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
+
 } 
