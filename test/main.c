@@ -24,7 +24,19 @@
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
-typedef enum { EXPERIMENT_AES, EXPERIMENT_CBC, EXPERIMENT_LEVEN, EXPERIMENT_WDBC, EXPERIMENT_HP_CREDIT, EXPERIMENT_HYPERPLANE, EXPERIMENT_RANDOM_DT, EXPERIMENT_DT_NURSERY, EXPERIMENT_DT_ECG, EXPERIMENT_NB_WDBC} experiment;
+typedef enum { 
+    EXPERIMENT_AES, 
+    EXPERIMENT_CBC, 
+    EXPERIMENT_LEVEN, 
+    EXPERIMENT_WDBC, 
+    EXPERIMENT_HP_CREDIT, 
+    EXPERIMENT_HYPERPLANE, 
+    EXPERIMENT_RANDOM_DT, 
+    EXPERIMENT_DT_NURSERY, 
+    EXPERIMENT_DT_ECG, 
+    EXPERIMENT_NB_WDBC,
+    EXPERIMENT_NB_NURSERY
+} experiment;
 
 static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD(int l) { return getDIntSize(l) * (l+1); }
@@ -150,10 +162,17 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
         }
     } else if (EXPERIMENT_WDBC == which_experiment) {
         load_model_into_inputs(inputs, "wdbc");
+
     } else if (EXPERIMENT_HP_CREDIT == which_experiment) {
         load_model_into_inputs(inputs, "credit");
+
     } else if (EXPERIMENT_NB_WDBC == which_experiment) {
         load_model_into_inputs(inputs, "nb_wdbc");
+
+    // Load nursery nb randomly; the model was invalid
+    //} else if (EXPERIMENT_NB_NURSERY == which_experiment) {
+    //    load_model_into_inputs(inputs, "nb_nursery");
+
     } else {
         for (int i = 0; i < ninputs; i++) {
             inputs[i] = rand() % 2;
@@ -387,7 +406,7 @@ go(struct args *args)
         fn = "functions/ecg_dt.json";
         break;
     case EXPERIMENT_NB_WDBC:
-        printf("Experiment cg dt\n");
+        printf("Experiment nursery naive bayes\n");
         num_len = 52;
         num_classes = 2;
         vector_size = 9;
@@ -403,7 +422,24 @@ go(struct args *args)
         type = "Naive bayes";
         fn = "functions/wdbc_nb.json";
         break;
-    case EXPERIMENT_HYPERPLANE:
+    case EXPERIMENT_NB_NURSERY:
+        printf("Experiment nursery naive bayes\n");
+        num_len = 52;
+        num_classes = 5;
+        vector_size = 9;
+        domain_size = 5;
+        client_input_size = vector_size * num_len; 
+        C_size = num_classes * num_len;
+        T_size = num_classes * vector_size * domain_size * num_len;
+        n = client_input_size + C_size + T_size;
+
+        ncircs = (num_classes * vector_size) + (num_classes * vector_size) + 1;
+        n_eval_inputs = client_input_size;
+        n_garb_inputs = n - client_input_size;
+        type = "Naive bayes";
+        fn = "functions/nursery_nb.json";
+        break;
+case EXPERIMENT_HYPERPLANE:
         printf("Experiment hyperplane\n");
         fn = NULL; // TODO add function
         n_garb_inputs = 4;
@@ -453,6 +489,9 @@ go(struct args *args)
             break;
         case EXPERIMENT_NB_WDBC:
             nb_garb_off(GARBLER_DIR, num_len, num_classes, vector_size, domain_size, NB_WDBC);
+            break;
+        case EXPERIMENT_NB_NURSERY:
+            nb_garb_off(GARBLER_DIR, num_len, num_classes, vector_size, domain_size, NB_NURSERY);
             break;
         case EXPERIMENT_HYPERPLANE:
             printf("EXPERIMENT_HYPERPLANE garb off\n");
@@ -516,7 +555,11 @@ go(struct args *args)
             build_decision_tree_ecg_circuit(&gc, num_len);
             break;
         case EXPERIMENT_NB_WDBC:
-            printf("experiment ecg dt\n");
+            printf("experiment nursery nb\n");
+            build_naive_bayes_circuit(&gc, num_classes, vector_size, domain_size, num_len);
+            break;
+        case EXPERIMENT_NB_NURSERY:
+            printf("experiment nusery nb\n");
             build_naive_bayes_circuit(&gc, num_classes, vector_size, domain_size, num_len);
             break;
         case EXPERIMENT_HYPERPLANE:
@@ -606,6 +649,8 @@ main(int argc, char *argv[])
                 args.type = EXPERIMENT_DT_ECG;
             } else if (strcmp(optarg, "WDBC_NB") == 0) {
                 args.type = EXPERIMENT_NB_WDBC;
+            } else if (strcmp(optarg, "NURSERY_NB") == 0) {
+                args.type = EXPERIMENT_NB_NURSERY;
             } else {
                 fprintf(stderr, "Unknown circuit type %s\n", optarg);
                 exit(EXIT_FAILURE);

@@ -51,15 +51,6 @@ Model *get_model(const char *path)
     j_root = json_loads(buffer, 0, &error);
 
     Model *model = malloc(sizeof(Model));
-    char *temp;
-
-    // get name
-    j_ptr = json_object_get(j_root, "name");
-    temp = (char*) json_string_value(j_ptr);
-    assert(strlen(temp) + 1 < 128);
-    memcpy(model->name, temp, sizeof(char) * strlen(temp) + 1);
-    free(temp);
-    temp = NULL;
 
     // get log_num_len
     j_ptr = json_object_get(j_root, "num_len");
@@ -100,8 +91,10 @@ void load_model_into_inputs(bool *inputs, const char *model_name)
         int res = sprintf(path, "%s", "models/credit.json");
         assert(res);
     } else if (0 == strcmp(model_name, "nb_wdbc")) {
-        printf("loading nb_wdbc\n");
         int res = sprintf(path, "%s", "models/wdbc_nb.json");
+        assert(res);
+    } else if (0 == strcmp(model_name, "nb_nursery")) {
+        int res = sprintf(path, "%s", "models/nursery_nb.json");
         assert(res);
     } else {
         printf("model_name not detected\n");
@@ -112,6 +105,7 @@ void load_model_into_inputs(bool *inputs, const char *model_name)
 
     uint32_t inputs_i = 0;
     for (uint32_t i = 0; i < model->data_size; ++i) {
+        printf("model->data_size = %lu\n", model->data_size);
         convertToSignedBinary(model->data[i], inputs + inputs_i, model->num_len);
         inputs_i += model->num_len;
     }

@@ -193,8 +193,7 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
 
 void nb_garb_off(char *dir, int num_len, int num_classes, int vector_size, int domain_size, NAIVE_BAYES_TYPE experiment) 
 {
-    if (experiment == NB_WDBC) {
-        // TODO FINISH THIS
+    if (experiment == NB_WDBC || experiment == NB_NURSERY) {
         int num_select_circs = num_classes * vector_size;
         int num_add_circs = num_classes * vector_size;
         int num_argmax_circs = 1;

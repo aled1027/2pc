@@ -303,11 +303,8 @@ json_load_input_mapping(json_t *root, FunctionSpec* function)
     jInputMapping = json_object_get(root, "input_mapping");
     assert(json_is_array(jInputMapping));
     int loop_size = json_array_size(jInputMapping);  // size is subject to change in for loop
-    printf("loop_size = %d\n", loop_size);
 
     imap->size = loop_size;
-
-
 
     assert(loop_size == imap->size);  // don't need metadata:input_mapping_size, (maybe used in loading instructions)
     imap->imap_instr = malloc(imap->size * sizeof(InputMappingInstruction));

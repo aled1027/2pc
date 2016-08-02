@@ -1,7 +1,7 @@
 
 import json
 
-with open('extra_scripts/d.json') as the_file:
+with open('d.json') as the_file:
     data = json.load(the_file)
 
 priors = data['prior']
@@ -15,8 +15,10 @@ priors = mapper(priors)
 
 new_conds = []
 for i, outer in enumerate(conds):
+    print("outer: ", len(outer))
     new = []
     for j, middle in enumerate(outer):
+        print("middle: ", len(middle))
         new_vals = mapper(middle)
         new.extend(new_vals)
     new_conds.extend(new)
@@ -30,7 +32,7 @@ data = {
     'num_len': 52
     }
 s = json.dumps(data)
-print(s)
+#print(s)
 
 
 
