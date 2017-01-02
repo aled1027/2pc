@@ -136,25 +136,22 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
 }
 
 void
-evaluator_classic_2pc(const int *input, bool *output,
+evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
                       int num_garb_inputs, int num_eval_inputs,
                       uint64_t *tot_time)
 {
-    /* Does the "full" garbled circuit protocol, wherein there is no online phase.
-     * The garbled circuit and all input labels are communicated during the 
-     * online phase, although we do use OT-processing
+    /* Does the "full" garbled circuit protocol, wherein there is no online
+     * phase.  The garbled circuit and all input labels are communicated during
+     * the online phase, although we do use OT-processing
      */
 
     int sockfd;
     int *selections = NULL;
-    garble_circuit gc;
     OldInputMapping map;
     block *garb_labels = NULL, *eval_labels = NULL;
     block *labels, *output_map;
     uint64_t start, end, _start, _end;
     size_t tmp;
-
-    gc.type = GARBLE_TYPE_STANDARD;
 
     if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
         perror("net_init_client");
@@ -184,11 +181,12 @@ evaluator_classic_2pc(const int *input, bool *output,
     _start = current_time_();
     {
         tmp = g_bytes_received;
-        gc_comm_recv(sockfd, &gc);
+        gc_comm_recv(sockfd, gc);
     }
     _end = current_time_();
     fprintf(stderr, "Receive GC: %llu\n", _end - _start);
     fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
+    fflush(stderr);
 
     _start = current_time_();
     tmp = g_bytes_received;
@@ -224,8 +222,8 @@ evaluator_classic_2pc(const int *input, bool *output,
     _start = current_time_();
     {
         tmp = g_bytes_received;
-        output_map = garble_allocate_blocks(2 * gc.m);
-        net_recv(sockfd, output_map, sizeof(block) * 2 * gc.m, 0);
+        output_map = garble_allocate_blocks(2 * gc->m);
+        net_recv(sockfd, output_map, sizeof(block) * 2 * gc->m, 0);
     }
     _end = current_time_();
     fprintf(stderr, "Receive output map: %llu\n", _end - _start);
@@ -251,7 +249,7 @@ evaluator_classic_2pc(const int *input, bool *output,
     
     /* Plug labels in correctly based on input_mapping */
     {
-        labels = garble_allocate_blocks(gc.n);
+        labels = garble_allocate_blocks(gc->n);
         int garb_p = 0, eval_p = 0;
         for (int i = 0; i < map.size; i++) {
             if (map.inputter[i] == PERSON_GARBLER) {
@@ -266,14 +264,13 @@ evaluator_classic_2pc(const int *input, bool *output,
 
     _start = current_time_();
     {
-        bool *outputs = calloc(gc.m, sizeof(bool));
-        garble_eval(&gc, labels, NULL, outputs);
+        bool *outputs = calloc(gc->m, sizeof(bool));
+        garble_eval(gc, labels, NULL, outputs);
         free(outputs);
     }
     _end = current_time_();
     fprintf(stderr, "Evaluate: %llu\n", _end - _start);
 
-    garble_delete(&gc);
     deleteOldInputMapping(&map);
     free(output_map);
     free(eval_labels);

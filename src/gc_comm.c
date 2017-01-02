@@ -8,15 +8,10 @@
 int
 gc_comm_send(int sock, garble_circuit *gc)
 {
-    size_t size;
-    char *buf;
-
-    size = garble_size(gc, false);
-    buf = malloc(size);
-    garble_to_buffer(gc, buf, false);
+    const size_t size = garble_size(gc, true, false);
+    char *buf = garble_to_buffer(gc, NULL, true, false);
     net_send(sock, &size, sizeof size, 0);
     net_send(sock, buf, size, 0);
-    
     free(buf);
     return 0;
 }
@@ -30,7 +25,7 @@ gc_comm_recv(int sock, garble_circuit *gc)
     net_recv(sock, &size, sizeof size, 0);
     buf = malloc(size);
     net_recv(sock, buf, size, 0);
-    garble_from_buffer(gc, buf, false);
+    garble_from_buffer(gc, buf, true, false);
 
     free(buf);
     return 0;

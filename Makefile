@@ -3,25 +3,23 @@ OBJDIR := obj
 TESTDIR := test
 BINDIR := bin
 
-rm = rm --f
-
-# JUSTGARBLE = JustGarble
+rm = rm -f
 
 SOURCES := $(wildcard $(SRCDIR)/*.c)
 OBJECTS  := $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 TESTSOURCES := $(wildcard $(TESTDIR)/*.c)
 TESTOBJECTS := $(TESTSOURCES:$(TESTDIR)/%.c=$(OBJDIR)/%.o)
 
-IDIR =include
-INCLUDES := $(wildcard $(SRCDIR)/*.h) -Iinc -I$(JUSTGARBLE)/include -I$(IDIR)
-
 CC=gcc
-CFLAGS= -g -O3 -ansi -pedantic -Wall -maes -msse4 -march=native -std=gnu11 $(INCLUDES)
-CFLAGS += -Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
-#CFLAGS += -DNDDEBUG # removes all "assert()" at compile time
+CFLAGS=
+CFLAGS+=-g -O3 -Wpedantic -Wall -maes -msse4 -march=native -std=gnu11 -Iinclude
+CFLAGS+=-Wno-unused-function -Wno-unused-result -Wno-strict-aliasing -Wno-format
+# CFLAGS+=-DNDDEBUG # removes all "assert()" at compile time
+CFLAGS+=-Ibuild/include -Lbuild/lib
 
+LDFLAGS+=-Lbuild/lib
 LIBS=-lm -lcrypto -lssl -lgmp -ljansson -lgarble -lgarblec -lmsgpackc
-#LIB+= -DNDDEBUG # removes all "assert()" at compile time
+# LIBS+=-DNDDEBUG # removes all "assert()" at compile time
 
 ###############
 # COMPILATION #

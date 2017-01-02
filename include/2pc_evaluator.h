@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 void
-evaluator_classic_2pc(const int *input, bool *output,
+evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
                       int num_garb_inputs, int num_eval_inputs,
                       uint64_t *tot_time);
 
