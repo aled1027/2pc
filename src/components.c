@@ -420,13 +420,24 @@ void circuit_decision_tree_node(garble_circuit *gc, garble_context *ctxt, int nu
      * the second num_len bits are the garblers' w_i
      * and the final bit is the output of the decision tree
      * immediately above it. 
+     *
+     * Returns two values, outputs[0] and outputs[1] where 
+     * outputs[0] is the left out-edge (corresponding to true)
+     * and outputs[1] is the right out-edge (corresponding to false)
+     * of the decision tree node.
      */
 
     int less_than_out;
-    *outputs = builder_next_wire(ctxt);
+    int not_less_than = builder_next_wire(ctxt); // a temporary wire
+    outputs[0] = builder_next_wire(ctxt);
+    outputs[1] = builder_next_wire(ctxt);
 
     circuit_signed_less_than(gc, ctxt, 2 * num_len, inputs, &inputs[num_len], &less_than_out);
-    gate_AND(gc, ctxt, inputs[2 * num_len], less_than_out, *outputs);
+
+    gate_AND(gc, ctxt, inputs[2 * num_len], less_than_out, outputs[0]);
+
+    my_not_gate(gc, ctxt, less_than_out, not_less_than);
+    gate_AND(gc, ctxt, inputs[2 * num_len], not_less_than, outputs[1]);
 }
 
 void build_signed_comparison_circuit(garble_circuit *gc, int num_len)
@@ -474,40 +485,40 @@ void build_decision_tree_nursery_circuit(garble_circuit *gc, int num_len)
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
 	builder_start_building(gc, &ctxt);
 
-    int node_one_out;
-    int node_two_out;
-    int node_three_out;
-    int node_four_out;
+    int node_one_out[2];
+    int node_two_out[2];
+    int node_three_out[2];
+    int node_four_out[2];
     
     // node 1
     int dt_inputs[n + 1];
     memcpy(dt_inputs, inputs, num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split, num_len * sizeof(int));
     dt_inputs[2 * num_len] = wire_one(gc);
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_one_out);
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_one_out);
 
     //node 2
     memcpy(dt_inputs, inputs + num_len, num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + num_len, num_len * sizeof(int));
-    dt_inputs[2 * num_len] = node_one_out;
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_two_out);
+    dt_inputs[2 * num_len] = node_one_out[0];
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_two_out);
 
     // node 3
     memcpy(dt_inputs, inputs + (2 * num_len), num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + (2 * num_len), num_len * sizeof(int));
-    dt_inputs[2 * num_len] = node_two_out;
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_three_out);
+    dt_inputs[2 * num_len] = node_two_out[0];
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_three_out);
 
     // node 4
     memcpy(dt_inputs, inputs + (3 * num_len), num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + (3 * num_len), num_len * sizeof(int));
-    dt_inputs[2 * num_len] = node_three_out;
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_four_out);
+    dt_inputs[2 * num_len] = node_three_out[0];
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_four_out);
 
-    outputs[0] = node_one_out;
-    outputs[1] = node_two_out;
-    outputs[2] = node_three_out;
-    outputs[3] = node_four_out;
+    outputs[0] = node_one_out[0];
+    outputs[1] = node_two_out[0];
+    outputs[2] = node_three_out[0];
+    outputs[3] = node_four_out[0];
 
 	builder_finish_building(gc, &ctxt, outputs);
 }
@@ -531,63 +542,60 @@ void build_decision_tree_ecg_circuit(garble_circuit *gc, int num_len)
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
 	builder_start_building(gc, &ctxt);
 
-    int node_one_out;
-    int node_two_out;
-    int node_three_out;
-    int node_four_out;
-    int node_five_out;
-    int node_six_out;
+    int node_one_out[2];
+    int node_two_out[2];
+    int node_three_out[2];
+    int node_four_out[2];
+    int node_five_out[2];
+    int node_six_out[2];
     
-    int not_node_one;
-    int not_node_two;
+    //int not_node_one;
+    //int not_node_two;
 
     // node 1
     int dt_inputs[n + 1];
     memcpy(dt_inputs, inputs, num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split, num_len * sizeof(int));
     dt_inputs[2 * num_len] = wire_one(gc);
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_one_out);
-
-    not_node_one = builder_next_wire(&ctxt);
-    my_not_gate(gc, &ctxt, node_one_out, not_node_one);
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_one_out);
 
     //node 2
     memcpy(dt_inputs, inputs + num_len, num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + num_len, num_len * sizeof(int));
-    dt_inputs[2 * num_len] = node_one_out;
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_two_out);
+    dt_inputs[2 * num_len] = node_one_out[0];
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_two_out);
 
-    not_node_two = builder_next_wire(&ctxt);
-    my_not_gate(gc, &ctxt, node_two_out, not_node_two);
+    //not_node_two = builder_next_wire(&ctxt);
+    //my_not_gate(gc, &ctxt, node_two_out, not_node_two);
 
     // node 3
     memcpy(dt_inputs, inputs + (2 * num_len), num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + (2 * num_len), num_len * sizeof(int));
-    dt_inputs[2 * num_len] = not_node_one;
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_three_out);
+    dt_inputs[2 * num_len] = node_one_out[1];
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_three_out);
 
     // node 4
     memcpy(dt_inputs, inputs + (3 * num_len), num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + (3 * num_len), num_len * sizeof(int));
-    dt_inputs[2 * num_len] = node_two_out;
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_four_out);
+    dt_inputs[2 * num_len] = node_two_out[0];
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_four_out);
 
     // node 5
     memcpy(dt_inputs, inputs + (4 * num_len), num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + (4 * num_len), num_len * sizeof(int));
-    dt_inputs[2 * num_len] = not_node_two;
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_five_out);
+    dt_inputs[2 * num_len] = node_two_out[1];
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_five_out);
 
     // node 6
     memcpy(dt_inputs, inputs + (5 * num_len), num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + (5 * num_len), num_len * sizeof(int));
-    dt_inputs[2 * num_len] = node_three_out;
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_six_out);
+    dt_inputs[2 * num_len] = node_three_out[0];
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_six_out);
 
-    outputs[0] = node_four_out;
-    outputs[1] = node_five_out;
-    outputs[2] = node_six_out;
-    outputs[3] = not_node_two;
+    outputs[0] = node_four_out[0];
+    outputs[1] = node_five_out[0];
+    outputs[2] = node_six_out[0];
+    outputs[3] = node_two_out[1];
 
 	builder_finish_building(gc, &ctxt, outputs);
 }
@@ -618,35 +626,31 @@ void build_decision_tree_circuit(garble_circuit *gc, uint32_t num_nodes, uint32_
 	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
 	builder_start_building(gc, &ctxt);
 
-    int node_one_out;
-    int node_two_out;
-    int node_three_out;
+    int node_one_out[2];
+    int node_two_out[2];
+    int node_three_out[2];
     
     // node 1
     int dt_inputs[n + 1];
     memcpy(dt_inputs, inputs, num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split, num_len * sizeof(int));
     dt_inputs[2 * num_len] = wire_one(gc);
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_one_out);
-
-    // for the right child of node 1 (i.e. node 3)
-    int not_node_one_out = builder_next_wire(&ctxt);
-    my_not_gate(gc, &ctxt, node_one_out, not_node_one_out);
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_one_out);
 
     //node 2
     memcpy(dt_inputs, inputs + num_len, num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + num_len, num_len * sizeof(int));
-    dt_inputs[2 * num_len] = node_one_out;
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_two_out);
+    dt_inputs[2 * num_len] = node_one_out[0];
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_two_out);
 
     // node 3
     memcpy(dt_inputs, inputs + (2 * num_len), num_len * sizeof(int));
     memcpy(dt_inputs + num_len, inputs + split + (2 * num_len), num_len * sizeof(int));
-    dt_inputs[2 * num_len] = not_node_one_out;
-    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, &node_three_out);
+    dt_inputs[2 * num_len] = node_one_out[1];
+    circuit_decision_tree_node(gc, &ctxt, num_len, dt_inputs, node_three_out);
 
-    outputs[0] = node_two_out;
-    outputs[1] = node_three_out;
+    outputs[0] = node_two_out[0];
+    outputs[1] = node_three_out[0];
 
 	builder_finish_building(gc, &ctxt, outputs);
 }
