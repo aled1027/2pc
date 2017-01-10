@@ -24,7 +24,8 @@
 #define GARBLER_DIR "files/garbler_gcs"
 #define EVALUATOR_DIR "files/evaluator_gcs"
 
-typedef enum { 
+typedef enum {
+    EXPERIMENT_NONE,
     EXPERIMENT_AES, 
     EXPERIMENT_CBC, 
     EXPERIMENT_LEVEN, 
@@ -43,6 +44,7 @@ static int getDIntSize(int l) { return (int) floor(log2(l)) + 1; }
 static int getInputsDevotedToD(int l) { return getDIntSize(l) * (l+1); }
 
 struct args {
+    char *progname;
     ChainingType chaining_type;
     bool garb_off;
     bool eval_off;
@@ -56,8 +58,9 @@ struct args {
 };
 
 static void
-args_init(struct args *args)
+args_init(struct args *args, const char *progname)
 {
+    args->progname = progname;
     args->chaining_type = CHAINING_TYPE_STANDARD;
     args->garb_off = 0;
     args->eval_off = 0;
@@ -65,14 +68,14 @@ args_init(struct args *args)
     args->eval_on = 0;
     args->garb_full = 0;
     args->eval_full = 0;
-    args->type = EXPERIMENT_AES;
+    args->type = EXPERIMENT_NONE;
     args->ntrials = 1;
     args->nsymbols = 5;
 }
 
 static struct option opts[] =
 {
-    {"chaining", required_argument, 0, 'c'},
+    /* {"chaining", required_argument, 0, 'c'}, */
     {"garb-off", no_argument, 0, 'g'},
     {"eval-off", no_argument, 0, 'e'},
     {"garb-on", no_argument, 0, 'G'},
@@ -83,8 +86,29 @@ static struct option opts[] =
     {"test", no_argument, 0, 'p'},
     {"type", required_argument, 0, 't'},
     {"times", required_argument, 0, 'T'},
+    {"help", no_argument, 0, 'h'},
     {0, 0, 0, 0}
 };
+
+static void
+usage(const char *prog, int ret)
+{
+    printf("%s [options]\n"
+"Options:\n"
+"  --garb-off      Do offline garbling\n"
+"  --eval-off      Do offline evaluating\n"
+"  --garb-on       Do online garbling\n"
+"  --eval-on       Do online evaluating\n"
+"  --garb-full     Do standard garbling\n"
+"  --eval-full     Do standard evaluating\n"
+"  --nsymbols N    Set number of symbols to N\n"
+"  --test          Run all tests\n"
+"  --type T        Run circuit T\n"
+"                  Options: AES, CBC, LEVEN, WDBC, CREDIT, HYPER, RANDOM_DT, "
+"NURSERY_DT, ECG_DT, WDBC_NB, NURSERY_NB, AUD_NB\n"
+"  --times T       Do T runs\n", prog);
+    exit(ret);
+}
 
 static void
 eval_off(int ninputs, int nchains, ChainingType chainingType)
@@ -262,11 +286,11 @@ garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
             start = current_time_();
             garble_garble(gc, NULL, outputMap);
             end = current_time_();
-            fprintf(stderr, "Garble: %llu\n", end - start);
+            fprintf(stderr, "Garble: %llu ns\n", end - start);
             tot_time[i] += end - start;
             garbler_classic_2pc(gc, &imap, outputMap, num_garb_inputs,
                                 num_eval_inputs, inputs, &tot_time[i]);
-            fprintf(stderr, "Total: %llu\n", tot_time[i]);
+            fprintf(stderr, "Total: %llu ns\n", tot_time[i]);
         }
 
         results("GARB", tot_time, NULL, ntrials);
@@ -280,19 +304,18 @@ garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
 }
 
 static void
-eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
+eval_full(garble_circuit *gc, int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
 {
     uint64_t *tot_time = calloc(ntrials, sizeof(uint64_t));
     int *eval_inputs = malloc(sizeof(int) * n_eval_inputs);
     bool *output = malloc(sizeof(bool) * noutputs);
 
     for (int i = 0; i < ntrials; ++i) {
-        sleep(1);
         g_bytes_sent = g_bytes_received = 0;
         for (int i = 0; i < n_eval_inputs; i++) {
             eval_inputs[i] = rand() % 2;
         }
-        evaluator_classic_2pc(eval_inputs, output, n_garb_inputs, 
+        evaluator_classic_2pc(gc, eval_inputs, output, n_garb_inputs, 
                               n_eval_inputs, &tot_time[i]);
         fprintf(stderr, "Total: %llu\n", tot_time[i]);
     }
@@ -307,7 +330,7 @@ eval_full(int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
 static int
 go(struct args *args)
 {
-    uint64_t n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs, sigma;
+    uint64_t n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs = 0, sigma;
     uint64_t n = 0, l = 0, num_len = 0;
 
     char *fn, *type;
@@ -395,7 +418,7 @@ go(struct args *args)
         type = "DT";
         fn = "functions/nursery_dt.json";
         break;
-     case EXPERIMENT_DT_ECG:
+    case EXPERIMENT_DT_ECG:
         printf("Experiment cg dt\n");
         num_len = 52;
         n = 6 * 2 * num_len;
@@ -458,7 +481,7 @@ go(struct args *args)
         fn = "functions/nursery_nb.json";
         break;
 
-case EXPERIMENT_HYPERPLANE:
+    case EXPERIMENT_HYPERPLANE:
         printf("Experiment hyperplane\n");
         fn = NULL; // TODO add function
         n_garb_inputs = 4;
@@ -467,14 +490,12 @@ case EXPERIMENT_HYPERPLANE:
         type = "HYPERPLANE";
         break;
     default:
-        fprintf(stderr, "No type specified\n");
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "error: no type specified\n");
+        usage(args->progname, EXIT_FAILURE);
     }
 
-    if (args->chaining_type == CHAINING_TYPE_SIMD)
-        printf("Using CHAINING_TYPE_SIMD\n");
-    else
-        printf("Using CHAINING_TYPE_STANDARD\n");
+    if (args->chaining_type != CHAINING_TYPE_STANDARD)
+        abort();
 
     printf("Running %s with (%d, %d) inputs, %d outputs, %d chains, %d trials\n",
            type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, args->ntrials);
@@ -540,15 +561,13 @@ case EXPERIMENT_HYPERPLANE:
     } else if (args->eval_on) {
         printf("Online evaluating\n");
         eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, args->chaining_type);
-    } else if (args->garb_full) {
-        printf("Full garbling\n");
+    } else if (args->garb_full || args->eval_full) {
         garble_circuit gc;
         switch (args->type) {
         case EXPERIMENT_AES:
             buildAESCircuit(&gc);
             break;
-        case EXPERIMENT_CBC:
-        {
+        case EXPERIMENT_CBC: {
             block delta = garble_create_delta();
             buildCBCFullCircuit(&gc, NUM_CBC_BLOCKS, NUM_AES_ROUNDS, &delta);
             break;
@@ -557,53 +576,43 @@ case EXPERIMENT_HYPERPLANE:
             buildLevenshteinCircuit(&gc, l, sigma);
             break;
         case EXPERIMENT_WDBC:
-            printf("experiment wdbc\n");
             buildLinearCircuit(&gc, n, num_len);
             break;
         case EXPERIMENT_HP_CREDIT:
-            printf("experiment credit\n");
             buildLinearCircuit(&gc, n, num_len);
             break;
         case EXPERIMENT_RANDOM_DT:
-            printf("experiment linear\n");
             buildLinearCircuit(&gc, n, num_len);
             break;
         case EXPERIMENT_DT_NURSERY:
-            printf("experiment nursery dt\n");
             build_decision_tree_nursery_circuit(&gc, num_len);
             break;
         case EXPERIMENT_DT_ECG:
-            printf("experiment ecg dt\n");
             build_decision_tree_ecg_circuit(&gc, num_len);
             break;
         case EXPERIMENT_NB_WDBC:
-            printf("experiment nursery nb\n");
             build_naive_bayes_circuit(&gc, num_classes, vector_size, domain_size, num_len);
             break;
         case EXPERIMENT_NB_NURSERY:
-            printf("experiment nusery nb\n");
             build_naive_bayes_circuit(&gc, num_classes, vector_size, domain_size, num_len);
             break;
         case EXPERIMENT_NB_AUD:
-            printf("experiment aud nb\n");
             build_naive_bayes_circuit(&gc, num_classes, vector_size, domain_size, num_len);
             break;
         case EXPERIMENT_HYPERPLANE:
-            printf("experiment hyperplane\n");
             buildHyperCircuit(&gc);
             break;
         default:
-            assert(false);
-            return EXIT_FAILURE;
+            abort();
         }
-        garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials, l, sigma, args->type);
-        garble_delete(&gc); // TODO is this causing problems? (segfaulting/memory problems)
-    } else if (args->eval_full) { 
-        printf("Full evaluating\n");
-        eval_full(n_garb_inputs, n_eval_inputs, noutputs, args->ntrials);
+        if (args->garb_full)
+            garb_full(&gc, n_garb_inputs, n_eval_inputs, args->ntrials, l, sigma, args->type);
+        else
+            eval_full(&gc, n_garb_inputs, n_eval_inputs, noutputs, args->ntrials);
+        garble_delete(&gc);
     } else {
-        fprintf(stderr, "No role specified\n");
-        return EXIT_FAILURE;
+        fprintf(stderr, "error: no role specified\n");
+        usage(args->progname, EXIT_FAILURE);
     }
 
     return EXIT_SUCCESS;
@@ -617,22 +626,22 @@ main(int argc, char *argv[])
 
     (void) garble_seed(NULL);
 
-    args_init(&args);
+    args_init(&args, argv[0]);
 
     while ((c = getopt_long(argc, argv, "", opts, &idx)) != -1) {
         switch (c) {
         case 0:
             break;
-        case 'c':
-            if (strcmp(optarg, "STANDARD") == 0) {
-                args.chaining_type = CHAINING_TYPE_STANDARD;
-            } else if (strcmp(optarg, "SCMC") == 0) {
-                args.chaining_type = CHAINING_TYPE_SIMD;
-            } else {
-                fprintf(stderr, "Unknown chaining type %s\n", optarg);
-                exit(EXIT_FAILURE);
-            }
-            break;
+            /* case 'c': */
+            /*     if (strcmp(optarg, "STANDARD") == 0) { */
+            /*         args.chaining_type = CHAINING_TYPE_STANDARD; */
+            /*     } else if (strcmp(optarg, "SCMC") == 0) { */
+            /*         args.chaining_type = CHAINING_TYPE_SIMD; */
+            /*     } else { */
+            /*         fprintf(stderr, "Unknown chaining type %s\n", optarg); */
+            /*         exit(EXIT_FAILURE); */
+            /*     } */
+            /*     break; */
         case 'g':
             args.garb_off = true;
             break;
@@ -692,10 +701,11 @@ main(int argc, char *argv[])
             runAllTests();
             return 0;
             break;
+        case 'h':
         case '?':
+            usage(argv[0], EXIT_SUCCESS);
             break;
         default:
-            assert(false);
             abort();
         }
     }

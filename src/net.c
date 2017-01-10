@@ -17,13 +17,13 @@ size_t g_bytes_sent = 0;
 size_t g_bytes_received = 0;
 
 int
-net_send(const int socket, const void *buffer, const size_t length, int flags)
+net_send(int socket, const void *buffer, size_t length, int flags)
 {
     size_t total = 0;
     ssize_t bytesleft = length;
 
     while (total < length) {
-        ssize_t n = send(socket, buffer + total, bytesleft, flags);
+        ssize_t n = send(socket, ((char *) buffer) + total, bytesleft, flags);
         if (n == -1) {
             perror("send");
             return FAILURE;
@@ -36,13 +36,13 @@ net_send(const int socket, const void *buffer, const size_t length, int flags)
 }
 
 int
-net_recv(const int socket, void *buffer, size_t length, int flags)
+net_recv(int socket, void *buffer, size_t length, int flags)
 {
     size_t total = 0;
     ssize_t bytesleft = length;
 
     while (total < length) {
-        ssize_t n = recv(socket, buffer + total, bytesleft, flags);
+        ssize_t n = recv(socket, ((char *) buffer) + total, bytesleft, flags);
         if (n == -1) {
             perror("recv");
             assert(false);
@@ -88,8 +88,7 @@ net_init_server(const char *addr, const char *port)
             perror("server: socket");
             continue;
         }
-        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
-                sizeof(int)) == -1) {
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) == -1) {
             perror("setsockopt");
             return FAILURE;
         }

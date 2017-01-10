@@ -88,7 +88,7 @@ ot_malloc(size_t size)
 void
 ot_free(void *p)
 {
-    return _mm_free(p);
+    _mm_free(p);
 }
 
 void
