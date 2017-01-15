@@ -134,7 +134,7 @@ saveChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, bool isGarbler,
     if ((f = fopen(fname, "w")) == NULL) {
         return FAILURE;
     }
-    garble_save(gc, f, false, isGarbler);
+    garble_save(gc, f, true, isGarbler);
 
     /* ChainedGarbleCircuit fields */
     fwrite(&chained_gc->id, sizeof(int), 1, f);
@@ -171,7 +171,7 @@ loadChainedGC(ChainedGarbledCircuit* chained_gc, char *dir, int id,
         perror("fopen");
         return FAILURE;
     }
-    garble_load(gc, f, false, isGarbler);
+    garble_load(gc, f, true, isGarbler);
 
     fread(&chained_gc->id, sizeof(int), 1, f);
     fread(&chained_gc->type, sizeof(CircuitType), 1, f);
