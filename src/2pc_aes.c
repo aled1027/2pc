@@ -15,13 +15,12 @@ int aesNumGarbInputs() { return 1280; }
 int aesNumEvalInputs() { return 128; }
 int aesNumCircs() { return 10; }
 int aesNumOutputs() { return 128; }
-/* static unsigned long NUM_GATES = 34000; */
 
 void
 aes_garb_off(char *dir, int nchains, ChainingType chainingType)
 {
-    ChainedGarbledCircuit *chained_gcs = calloc(nchains,
-                                                sizeof(ChainedGarbledCircuit));
+    ChainedGarbledCircuit *chained_gcs =
+        calloc(nchains, sizeof(ChainedGarbledCircuit));
     block delta = garble_create_delta();
 
     for (int i = 0; i < nchains; i++) {

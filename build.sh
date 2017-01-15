@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-#abort if any command fails
 set -e
 
 mkdir -p build/autoconf
@@ -22,17 +21,15 @@ build () {
     branch=$3
     if [ ! -d $path ]; then
         git clone $url $path;
-    else
-        pushd $path; git pull origin $branch; popd
     fi
-    pushd $1
+    pushd $path
+        git pull origin $branch
         mkdir -p build/autoconf
         autoreconf -i
         ./configure --prefix=$builddir $debug
         make
         make install
     popd
-    echo
 }
 
 echo
@@ -41,6 +38,6 @@ echo
 
 build libgarble    https://github.com/amaloz/libgarble master
 
-# autoreconf -i
-# ./configure $debug
+autoreconf -i
+./configure $debug
 make

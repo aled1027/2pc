@@ -38,3 +38,20 @@ tags
 
 files/*
 bin/*
+
+*.am
+*.in
+*.in~
+*.m4
+autom4te.cache/
+build/
+*.log
+*.status
+configure
+libgarble
+libtool
+.deps/
+stamp-h1
+Makefile
+compgc
+config.h
