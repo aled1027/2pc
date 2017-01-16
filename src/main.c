@@ -116,28 +116,22 @@ eval_off(int ninputs, int nchains, ChainingType chainingType)
     evaluator_offline(EVALUATOR_DIR, ninputs, nchains, chainingType);
 }
 
-static int
-compare(const void * a, const void * b)
-{
-	return (int) (*(uint64_t*) a - *(uint64_t*) b);
-}
-
-static uint64_t
-average(uint64_t *a, uint64_t n)
+static size_t
+average(uint64_t *a, size_t n)
 {
     uint64_t avg = 0;
-    for (int i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
         avg += a[i];
     }
     return avg / n;
 }
 
 static double
-confidence(uint64_t *a, uint64_t n, uint64_t avg)
+confidence(uint64_t *a, size_t n, uint64_t avg)
 {
     uint64_t tmp = 0;
     double sigma;
-    for (int i = 0; i < n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
         tmp += (a[i] - avg)*(a[i] - avg);
     }
     tmp /= n;
@@ -153,11 +147,11 @@ results(const char *name, uint64_t *totals, uint64_t *totals_no_load, uint64_t n
 
     avg = average(totals, n);
     conf = confidence(totals, n, avg);
-    printf("%s avg: %llu +- %f microsec\n", name, avg / 1000, conf / 1000);
+    printf("%s avg: %lu +- %f microsec\n", name, avg / 1000, conf / 1000);
     if (totals_no_load) {
         avg = average(totals_no_load, n);
         conf = confidence(totals_no_load, n, avg);
-        printf("%s avg (no load): %llu +- %f microsec\n", name, avg / 1000, conf / 1000);
+        printf("%s avg (no load): %lu +- %f microsec\n", name, avg / 1000, conf / 1000);
     }
     printf("%s Kbits sent: %lu\n", name, g_bytes_sent * 8 / 1000);
     printf("%s Kbits received: %lu\n", name, g_bytes_received * 8 / 1000);

@@ -172,8 +172,6 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
         state_cleanup(&state);
     }
 
-
-
     /* Start timing after pre-processing of OT as we only want to record online
      * time */
     start = current_time_();
