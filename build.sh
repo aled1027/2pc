@@ -41,3 +41,6 @@ build libgarble    https://github.com/amaloz/libgarble master
 autoreconf -i
 ./configure $debug
 make
+
+mkdir -p files/garbler_gcs
+mkdir -p files/evaluator_gcs
