@@ -39,7 +39,6 @@ tags
 files/*
 bin/*
 
-*.am
 *.in
 *.in~
 *.m4
