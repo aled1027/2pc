@@ -36,21 +36,12 @@ void convertToSignedBinary(int x, bool *arr, int narr)
 
     // find sign and force x to be positive
     if (x < 0) {
-        arr[0] = 1;
+        arr[narr - 1] = 1;
         x *= -1;
     } else {
-        arr[1] = 0;
+        arr[narr- 1] = 0;
     }
-
-    // find the absolute value of x
-    int i = narr - 1;
-    while (x > 0) {
-        arr[i] = (x % 2);
-        x >>= 1;
-        i--;
-    }
-    for (int j = i; j >= 1; j--)
-        arr[j] = 0;
+    convertToBinary(x, arr, narr - 1);
 }
 
 void

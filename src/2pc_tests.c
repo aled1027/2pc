@@ -27,6 +27,17 @@ static int convertToDec(const bool *bin, int l)
     return ret;
 }
 
+static int convertSignedToDec(const bool *bin, int l) 
+{
+    // convert signed binary to dec
+    int ret = convertToDec(bin, l - 1);
+    if (bin[l-1] == 0) {
+        return ret;
+    } else {
+        return ret * -1;
+    }
+}
+
 static int lessThanCheck(bool *inputs, int nints) 
 {
     int split = nints / 2;
@@ -38,6 +49,7 @@ static int lessThanCheck(bool *inputs, int nints)
         sum2 += pow * inputs[split + i];
         pow = pow * 10;
     }
+    printf("sums: %d, %d\n", sum1, sum2);
     if (sum1 < sum2)
         return 1;
     else 
@@ -181,7 +193,6 @@ static void test_argmax()
     }
     printf("\n");
 }
-
 
 static void test_select_circuit()
 {
@@ -500,12 +511,11 @@ static void signedMultTest()
     printf("\n");
 }
 
-static void multTest()
+static void test_mult()
 {
-    printf("Signed mult test\n");
     /* Paramters */
-    int n = 6; // bits per number
-    int m = 3;
+    int n = 20;
+    int m = n / 2;
     bool inputs[n];
     int inputWires[n];
     int outputWires[m];
@@ -515,10 +525,18 @@ static void multTest()
     block outputMap[2*m];
     bool outputs[m];
 
-    /* Inputs */
-    for (uint32_t i = 0; i < n; i++) {
-        inputs[i] = i % 2;
-    }
+    int in0 = 0;
+    int in1 = 0;
+    int max = pow(2, n / 2) - 1;
+    do {
+        for (uint32_t i = 0; i < n; i++) {
+            inputs[i] = rand() % 2;
+        }
+        in0 = convertToDec(inputs, n / 2);
+        in1 = convertToDec(&inputs[n / 2], n / 2);
+    } while (in0 * in1 >= max);
+
+   /* Inputs */
     
     /* Build Circuit */
     garble_create_input_labels(inputLabels, n, NULL, false);
@@ -543,27 +561,81 @@ static void multTest()
     /* Results */
     garble_map_outputs(outputMap, computedOutputMap, outputs, m);
 
-    /* Print Results */
-    printf("Inputs:");
-    for (uint32_t i = 0; i < n; ++i) {
-        if (i == n / 2) {
-            printf(" |");
-        }
-        printf(" %d", inputs[i]);
+    /* Check Results */
+    int out = convertToDec(outputs, n / 2);
+    if (in0 * in1 != out) {
+        printf("FAILURE: ");
+        printf("x, y, z: %d %d %d\n", in0, in1, out);
     }
-    printf("\n");
-
-    for (uint32_t i = 0; i < m; ++i) {
-        printf("outputs[%d] = %d\n", i, outputs[i]);
-    }
-    printf("\n");
 }
 
-static void innerProductTest()
+static void test_add()
 {
     /* Paramters */
-    int num_len = 4; // bits per number
-    int num_num = 8; // number of numbers
+    int n = 60; 
+    int m = n / 2;
+    bool inputs[n];
+    int inputWires[n];
+    int outputWires[m];
+    block inputLabels[2*n];
+    block extractedLabels[n];
+    block computedOutputMap[m];
+    block outputMap[2*m];
+    bool outputs[m];
+
+    int in0 = 0;
+    int in1 = 0;
+    int max = pow(2, n / 2) - 1;
+    do {
+        for (uint32_t i = 0; i < n; i++) {
+            inputs[i] = rand() % 2;
+        }
+        in0 = convertToDec(inputs, n / 2);
+        in1 = convertToDec(&inputs[n / 2], n / 2);
+    } while (in0 + in1 >= max);
+
+   /* Inputs */
+    
+    /* Build Circuit */
+    garble_create_input_labels(inputLabels, n, NULL, false);
+    garble_circuit gc;
+    garble_context gcContext;
+	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	builder_start_building(&gc, &gcContext);
+
+    // build
+    countToN(inputWires, n);
+    int carry;
+    circuit_add(&gc, &gcContext, n, inputWires, outputWires, &carry);
+	builder_finish_building(&gc, &gcContext, outputWires);
+
+    /* Garble */
+    garble_garble(&gc, inputLabels, outputMap);
+
+    /* Evaluate */
+    garble_extract_labels(extractedLabels, inputLabels, inputs, n);
+    garble_eval(&gc, extractedLabels, computedOutputMap, NULL);
+    garble_delete(&gc);
+
+    /* Results */
+    garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+
+    /* Check Results */
+    int out = convertToDec(outputs, n / 2);
+    if (in0 + in1 != out) {
+        printf("FAILURE: ");
+        printf("x, y, z: %d %d %d\n", in0, in1, out);
+    }
+}
+
+static void test_inner_product()
+{
+    // Test inner product, which uses signed multiplication of
+    // little endian numbers internally.
+    
+    /* Paramters */
+    int num_len = 6; // bits per number
+    int num_num = 10; // number of numbers
     int n = num_len * num_num;
     int m = num_len;
     bool inputs[n];
@@ -575,9 +647,26 @@ static void innerProductTest()
     block outputMap[2*m];
     bool outputs[m];
 
-    /* Inputs */
-    for (uint32_t i = 0; i < n; i++) {
-        inputs[i] = 1;
+    /* Inputs */ 
+    int dec_inputs[num_num]; // inputs encoded in decimal ints
+    int max_input = pow(2, num_len - 2) - 1;
+    int max = pow(2, num_len - 1) - 1;
+    int expected_out = 0;
+    do {
+        for (int i = 0; i < num_num; ++i) {
+            dec_inputs[i] = rand() % max_input;
+        }
+        // compute dot product
+        expected_out = 0;
+        int split = num_num / 2;
+        for (int i = 0; i < split; ++i) {
+            expected_out += (dec_inputs[i] * dec_inputs[i + split]);
+        }
+    } while (expected_out >= max);
+
+    // put input values into inputs encoded in little-endian binary
+    for (int i = 0; i < num_num; ++i) {
+        convertToSignedBinary(dec_inputs[i], &inputs[num_len * i], num_len);
     }
 
     /* Build Circuit */
@@ -588,8 +677,8 @@ static void innerProductTest()
 	builder_start_building(&gc, &gcContext);
 
     countToN(inputWires, n);
+    //circuit_inner_product(&gc, &gcContext, n, num_len, inputWires, outputWires);
     circuit_inner_product(&gc, &gcContext, n, num_len, inputWires, outputWires);
-    //old_circuit_inner_product(&gc, &gcContext, n, num_len, inputWires, outputWires);
 
 	builder_finish_building(&gc, &gcContext, outputWires);
 
@@ -604,18 +693,34 @@ static void innerProductTest()
     /* Results */
     garble_map_outputs(outputMap, computedOutputMap, outputs, m);
 
-    /* Print Results */
-    printf("Inputs:");
-    for (uint32_t i = 0; i < n; ++i) {
-        printf(" %d", inputs[i]);
-    }
-    printf("\n");
+    /* Check results */
+    int out = convertSignedToDec(outputs, num_len);
+    if (out != expected_out) {
+        printf("Inner Product Test Failed\n");
+        printf("out, expected_out: %d, %d\n", out, expected_out);
+        printf("<");
+        for (int i = 0; i < num_num; ++i) {
+            if (i == num_num / 2) {
+                printf("> * <");
+            }
+            printf("%d,", dec_inputs[i]);
+        }
+        printf("> = %d\n", out);
 
-    printf("Outputs:");
-    for (uint32_t i = 0; i < m; ++i) {
-        printf(" %d", outputs[i]);
+        for (int i = 0; i < n; ++i) {
+            printf("%d ", inputs[i]);
+        }
+        printf(" -> ");
+
+        for (int i = 0; i < m; ++i) {
+            printf("%d ", outputs[i]);
+        }
+
+        printf("\n");
+    } else {
+        //printf("Passed\n");
     }
-    printf("\n");
+
 }
 
 static void argMax4Test() 
@@ -739,7 +844,7 @@ static void argMax2Test()
     printf("\toutputs: (%d %d, %d %d)\n", outputs[0], outputs[1], outputs[2], outputs[3]);
 }
 
-static void LESTest(int n) 
+static void test_les(int n) 
 {
     int m = 1;
     bool inputs[n];
@@ -789,7 +894,7 @@ static void LESTest(int n)
             printf("%d ", inputs[i]);
         }
         printf("\n");
-        printf("\t outputs: %d\n", outputs[0]);
+        printf("\toutputs: %d\n", outputs[0]);
             
     }
 }
@@ -808,7 +913,23 @@ static void test_get_model()
 
 void runAllTests(void)
 { 
+    for (int i = 0; i < 100; ++i) {
+        test_mult();
+    }
 
-    test_naive_bayes();
+    for (int i = 0; i < 100; ++i) {
+        test_add();
+    }
+    
+    for (int i = 0; i < 100; ++i) {
+        test_inner_product();
+    }
+
+    //for (int i = 0; i < 100; ++i) {
+    //    test_les(10);
+    //}
+    
+
+    //test_naive_bayes();
     //test_argmax();
 }  
