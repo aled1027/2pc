@@ -215,7 +215,7 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
 
 static void
 eval_on(int ninputs, int nlabels, int nchains, int ntrials,
-        ChainingType chainingType)
+        ChainingType chainingType, ChainedGarbledCircuit *cgcs)
 {
     uint64_t *tot_time, *tot_time_no_load;
     int *inputs;
@@ -231,7 +231,7 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials,
             inputs[j] = rand() % 2;
         }
         evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, chainingType,
-                         &tot_time[i], &tot_time_no_load[i]);
+                         &tot_time[i], &tot_time_no_load[i], cgcs);
         fprintf(stderr, "Total: %llu\n", tot_time[i]);
         fprintf(stderr, "Total (no load): %llu\n", tot_time_no_load[i]);
     }
@@ -553,8 +553,54 @@ go(struct args *args)
             garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, 0, 0, args->type);
         }
     } else if (args->eval_on) {
+
+        // TODO UPDATE THIS
         printf("Online evaluating\n");
-        eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, args->chaining_type);
+        //eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, args->chaining_type);
+        ChainedGarbledCircuit *cgcs;
+        switch (args->type) {
+        case EXPERIMENT_AES:
+            cgcs = aes_circuits(10, args->chaining_type);
+            break;
+        //case EXPERIMENT_CBC:
+        //    cbc_eval_on(EVALUATOR_DIR, args->chaining_type);
+        //    break;
+        //case EXPERIMENT_LEVEN:
+        //    leven_eval_on(l, sigma, args->chaining_type);
+        //    break;
+        //case EXPERIMENT_WDBC:
+        //    hyperplane_eval_on(EVALUATOR_DIR, n, num_len, WDBC);
+        //    break;
+        //case EXPERIMENT_HP_CREDIT:
+        //    hyperplane_eval_on(EVALUATOR_DIR, n, num_len, CREDIT);
+        //    break;
+        //case EXPERIMENT_RANDOM_DT:
+        //    dt_eval_on(EVALUATOR_DIR, n, num_len, DT_RANDOM);
+        //    break;
+        //case EXPERIMENT_DT_NURSERY:
+        //    dt_eval_on(EVALUATOR_DIR, n, num_len, DT_NURSERY);
+        //    break;
+        //case EXPERIMENT_DT_ECG:
+        //    dt_eval_on(EVALUATOR_DIR, n, num_len, DT_ECG);
+        //    break;
+        //case EXPERIMENT_NB_WDBC:
+        //    nb_eval_on(EVALUATOR_DIR, num_len, num_classes, vector_size, domain_size, NB_WDBC);
+        //    break;
+        //case EXPERIMENT_NB_NURSERY:
+        //    nb_eval_on(EVALUATOR_DIR, num_len, num_classes, vector_size, domain_size, NB_NURSERY);
+        //    break;
+        //case EXPERIMENT_NB_AUD:
+        //    nb_eval_on(EVALUATOR_DIR, num_len, num_classes, vector_size, domain_size, NB_AUD);
+        //    break;
+        //case EXPERIMENT_HYPERPLANE:
+        //    printf("EXPERIMENT_HYPERPLANE eval on\n");
+        //    break;
+        default:
+            break;
+        }
+        eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, args->chaining_type, cgcs);
+
+
     } else if (args->garb_full || args->eval_full) {
         garble_circuit gc;
         switch (args->type) {

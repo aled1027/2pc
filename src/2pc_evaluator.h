@@ -16,6 +16,7 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains,
 int
 evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                  int num_chained_gcs, ChainingType chainingType,
-                 uint64_t *tot_time, uint64_t *tot_time_no_load);
+                 uint64_t *tot_time, uint64_t *tot_time_no_load, 
+                 ChainedGarbledCircuit *chained_gcs);
 
 #endif

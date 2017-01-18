@@ -50,6 +50,7 @@ chained_gc_comm_recv(int sock, ChainedGarbledCircuit *chained_gc, ChainingType c
 {
     gc_comm_recv(sock, &chained_gc->gc);
     chained_gc->gc.wires = NULL;
+    chained_gc->gc.gates = NULL;
     net_recv(sock, &chained_gc->id, sizeof(chained_gc->id), 0);
     net_recv(sock, &chained_gc->type, sizeof(chained_gc->type), 0);
 

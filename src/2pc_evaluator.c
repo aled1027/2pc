@@ -434,7 +434,8 @@ computeOutputs(const OutputInstructions *ois, int *output,
 int
 evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                  int num_chained_gcs, ChainingType chainingType,
-                 uint64_t *tot_time, uint64_t *tot_time_no_load)
+                 uint64_t *tot_time, uint64_t *tot_time_no_load, 
+                 ChainedGarbledCircuit *chained_gcs)
 {
     /* Performs the online stage of the evaluator.
      * The first part of the function loads data from disk
@@ -462,7 +463,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
      *        value with the total amount of time it took to evaluate, not including 
      *        the time to load data from disk.
      */
-    ChainedGarbledCircuit* chained_gcs;
+    //ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
     block *garb_labels = NULL, *eval_labels = NULL,
         *outputmap = NULL, *offsets = NULL;
@@ -477,7 +478,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     _start = current_time_();
     {
         /* Load things from disk */
-        chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
+        //chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         loadChainedGarbledCircuits(chained_gcs, num_chained_gcs, dir, chainingType);
         loadOTPreprocessing(&eval_labels, &corrections, dir);
         for (int i = 1; i < num_chained_gcs + 1; i++) {

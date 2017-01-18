@@ -59,3 +59,24 @@ aes_garb_off(char *dir, int nchains, ChainingType chainingType)
     }
     free(chained_gcs);
 }
+
+ChainedGarbledCircuit*
+aes_circuits(int nchains, ChainingType chainingType)
+{
+    ChainedGarbledCircuit *chained_gcs =
+        calloc(nchains, sizeof(ChainedGarbledCircuit));
+
+    for (int i = 0; i < nchains; i++) {
+        garble_circuit *gc = &chained_gcs[i].gc;
+        gc->type = GARBLE_TYPE_STANDARD;
+        if (i == nchains - 1) {
+            buildAESRoundComponentCircuit(gc, true, NULL); 
+            chained_gcs[i].type = AES_FINAL_ROUND;
+        } else {
+            buildAESRoundComponentCircuit(gc, false, NULL);
+            chained_gcs[i].type = AES_ROUND;
+        }
+    }
+
+    return chained_gcs;
+}
