@@ -542,6 +542,8 @@ static void test_mult()
     if (in0 * in1 != out) {
         printf("FAILURE: ");
         printf("x, y, z: %d %d %d\n", in0, in1, out);
+    } else {
+        printf("passed\n");
     }
 }
 
@@ -896,21 +898,21 @@ void runAllTests(void)
         test_mult();
     }
 
-    for (int i = 0; i < 100; ++i) {
-        test_add();
-    }
+    //for (int i = 0; i < 100; ++i) {
+    //    test_add();
+    //}
     
-    for (int i = 0; i < 100; ++i) {
-        test_inner_product();
-    }
+    //for (int i = 0; i < 100; ++i) {
+    //    test_inner_product();
+    //}
 
-    for (int i = 0; i < 100; ++i) {
-        test_les(40);
-    }
+    //for (int i = 0; i < 100; ++i) {
+    //    test_les(40);
+    //}
     
-    for (int i = 0; i < 100; ++i) {
-        test_mux();
-    }
+    //for (int i = 0; i < 100; ++i) {
+    //    test_mux();
+    //}
 
     //test_naive_bayes();
     //test_argmax();

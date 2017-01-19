@@ -763,24 +763,26 @@ circuit_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
     assert(0 == n % 2);
 
     uint32_t split = n / 2;
+    int carry; // can ignore
+    int and_select;
     int zero_wire = wire_zero(gc);
-    //int one_wire = wire_one(gc);
-
+    int and_in[split];
+    int add_in[n];
+    int partial_product[split];
     int accum[split]; // holds values for going forward
-    for (uint32_t i = 0; i < split; i++) {
-        accum[i] = zero_wire;
-    }
 
-    for (uint32_t i = 0; i < split; ++i) {
+    // do first partial product - populate accum
+    and_select = inputs[split];
+    memcpy(and_in, inputs, split * sizeof(int));
+    my_circuit_and(gc, ctxt, split, and_in, and_select, accum);
+
+    // do the rest of the partial products, adding them into accum
+    // at the end of each loop
+    for (uint32_t i = 1; i < split; ++i) {
         // get our partial product, as it is called on wikipedia
         // i.e. the and of the number 1 with shifted digits and number 2
-        int and_select = inputs[split + i];
-        int carry; // can ignore
-        int *and_in = calloc(split, sizeof(int)); // TODO remove memcpy, just use inputs
-        int *add_in = calloc(n, sizeof(int));
-        int *partial_product = calloc(split, sizeof(int));
+        and_select = inputs[split + i];
         memcpy(and_in, inputs, split * sizeof(int));
-
         my_circuit_and(gc, ctxt, split, and_in, and_select, partial_product);
 
         // initialize add_in to zero wire
@@ -793,16 +795,9 @@ circuit_mult_n(garble_circuit *gc, garble_context *ctxt, uint32_t n,
 
         // put accum into add_in
         memcpy(&add_in[split], accum, split * sizeof(int));
-
 		circuit_add(gc, ctxt, n, add_in, accum, &carry);
-
-        free(and_in);
-        and_in = NULL;
-        free(partial_product);
-        partial_product = NULL;
-        free(add_in);
-        add_in = NULL;
     }
+
     memcpy(outputs, accum, split * sizeof(int));
 }
 
