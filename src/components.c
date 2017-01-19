@@ -83,57 +83,6 @@ void circuit_signed_less_than(garble_circuit *gc, garble_context *ctxt, int n, i
     *output = final_out;
 }
 
-void new_circuit_gteq(garble_circuit *circuit, garble_context *context, int n,
-		int *inputs, int *output) 
-
-{
-	/* Assumes that lsb is on the right. i.e. 101 >= 011 is true.
-     * i.e. little-endian
-	 */
-	int split = n / 2;
-	int carryWire = wire_one(circuit);
-	int internalWire1, internalWire2, preCarryWire;
-
-	for (int i = split - 1; i >= 0; i--) {
-		internalWire1 = builder_next_wire(context);
-		internalWire2 = builder_next_wire(context);
-		preCarryWire = builder_next_wire(context);
-
-		gate_XOR(circuit, context, inputs[i], carryWire, internalWire1);
-		gate_XOR(circuit, context, inputs[i + split], carryWire, internalWire2);
-		gate_AND(circuit, context, internalWire1, internalWire2, preCarryWire);
-
-		carryWire = builder_next_wire(context);
-		gate_XOR(circuit, context, inputs[i], preCarryWire, carryWire);
-	}
-	*output = carryWire;
-}
-void new_circuit_gteq_big_endian(garble_circuit *circuit, garble_context *context, int n,
-		int *inputs, int *output) 
-{
-	/* Assumes that lsb is on the left. i.e. 011 >= 101 is true.
-     * i.e. not little-endian
-	 * courtesy of Arkady
-	 */
-	int split = n / 2;
-	int carryWire = wire_one(circuit);
-	int internalWire1, internalWire2, preCarryWire;
-
-	for (int i = 0; i < split; i++) {
-		internalWire1 = builder_next_wire(context);
-		internalWire2 = builder_next_wire(context);
-		preCarryWire = builder_next_wire(context);
-
-		gate_XOR(circuit, context, inputs[i], carryWire, internalWire1);
-		gate_XOR(circuit, context, inputs[i + split], carryWire, internalWire2);
-		gate_AND(circuit, context, internalWire1, internalWire2, preCarryWire);
-
-		carryWire = builder_next_wire(context);
-		gate_XOR(circuit, context, inputs[i], preCarryWire, carryWire);
-	}
-	*output = carryWire;
-}
-
 static void
 bitwiseMUX(garble_circuit *gc, garble_context *gctxt, int the_switch, const int *inps, 
 		int ninputs, int *outputs)
@@ -291,7 +240,6 @@ void circuit_select(garble_circuit *gc, garble_context *ctxt, int num_len,
     }
     memcpy(outputs, tree_vals, num_len * sizeof(int));
 }
-
 
 void circuit_bitwiseMUX41(garble_circuit *gc, garble_context *ctxt,
         int num_len, int *inputs, int *outputs)
@@ -644,7 +592,6 @@ void build_naive_bayes_circuit(garble_circuit *gc,
 	builder_finish_building(gc, &ctxt, outputs);
 }
 
-
 void build_not_circuit(garble_circuit *gc) 
 {
     // Circuit with only a single AND gate
@@ -709,31 +656,6 @@ void build_inner_product_circuit(garble_circuit *gc, uint32_t n, uint32_t num_le
     printf("build inner product circuit\n");
 }
 
-void
-circuit_ak_mux(garble_circuit *circuit, garble_context *context,
-             uint32_t n, int the_switch, int *inputs, int *outputs)
-{
-    /* Slightly altered (didn't change the logic) version of Arkady's mux 
-     * that doesn't appear to be a mux.
-     * 
-     * n = size of inputs array = number of inputs - 1 (ignores switch)
-     */
-
-    int internalWire1, internalWire2;
-    assert(n%2 == 0);
-    int len = n / 2;
-
-    for (int i = 0; i < len; i++) {
-        internalWire1 = builder_next_wire(context);
-        internalWire2 = builder_next_wire(context);
-        outputs[i] = builder_next_wire(context);
-
-        gate_XOR(circuit, context, inputs[i], inputs[len + i], internalWire1);
-        gate_AND(circuit, context, internalWire1, the_switch, internalWire2);                                                                                                                          
-        gate_XOR(circuit, context, internalWire2, inputs[len + i], outputs[i]);
-    }
-}
-
 void 
 my_circuit_and(garble_circuit *gc, garble_context *ctxt, uint32_t n,
         const int *inputs, int select_wire, int *outputs)  {
@@ -795,8 +717,6 @@ circuit_signed_mult_2s_compl_n(garble_circuit *gc, garble_context *ctxt, uint32_
     }
     memcpy(outputs, &accum[split], split * sizeof(int));
 }
-
-
 
 void                                                                                         
 circuit_signed_mult_n(garble_circuit *circuit, garble_context *context, uint32_t n,
@@ -1085,21 +1005,37 @@ void build_select_circuit(garble_circuit *gc, int num_len, int input_array_size)
 
 	builder_finish_building(gc, &ctxt, outputs);
 }
-void new_circuit_les(garble_circuit *circuit, garble_context *context, int n,
+
+void new_circuit_les(garble_circuit *gc, garble_context *ctxt, int n,
 		int *inputs, int *output) 
 {
-    /* Inputs are unsigned little-endian 
+    /* Less than circuit
+     * Modified from greater than circuit in KSS09 Figure 5 and 6
+     *
+     * Outputs 1 if x < y else 0
      * Outputs 1 if inputs[0:split-1] < inputs[split:n-1], else 0
+     *
+     * Inputs are unsigned little-endian 
      */
-	int gteq_out;
-	new_circuit_gteq(circuit, context, n, inputs, &gteq_out);
 
-	// faking not gate:
-	*output = builder_next_wire(context);
-	int fixed_wire_one = wire_one(circuit);
-	gate_XOR(circuit, context, gteq_out, fixed_wire_one, *output);
-	// gate_NOT(gc, ctxt, theSwitch, notSwitch);
+    int split = n / 2;
+    int carry = wire_zero(gc);
+    for (int i = 0; i < split; ++i) {
+        int x_i = inputs[i];
+        int y_i = inputs[split + i];
+        int xor1 = builder_next_wire(ctxt);
+        int xor2 = builder_next_wire(ctxt);
+        int and = builder_next_wire(ctxt);
+        int new_carry = builder_next_wire(ctxt);
 
+
+        gate_XOR(gc, ctxt, x_i, carry, xor1);
+        gate_XOR(gc, ctxt, y_i, carry, xor2);
+        gate_AND(gc, ctxt, xor1, xor2, and);
+        gate_XOR(gc, ctxt, y_i, and, new_carry);
+        carry = new_carry;
+    }
+    *output = carry;
 }
 
 void
@@ -1110,21 +1046,18 @@ new_circuit_mux21(garble_circuit *gc, garble_context *ctxt,
 	 * It takes three inputs, a switch, and two bits. 
 	 * If the switch is 0, then it ouptut input0. 
 	 * If the switch is 1, then it outputs input1.
+     *
+     * Taken from KSS09 figure 10
 	 */
-    int notSwitch = builder_next_wire(ctxt);
-	int and0 = builder_next_wire(ctxt);
-	int and1 = builder_next_wire(ctxt);
-	*output = builder_next_wire(ctxt);
 
-	my_not_gate(gc, ctxt, theSwitch, notSwitch);
-	gate_AND(gc, ctxt, notSwitch, input0, and0);
-    
-    //if (input1 > 3000) { // TODO REMOVEJ
-    //    printf("ITS greater than 3000\n");
-    //}
-	gate_AND(gc, ctxt, theSwitch, input1, and1);
+    int xor1 = builder_next_wire(ctxt);
+    int and = builder_next_wire(ctxt);
+    int xor2 = builder_next_wire(ctxt);
 
-	my_or_gate(gc, ctxt, and0, and1, *output);
+    gate_XOR(gc, ctxt, input0, input1, xor1);
+    gate_AND(gc, ctxt, xor1, theSwitch, and);
+    gate_XOR(gc, ctxt, input0, and, xor2);
+    *output = xor2;
 }
 
 	int

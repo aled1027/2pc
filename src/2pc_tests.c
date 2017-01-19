@@ -38,25 +38,6 @@ static int convertSignedToDec(const bool *bin, int l)
     }
 }
 
-static int lessThanCheck(bool *inputs, int nints) 
-{
-    int split = nints / 2;
-    int sum1 = 0;
-    int sum2 = 0;
-    int pow = 1;
-    for (int i = 0; i < split; i++) {
-        sum1 += pow * inputs[i];
-        sum2 += pow * inputs[split + i];
-        pow = pow * 10;
-    }
-    printf("sums: %d, %d\n", sum1, sum2);
-    if (sum1 < sum2)
-        return 1;
-    else 
-        return 0;
-
-}
-
 static void test_convert_to_signed_binary()
 {
 
@@ -73,9 +54,8 @@ static void test_convert_to_signed_binary()
 
 }
 
-static void MUXTest() 
+static void test_mux() 
 {
-    printf("mux test\n");
     int n = 3;
     int m = 1;
     bool inputs[n];
@@ -88,7 +68,6 @@ static void MUXTest()
     bool outputs[m];
 
     /* Inputs */
-
     inputs[0] = rand() % 2;
     inputs[1] = rand() % 2;
     inputs[2] = rand() % 2;
@@ -114,15 +93,12 @@ static void MUXTest()
 
     /* Results */
     garble_map_outputs(outputMap, computedOutputMap, outputs, m);
+
     bool failed = false;
-    if (inputs[0] == 0) {
-        if (outputs[0] != inputs[1]) { 
+    if (inputs[0] == 0 && outputs[0] != inputs[1]) { 
             failed = true;
-        }
-    } else {
-        if (outputs[0] != inputs[2]) {
+    } else if (inputs[0] == 1 && outputs[0] != inputs[2] ) {
             failed = true;
-        }
     }
     
     if (failed) {
@@ -884,9 +860,12 @@ static void test_les(int n)
     garble_map_outputs(outputMap, computedOutputMap, outputs, m);
 
     /* Automated checking */
-    int check = lessThanCheck(inputs, n);
-    if (check != outputs[0]) {
+    int x = convertToDec(inputs, n / 2);
+    int y = convertToDec(&inputs[n / 2], n / 2);
+    bool expected_out = x < y;
+    if (expected_out != outputs[0]) {
         printf("LES test failed--------------------------\n");
+        printf("Expected: %d < %d => %d\n", x, y, expected_out);
         printf("\tinputs: ");
         for (int i = 0; i < n; i++) {
             if (i == (n/2))
@@ -925,10 +904,13 @@ void runAllTests(void)
         test_inner_product();
     }
 
-    //for (int i = 0; i < 100; ++i) {
-    //    test_les(10);
-    //}
+    for (int i = 0; i < 100; ++i) {
+        test_les(40);
+    }
     
+    for (int i = 0; i < 100; ++i) {
+        test_mux();
+    }
 
     //test_naive_bayes();
     //test_argmax();
