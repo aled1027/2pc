@@ -29,16 +29,13 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(readlink -f build)/lib
 #    ./src/compgc --chaining $CTYPE --type $TYPE --times $NTIMES --eval-on # 2> logs/$TYPE-eval-on.txt
 #done
 
-for TYPE in WDBC CREDIT NURSERY_DT ECG_DT WDBC_NB NURSERY_NB
+#for TYPE in WDBC CREDIT NURSERY_DT ECG_DT WDBC_NB NURSERY_NB
+for TYPE in AES
 do
     rm files/garbler_gc/*;
-    rm files/evaluator_gcs/*; 
-
-
-    ./src/compgc --type $TYPE --garb-off 
-
+    $prog --type $TYPE --garb-off 
     echo -e "\n$TYPE Online\n"
     sleep 0.5
-    ./src/compgc --type $TYPE --garb-on
+    $prog --type $TYPE --garb-on
 done
 
