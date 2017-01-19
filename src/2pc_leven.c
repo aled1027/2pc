@@ -73,3 +73,29 @@ leven_garb_off(int l, int sigma, ChainingType chainingType)
     int num_eval_inputs = levenNumEvalInputs(l, sigma);
     garbler_offline("files/garbler_gcs", chainedGCs, num_eval_inputs, numCircuits, chainingType);
 }
+
+ChainedGarbledCircuit* leven_circuits(int l, int sigma) 
+{
+    int coreN = getCoreN(l, sigma);
+    int coreM = getCoreM(l);
+    int numCircuits = levenNumCircs(l);
+    ChainedGarbledCircuit chainedGCs[numCircuits];
+    for (int i = 0; i < numCircuits; i++) {
+        /* Initialize */
+        garble_context gcContext;
+        int inputWires[coreN], outputWires[coreM];
+        countToN(inputWires, coreN);
+        chainedGCs[i].inputLabels = garble_allocate_blocks(2*coreN);
+        chainedGCs[i].outputMap = garble_allocate_blocks(2*coreM);
+        garble_circuit *gc = &chainedGCs[i].gc;
+
+        /* Garble */
+	    garble_new(gc, coreN, coreM, GARBLE_TYPE_STANDARD);
+	    builder_start_building(gc, &gcContext);
+        addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
+	    builder_finish_building(gc, &gcContext, outputWires);
+    }
+
+    return chainedGCs;
+}
+

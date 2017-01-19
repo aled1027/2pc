@@ -9,4 +9,8 @@ void hyperplane_garb_off(char *dir, uint32_t n, uint32_t num_len, HYPERPLANE_TYP
 void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE type);
 void nb_garb_off(char *dir, int num_len, int num_classes, int vector_size, int domain_size, NAIVE_BAYES_TYPE experiment);
 
+ChainedGarbledCircuit* hyperplane_circuits(uint32_t n, uint32_t num_len);
+ChainedGarbledCircuit* dt_circuits(uint32_t n, uint32_t num_len, DECISION_TREE_TYPE);
+ChainedGarbledCircuit* nb_circuits(int num_len, int num_classes, int vector_size, int domain_size, NAIVE_BAYES_TYPE experiment);
+
 #endif

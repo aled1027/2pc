@@ -11,5 +11,6 @@ void leven_garb_on(int l, int sigma, ChainingType chainingType, char *functionPa
 
 void leven_garb_full(int l, int sigma);
 void leven_eval_full(int l, int sigma);
+ChainedGarbledCircuit* leven_circuits(int l, int sigma);
 
 #endif

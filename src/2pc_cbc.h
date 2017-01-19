@@ -10,5 +10,6 @@ int cbcNumCircs(void);
 int cbcNumOutputs(void);
 
 void cbc_garb_off(char *dir, ChainingType chainingType);
+ChainedGarbledCircuit* cbc_circuits();
 
 #endif

@@ -77,3 +77,26 @@ void cbc_garb_off(char *dir, ChainingType chainingType)
     }
     free(chained_gcs);
 }
+
+ChainedGarbledCircuit* cbc_circuits() {
+    int num_chained_gcs = cbcNumCircs(); 
+    int num_xor_circs = getNumXORCircs();
+    int num_aes_circs = getNumAESCircs();
+    ChainedGarbledCircuit *chained_gcs = malloc(sizeof(ChainedGarbledCircuit) * num_chained_gcs);
+
+    for (int i = 0; i < num_chained_gcs; i++) {
+        garble_circuit *gc = &(chained_gcs[i].gc);
+        if (i < num_xor_circs) {
+            buildXORCircuit(gc, NULL);
+            chained_gcs[i].type = XOR;
+        } else if (i < num_xor_circs + num_aes_circs) {
+            buildAESRoundComponentCircuit(gc, false, NULL);
+            chained_gcs[i].type = AES_ROUND;
+        } else {
+            buildAESRoundComponentCircuit(gc, true, NULL);
+            chained_gcs[i].type = AES_FINAL_ROUND;
+
+        }
+    }
+    return chained_gcs;
+}

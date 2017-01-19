@@ -556,45 +556,45 @@ go(struct args *args)
 
         // TODO UPDATE THIS
         printf("Online evaluating\n");
-        //eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, args->chaining_type);
         ChainedGarbledCircuit *cgcs;
         switch (args->type) {
         case EXPERIMENT_AES:
             cgcs = aes_circuits(10, args->chaining_type);
             break;
-        //case EXPERIMENT_CBC:
-        //    cbc_eval_on(EVALUATOR_DIR, args->chaining_type);
-        //    break;
-        //case EXPERIMENT_LEVEN:
-        //    leven_eval_on(l, sigma, args->chaining_type);
-        //    break;
-        //case EXPERIMENT_WDBC:
-        //    hyperplane_eval_on(EVALUATOR_DIR, n, num_len, WDBC);
-        //    break;
-        //case EXPERIMENT_HP_CREDIT:
-        //    hyperplane_eval_on(EVALUATOR_DIR, n, num_len, CREDIT);
-        //    break;
-        //case EXPERIMENT_RANDOM_DT:
-        //    dt_eval_on(EVALUATOR_DIR, n, num_len, DT_RANDOM);
-        //    break;
-        //case EXPERIMENT_DT_NURSERY:
-        //    dt_eval_on(EVALUATOR_DIR, n, num_len, DT_NURSERY);
-        //    break;
-        //case EXPERIMENT_DT_ECG:
-        //    dt_eval_on(EVALUATOR_DIR, n, num_len, DT_ECG);
-        //    break;
-        //case EXPERIMENT_NB_WDBC:
-        //    nb_eval_on(EVALUATOR_DIR, num_len, num_classes, vector_size, domain_size, NB_WDBC);
-        //    break;
-        //case EXPERIMENT_NB_NURSERY:
-        //    nb_eval_on(EVALUATOR_DIR, num_len, num_classes, vector_size, domain_size, NB_NURSERY);
-        //    break;
-        //case EXPERIMENT_NB_AUD:
-        //    nb_eval_on(EVALUATOR_DIR, num_len, num_classes, vector_size, domain_size, NB_AUD);
-        //    break;
-        //case EXPERIMENT_HYPERPLANE:
-        //    printf("EXPERIMENT_HYPERPLANE eval on\n");
-        //    break;
+        case EXPERIMENT_CBC:
+            cgcs = cbc_circuits(args->chaining_type);
+            break;
+        case EXPERIMENT_LEVEN:
+            cgcs = leven_circuits(l, sigma);
+            break;
+        case EXPERIMENT_WDBC:
+            cgcs = hyperplane_circuits(n, num_len);
+            break;
+        case EXPERIMENT_HP_CREDIT:
+            cgcs = hyperplane_circuits(n, num_len);
+            break;
+        case EXPERIMENT_RANDOM_DT:
+            cgcs = dt_circuits(n, num_len, DT_RANDOM);
+            break;
+        case EXPERIMENT_DT_NURSERY:
+            cgcs = dt_circuits(n, num_len, DT_NURSERY);
+            break;
+        case EXPERIMENT_DT_ECG:
+            cgcs = dt_circuits(n, num_len, DT_ECG);
+            break;
+        case EXPERIMENT_NB_WDBC:
+            cgcs = nb_circuits(num_len, num_classes, vector_size, domain_size, NB_WDBC);
+            break;
+        case EXPERIMENT_NB_NURSERY:
+            cgcs = nb_circuits(num_len, num_classes, vector_size, domain_size, NB_NURSERY);
+            break;
+        case EXPERIMENT_NB_AUD:
+            cgcs = nb_circuits(num_len, num_classes, vector_size, domain_size, NB_AUD);
+            break;
+        case EXPERIMENT_HYPERPLANE:
+            printf("EXPERIMENT_HYPERPLANE eval on\n");
+            printf("Shouldn't be here -- deprecated\n");
+            break;
         default:
             break;
         }

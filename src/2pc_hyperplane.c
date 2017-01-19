@@ -231,3 +231,128 @@ void nb_garb_off(char *dir, int num_len, int num_classes, int vector_size, int d
     garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
 
 } 
+
+ChainedGarbledCircuit* hyperplane_circuits (uint32_t n, uint32_t num_len) {
+    ChainedGarbledCircuit *cgcs = calloc(2, sizeof(ChainedGarbledCircuit));
+    build_inner_product_circuit(&cgcs[0].gc, n, num_len);
+    build_gr0_circuit(&cgcs[1].gc, num_len);
+    return cgcs;
+}
+
+ChainedGarbledCircuit*
+dt_circuits(uint32_t n, uint32_t num_len, DECISION_TREE_TYPE type) 
+{
+    if (type == DT_RANDOM) {
+        // generate a bunch of chained garbled comparators
+        uint32_t ncircuits = 10;
+        int num_eval_inputs = n / 2;
+
+        cgc_information cgc_info[ncircuits];
+        for (uint32_t i = 0; i < ncircuits; i++) {
+            cgc_info[i].circuit_type = SIGNED_COMPARISON;
+            cgc_info[i].n = num_len * 2;
+            cgc_info[i].m = 1;
+        }
+
+        ChainedGarbledCircuit *cgcs = calloc(ncircuits, sizeof(ChainedGarbledCircuit));
+        generate_cgcs(cgcs, cgc_info, ncircuits);
+        return cgcs;
+    } else if (type == DT_NURSERY) {
+        // generate 4 comparators and 3 ANDs
+        uint32_t ncircuits = 7;
+        int num_eval_inputs = n / 2;
+
+        cgc_information cgc_info[ncircuits];
+        for (uint32_t i = 0; i < 4; i++) {
+            cgc_info[i].circuit_type = SIGNED_COMPARISON;
+            cgc_info[i].n = 2 * num_len;
+            cgc_info[i].m = 1;
+            cgc_info[i].num_len = num_len;
+        }
+
+        for (uint32_t i = 4; i < 7; i++) {
+            cgc_info[i].circuit_type = AND;
+            cgc_info[i].n = 2;
+            cgc_info[i].m = 1;
+            cgc_info[i].num_len = num_len;
+        }
+
+        ChainedGarbledCircuit *cgcs = calloc(ncircuits, sizeof(ChainedGarbledCircuit));
+        generate_cgcs(cgcs, cgc_info, ncircuits);
+        return cgcs;
+    } else if (type == DT_ECG) {
+        // generate 4 comparators and 3 ANDs
+        uint32_t ncircuits = 13;
+        int num_eval_inputs = n / 2;
+
+        cgc_information cgc_info[ncircuits];
+        for (uint32_t i = 0; i < 6; i++) {
+            cgc_info[i].circuit_type = SIGNED_COMPARISON;
+            cgc_info[i].n = 2 * num_len;
+            cgc_info[i].m = 1;
+            cgc_info[i].num_len = num_len;
+        }
+
+        for (uint32_t i = 6; i < 11; i++) {
+            cgc_info[i].circuit_type = AND;
+            cgc_info[i].n = 2;
+            cgc_info[i].m = 1;
+            cgc_info[i].num_len = num_len;
+        }
+
+        for (uint32_t i = 11; i < 13; i++) {
+            cgc_info[i].circuit_type = NOT;
+            cgc_info[i].n = 1;
+            cgc_info[i].m = 1;
+            cgc_info[i].num_len = num_len;
+        }
+
+        ChainedGarbledCircuit *cgcs = calloc(ncircuits, sizeof(ChainedGarbledCircuit));
+        generate_cgcs(cgcs, cgc_info, ncircuits);
+        return cgcs;
+    } else {
+        printf("not doing anything\n");
+    }
+}
+
+ChainedGarbledCircuit* 
+nb_circuits(int num_len, int num_classes, int vector_size, int domain_size, NAIVE_BAYES_TYPE experiment) 
+{
+    int num_select_circs = num_classes * vector_size;
+    int num_add_circs = num_classes * vector_size;
+    int num_argmax_circs = 1;
+    uint32_t ncircuits = num_select_circs + num_add_circs + num_argmax_circs;
+
+    int t_size = num_classes * vector_size * domain_size * num_len;
+    int c_size = num_classes * num_len;
+    int num_eval_inputs = vector_size * num_len;
+
+    cgc_information cgc_info[ncircuits];
+    for (uint32_t i = 0; i < num_select_circs; i++) {
+        cgc_info[i].circuit_type = SELECT;
+        cgc_info[i].n = t_size + num_len;
+        cgc_info[i].m = num_len;
+        cgc_info[i].num_len = num_len;
+        cgc_info[i].num_classes = num_classes;
+        cgc_info[i].vector_size = vector_size;
+        cgc_info[i].domain_size = domain_size;
+    }
+
+    for (uint32_t i = num_select_circs; i < num_select_circs + num_add_circs; i++) {
+        cgc_info[i].circuit_type = ADD;
+        cgc_info[i].n = 2 * num_len;
+        cgc_info[i].m = num_len;
+        cgc_info[i].num_len = num_len;
+    }
+
+    // argmax
+    cgc_info[ncircuits-1].circuit_type = ARGMAX;
+    cgc_info[ncircuits-1].n = num_len * num_classes;
+    cgc_info[ncircuits-1].m = num_len;
+    cgc_info[ncircuits-1].num_len = num_len;
+
+    ChainedGarbledCircuit *cgcs = calloc(ncircuits, sizeof(ChainedGarbledCircuit));
+    generate_cgcs(cgcs, cgc_info, ncircuits);
+    return cgcs;
+
+}
