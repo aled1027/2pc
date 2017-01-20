@@ -79,7 +79,7 @@ garbler_classic_2pc(garble_circuit *gc, const OldInputMapping *input_mapping,
     size_t p = 0;
     uint64_t start, end;
 
-    assert(gc->n == num_garb_inputs + num_eval_inputs);
+    assert(gc->n == (size_t) num_garb_inputs + num_eval_inputs);
 
     if ((serverfd = net_init_server(HOST, PORT)) == FAILURE) {
         perror("net_init_server");

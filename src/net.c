@@ -45,7 +45,6 @@ net_recv(int socket, void *buffer, size_t length, int flags)
         ssize_t n = recv(socket, ((char *) buffer) + total, bytesleft, flags);
         if (n == -1) {
             perror("recv");
-            assert(false);
             return FAILURE;
         }
         total += n;

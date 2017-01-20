@@ -79,7 +79,7 @@ ChainedGarbledCircuit* leven_circuits(int l, int sigma)
     int coreN = getCoreN(l, sigma);
     int coreM = getCoreM(l);
     int numCircuits = levenNumCircs(l);
-    ChainedGarbledCircuit chainedGCs[numCircuits];
+    ChainedGarbledCircuit *chainedGCs = calloc(numCircuits, sizeof chainedGCs[0]);
     for (int i = 0; i < numCircuits; i++) {
         /* Initialize */
         garble_context gcContext;

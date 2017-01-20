@@ -39,7 +39,7 @@ echo
 build libgarble    https://github.com/amaloz/libgarble master
 
 autoreconf -i
-./configure $debug
+./configure --prefix=$builddir $debug
 make
 
 mkdir -p files/garbler_gcs

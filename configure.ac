@@ -15,7 +15,7 @@ AM_PROG_AR
 
 LT_INIT
 
-AX_VALGRIND_CHECK()
+dnl AX_VALGRIND_CHECK()
 
 AC_ARG_ENABLE(debug,
 [AS_HELP_STRING([--enable-debug], [enable debugging])],
