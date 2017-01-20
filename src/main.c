@@ -199,12 +199,12 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
     }
     tot_time = malloc(sizeof(uint64_t) * ntrials);
 
-    for (int i = 0; i < ntrials; i++) {
+    for (size_t i = 0; i < ntrials; i++) {
         sleep(1);
         g_bytes_sent = g_bytes_received = 0;
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i], chainingType);
-        fprintf(stderr, "Total: %llu\n", tot_time[i]);
+        fprintf(stderr, "Total: %lu\n", tot_time[i]);
     }
 
     results("GARB", tot_time, NULL, ntrials);
@@ -217,12 +217,13 @@ static void
 eval_on(int ninputs, int nlabels, int nchains, int ntrials,
         ChainingType chainingType, ChainedGarbledCircuit *cgcs)
 {
+    (void) nlabels;
     uint64_t *tot_time, *tot_time_no_load;
     int *inputs;
 
-    tot_time = calloc(ntrials, sizeof(uint64_t));
-    tot_time_no_load = calloc(ntrials, sizeof(uint64_t));
-    inputs = calloc(ninputs, sizeof(int));
+    tot_time = calloc(ntrials, sizeof tot_time[0]);
+    tot_time_no_load = calloc(ntrials, sizeof tot_time_no_load[0]);
+    inputs = calloc(ninputs, sizeof inputs[0]);
 
     for (int i = 0; i < ntrials; i++) {
         sleep(2); // uncomment this if getting hung up
@@ -232,14 +233,15 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials,
         }
         evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, chainingType,
                          &tot_time[i], &tot_time_no_load[i], cgcs);
-        fprintf(stderr, "Total: %llu\n", tot_time[i]);
-        fprintf(stderr, "Total (no load): %llu\n", tot_time_no_load[i]);
+        fprintf(stderr, "Total: %lu\n", tot_time[i]);
+        fprintf(stderr, "Total (no load): %lu\n", tot_time_no_load[i]);
     }
 
     results("EVAL", tot_time, tot_time_no_load, ntrials);
 
     free(inputs);
     free(tot_time);
+    free(tot_time_no_load);
 }
 
 static void

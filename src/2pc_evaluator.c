@@ -300,6 +300,7 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains,
     uint64_t start, end;
     
     state_init(&state);
+    memset(&cgc, '\0', sizeof cgc);
 
     if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
         perror("net_init_client");
@@ -574,7 +575,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                 output_instructions.size * sizeof(OutputInstruction), 0);
     }
     _end = current_time_();
-    fprintf(stderr, "Receive output instructions: %llu\n", _end - _start);
+    fprintf(stderr, "Receive output instructions: %lu\n", _end - _start);
     fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
     _start = current_time_();
@@ -583,7 +584,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         recvInstructions(sockfd, &function.instructions, &offsets);
     }
     _end = current_time_();
-    fprintf(stderr, "Receive instructions: %llu\n", _end - _start);
+    fprintf(stderr, "Receive instructions: %lu\n", _end - _start);
     fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
     /* Done with socket, so close */
@@ -606,7 +607,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
                            labels, circuitMapping, computedOutputMap, offsets, chainingType);
     }
     _end = current_time_();
-    fprintf(stderr, "Evaluate: %llu\n", _end - _start);
+    fprintf(stderr, "Evaluate: %lu\n", _end - _start);
 
     _start = current_time_();
     int *output = calloc(output_instructions.size, sizeof(int));
@@ -619,11 +620,11 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     }
     free(output_instructions.output_instruction);
     _end = current_time_();
-    fprintf(stderr, "Map outputs: %llu\n", _end - _start);
+    fprintf(stderr, "Map outputs: %lu\n", _end - _start);
 
     /* cleanup */
     free(circuitMapping);
-    for (int i = 0; i < num_chained_gcs; ++i) {
+    for (int i = 0; i < num_chained_gcs + 1; ++i) {
         freeChainedGarbledCircuit(&chained_gcs[i], false, chainingType);
 
         free(labels[i]);

@@ -23,7 +23,7 @@ gc_comm_recv(int sock, garble_circuit *gc)
     char *buf;
 
     net_recv(sock, &size, sizeof size, 0);
-    buf = malloc(size);
+    buf = calloc(1, size);
     net_recv(sock, buf, size, 0);
     garble_from_buffer(gc, buf, true, false);
 
