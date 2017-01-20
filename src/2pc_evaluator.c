@@ -350,21 +350,6 @@ evaluator_offline(char *dir, int num_eval_inputs, int nchains,
     state_cleanup(&state);
 }
 
-static void
-recvInstructions(int fd, Instructions *insts, block **offsets)
-{
-    int noffsets;
-
-    net_recv(fd, &insts->size, sizeof(int), 0);
-    net_recv(fd, &noffsets, sizeof(int), 0);
-
-    insts->instr = malloc(insts->size * sizeof(Instruction));
-    *offsets = garble_allocate_blocks(noffsets);
-
-    net_recv(fd, insts->instr, sizeof(Instruction) * insts->size, 0);
-    net_recv(fd, *offsets, sizeof(block) * noffsets, 0);
-}
-
 static void 
 loadChainedGarbledCircuits(ChainedGarbledCircuit *cgc, int ncgcs, char *dir,
                            ChainingType chainingType) 
@@ -495,6 +480,32 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         exit(EXIT_FAILURE);
     }
 
+    /* Receive instructions */
+    _start = current_time_();
+    {
+        tmp = g_bytes_received;
+        net_recv(sockfd, &function.instructions.size, sizeof(int), 0);
+        function.instructions.instr = calloc(function.instructions.size, sizeof(Instruction));
+        net_recv(sockfd, function.instructions.instr, function.instructions.size * sizeof(Instruction), 0);
+    }
+    _end = current_time_();
+    fprintf(stderr, "Receive instructions: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
+
+    /* Receive circuitMapping */
+    /* maps instructions-gc-id to disk-gc-id */
+    _start = current_time_();
+    {
+        int size;
+        tmp = g_bytes_received;
+        net_recv(sockfd, &size, sizeof(int), 0);
+        circuitMapping = malloc(sizeof(int) * size);
+        net_recv(sockfd, circuitMapping, sizeof(int) * size, 0);
+    }
+    _end = current_time_();
+    fprintf(stderr, "Receive circuit map: %llu\n", _end - _start);
+    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
+
     start = current_time_();
 
     /* Receive eval labels: OT correction */
@@ -534,19 +545,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     _end = current_time_();
     fprintf(stderr, "OT correction: %llu\n", _end - _start);
 
-    /* Receive circuit mapping which maps instructions-gc-id to disk-gc-id */
-    _start = current_time_();
-    {
-        int size;
-        tmp = g_bytes_received;
-        net_recv(sockfd, &size, sizeof(int), 0);
-        circuitMapping = malloc(sizeof(int) * size);
-        net_recv(sockfd, circuitMapping, sizeof(int) * size, 0);
-    }
-    _end = current_time_();
-    fprintf(stderr, "Receive circuit map: %llu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
-
+    
     /* receive garbler labels */
     _start = current_time_();
     {
@@ -578,13 +577,18 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     fprintf(stderr, "Receive output instructions: %lu\n", _end - _start);
     fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
+    // Receive offsets
     _start = current_time_();
     {
         tmp = g_bytes_received;
-        recvInstructions(sockfd, &function.instructions, &offsets);
+
+        int noffsets;
+        net_recv(sockfd, &noffsets, sizeof(int), 0);
+        offsets = garble_allocate_blocks(noffsets);
+        net_recv(sockfd, offsets, sizeof(block) * noffsets, 0);
     }
     _end = current_time_();
-    fprintf(stderr, "Receive instructions: %lu\n", _end - _start);
+    fprintf(stderr, "Receive offsets: %lu\n", _end - _start);
     fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
     /* Done with socket, so close */
@@ -625,15 +629,15 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     /* cleanup */
     free(circuitMapping);
     for (int i = 0; i < num_chained_gcs + 1; ++i) {
-        freeChainedGarbledCircuit(&chained_gcs[i], false, chainingType);
+        if (i != num_chained_gcs) {
+            freeChainedGarbledCircuit(&chained_gcs[i], false, chainingType);
+        }
 
         free(labels[i]);
 
         free(computedOutputMap[i]);
         computedOutputMap[i] = NULL;
     }
-    //free(labels[num_chained_gcs]);
-
     free(computedOutputMap[num_chained_gcs]);
     free(chained_gcs);
     free(computedOutputMap);
@@ -641,11 +645,8 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     free(output);
     free(garb_labels);
     free(eval_labels);
-
-    if (function.instructions.instr) {
-        free(function.instructions.instr);
-        function.instructions.instr = NULL;
-    }
+    free(function.instructions.instr);
+    function.instructions.instr = NULL;
 
     free(offsets);
 

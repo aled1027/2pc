@@ -25,7 +25,7 @@ typedef struct {
     int domain_size;
 } cgc_information;
 
-void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int ncircuits) 
+void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int ncircuits, bool is_garb) 
 {
     /* Fills the cgcs array with built and garbled chained garbled circuits
      * whose information is sotred in cgc_info. ncircuits is the size
@@ -71,13 +71,16 @@ void generate_cgcs(ChainedGarbledCircuit *cgcs, cgc_information *cgc_info, int n
                 break;
         }
 
-        cgc->inputLabels = garble_allocate_blocks(2 * n);
-        cgc->outputMap = garble_allocate_blocks(2 * m);
-        garble_create_input_labels(cgc->inputLabels, n, &delta, false);
-        garble_garble(&cgc->gc, cgc->inputLabels, cgc->outputMap);
+        if (is_garb) {
 
-        cgc->id = i;
-        cgc->type = circuit_type;
+            cgc->inputLabels = garble_allocate_blocks(2 * n);
+            cgc->outputMap = garble_allocate_blocks(2 * m);
+            garble_create_input_labels(cgc->inputLabels, n, &delta, false);
+            garble_garble(&cgc->gc, cgc->inputLabels, cgc->outputMap);
+
+            cgc->id = i;
+            cgc->type = circuit_type;
+        }
     }
 }
 
@@ -126,7 +129,7 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
         }
 
         ChainedGarbledCircuit cgcs[ncircuits];
-        generate_cgcs(cgcs, cgc_info, ncircuits);
+        generate_cgcs(cgcs, cgc_info, ncircuits, true);
                 
 
         garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
@@ -151,7 +154,7 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
         }
 
         ChainedGarbledCircuit cgcs[ncircuits];
-        generate_cgcs(cgcs, cgc_info, ncircuits);
+        generate_cgcs(cgcs, cgc_info, ncircuits, true);
                 
 
         garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
@@ -183,7 +186,7 @@ void dt_garb_off(char *dir, uint32_t n, uint32_t num_len, DECISION_TREE_TYPE typ
         }
 
         ChainedGarbledCircuit cgcs[ncircuits];
-        generate_cgcs(cgcs, cgc_info, ncircuits);
+        generate_cgcs(cgcs, cgc_info, ncircuits, true);
         garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
     } else {
         printf("not doing anything\n");
@@ -227,7 +230,7 @@ void nb_garb_off(char *dir, int num_len, int num_classes, int vector_size, int d
     cgc_info[ncircuits-1].num_len = num_len;
 
     ChainedGarbledCircuit cgcs[ncircuits];
-    generate_cgcs(cgcs, cgc_info, ncircuits);
+    generate_cgcs(cgcs, cgc_info, ncircuits, true);
     garbler_offline(dir, cgcs, num_eval_inputs, ncircuits, CHAINING_TYPE_STANDARD);
 
 } 
@@ -255,7 +258,7 @@ dt_circuits(uint32_t n, uint32_t num_len, DECISION_TREE_TYPE type)
         }
 
         ChainedGarbledCircuit *cgcs = calloc(ncircuits, sizeof(ChainedGarbledCircuit));
-        generate_cgcs(cgcs, cgc_info, ncircuits);
+        generate_cgcs(cgcs, cgc_info, ncircuits, false);
         return cgcs;
     } else if (type == DT_NURSERY) {
         // generate 4 comparators and 3 ANDs
@@ -278,7 +281,7 @@ dt_circuits(uint32_t n, uint32_t num_len, DECISION_TREE_TYPE type)
         }
 
         ChainedGarbledCircuit *cgcs = calloc(ncircuits, sizeof(ChainedGarbledCircuit));
-        generate_cgcs(cgcs, cgc_info, ncircuits);
+        generate_cgcs(cgcs, cgc_info, ncircuits, false);
         return cgcs;
     } else if (type == DT_ECG) {
         // generate 4 comparators and 3 ANDs
@@ -308,7 +311,7 @@ dt_circuits(uint32_t n, uint32_t num_len, DECISION_TREE_TYPE type)
         }
 
         ChainedGarbledCircuit *cgcs = calloc(ncircuits, sizeof(ChainedGarbledCircuit));
-        generate_cgcs(cgcs, cgc_info, ncircuits);
+        generate_cgcs(cgcs, cgc_info, ncircuits, false);
         return cgcs;
     } else {
         printf("not doing anything\n");
@@ -352,7 +355,7 @@ nb_circuits(int num_len, int num_classes, int vector_size, int domain_size, NAIV
     cgc_info[ncircuits-1].num_len = num_len;
 
     ChainedGarbledCircuit *cgcs = calloc(ncircuits, sizeof(ChainedGarbledCircuit));
-    generate_cgcs(cgcs, cgc_info, ncircuits);
+    generate_cgcs(cgcs, cgc_info, ncircuits, false);
     return cgcs;
 
 }

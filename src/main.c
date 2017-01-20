@@ -326,7 +326,7 @@ eval_full(garble_circuit *gc, int n_garb_inputs, int n_eval_inputs, int noutputs
 static int
 go(struct args *args)
 {
-    uint64_t n_garb_inputs, n_eval_inputs, n_eval_labels, noutputs, ncircs = 0, sigma;
+    uint64_t n_garb_inputs = 0, n_eval_inputs = 0, n_eval_labels = 0, noutputs = 0, ncircs = 0, sigma = 0;
     uint64_t n = 0, l = 0, num_len = 0;
 
     char *fn, *type;
@@ -335,7 +335,6 @@ go(struct args *args)
     int num_classes = 0, vector_size = 0, domain_size = 0, client_input_size = 0;
     int C_size = 0, T_size = 0;
 
-    /* ChainingType chainingType; */
 
     /* chainingType = CHAINING_TYPE_SIMD; */
     switch (args->type) {
@@ -411,6 +410,7 @@ go(struct args *args)
         n_garb_inputs = n / 2;
         n_eval_inputs = n / 2;
         n_eval_labels = n_eval_inputs;
+        noutputs = 4;
         type = "DT";
         fn = "functions/nursery_dt.json";
         break;
@@ -422,6 +422,7 @@ go(struct args *args)
         n_garb_inputs = n / 2;
         n_eval_inputs = n / 2;
         n_eval_labels = n_eval_inputs;
+        noutputs = 1;
         type = "DT";
         fn = "functions/ecg_dt.json";
         break;

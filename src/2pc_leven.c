@@ -85,11 +85,8 @@ ChainedGarbledCircuit* leven_circuits(int l, int sigma)
         garble_context gcContext;
         int inputWires[coreN], outputWires[coreM];
         countToN(inputWires, coreN);
-        chainedGCs[i].inputLabels = garble_allocate_blocks(2*coreN);
-        chainedGCs[i].outputMap = garble_allocate_blocks(2*coreM);
         garble_circuit *gc = &chainedGCs[i].gc;
 
-        /* Garble */
 	    garble_new(gc, coreN, coreM, GARBLE_TYPE_STANDARD);
 	    builder_start_building(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);

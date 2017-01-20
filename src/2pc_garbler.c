@@ -267,13 +267,8 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     _end = current_time_();
     fprintf(stderr, "OT correction: %llu\n", _end - _start);
 
-    _start = current_time_();
-    {
-        int size = function->components.totComponents + 1;
-        buffer = realloc(buffer, p + sizeof size + sizeof(int) * size);
-        p += addToBuffer(buffer + p, &size, sizeof size);
-        p += addToBuffer(buffer + p, circuitMapping, sizeof(int) * size);
-    }
+    
+
     {
         buffer = realloc(buffer, p + sizeof num_garb_inputs
                          + (num_garb_inputs ? sizeof(block) * num_garb_inputs
@@ -295,13 +290,17 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
     }
 
     {
-        buffer = realloc(buffer, p + sizeof(int) + sizeof(int) + 
-                         (sizeof(Instruction) * function->instructions.size) +
-                         (sizeof(block) * noffsets));
-        p += addToBuffer(buffer + p, &function->instructions.size, sizeof(int));
+        //buffer = realloc(buffer, p + sizeof(int) + sizeof(int) + 
+        //                 (sizeof(Instruction) * function->instructions.size) +
+        //                 (sizeof(block) * noffsets));
+        //p += addToBuffer(buffer + p, &function->instructions.size, sizeof(int));
+        //p += addToBuffer(buffer + p, &noffsets, sizeof noffsets);
+        //p += addToBuffer(buffer + p, function->instructions.instr,
+        //                 sizeof(Instruction) * function->instructions.size);
+        //p += addToBuffer(buffer + p, offsets, sizeof(block) * noffsets);
+
+        buffer = realloc(buffer, p + sizeof(int) + (sizeof(block) * noffsets));
         p += addToBuffer(buffer + p, &noffsets, sizeof noffsets);
-        p += addToBuffer(buffer + p, function->instructions.instr,
-                         sizeof(Instruction) * function->instructions.size);
         p += addToBuffer(buffer + p, offsets, sizeof(block) * noffsets);
     }
     _end = current_time_();
@@ -678,6 +677,21 @@ garbler_online(char *function_path, char *dir, bool *inputs, int num_garb_inputs
     if ((fd = net_server_accept(serverfd)) == FAILURE) {
         perror("net_server_accept");
         return FAILURE;
+    }
+
+    // Send instructions to evaluator
+    _start = current_time_();
+    (void) net_send(fd, &function.instructions.size, sizeof(int), 0);
+    (void) net_send(fd, function.instructions.instr, function.instructions.size * sizeof(Instruction), 0);
+    _end = current_time_();
+    total += _end - _start;
+
+    // Send circuit mapping
+    _start = current_time_();
+    {
+        int size = function.components.totComponents + 1;
+        (void) net_send(fd, &size, sizeof size, 0);
+        (void) net_send(fd, circuitMapping, sizeof(int) * size, 0);
     }
 
     /*main function; does core of work*/
