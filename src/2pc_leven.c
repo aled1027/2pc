@@ -71,7 +71,7 @@ leven_garb_off(int l, int sigma, ChainingType chainingType)
     }
 
     int num_eval_inputs = levenNumEvalInputs(l, sigma);
-    garbler_offline("files/garbler_gcs", chainedGCs, num_eval_inputs, numCircuits, chainingType);
+    garbler_offline(GARBLER_DIR, chainedGCs, num_eval_inputs, numCircuits, chainingType);
 }
 
 ChainedGarbledCircuit* leven_circuits(int l, int sigma) 

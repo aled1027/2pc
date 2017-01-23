@@ -1,30 +1,42 @@
-NTIMES=10
+#!/usr/bin/env bash
+
+set -e
+
 mkdir -p logs
 
 prog=./src/compgc
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(readlink -f build)/lib
 
-for TYPE in AUD_NB # WDBC CREDIT NURSERY_DT ECG_DT WDBC_NB NURSERY_NB AUD_NB
+times=$1
+if [ x"$times" == x"" ]; then
+    times=10
+fi
+
+echo -e "Repeating $times times..."
+
+for type in AES #AUD_NB # WDBC CREDIT NURSERY_DT ECG_DT WDBC_NB NURSERY_NB AUD_NB
 do
-    sleep 0.5
-    $prog --type $TYPE --times $NTIMES --garb-full & # 2> logs/$TYPE-garb-full.txt &
-    sleep 0.5
-    $prog --type $TYPE --times $NTIMES --eval-full # 2> logs/$TYPE-eval-full.txt
-    sleep 1.0
 
-    echo -e "\n$TYPE Offline/Online\n"
+    echo -e "\n$type Full\n"
 
-    rm files/garbler_gc/*;
-    rm files/evaluator_gcs/*; 
+    $prog --type $type --times $times --garb-full & # 2> logs/$type-garb-full.txt &
+    sleep 1
+    $prog --type $type --times $times --eval-full # 2> logs/$type-eval-full.txt
 
-    ./src/compgc --type $TYPE --garb-off & # 2> logs/$TYPE-garb-off.txt 1>/dev/null &
-    sleep 0.5
-    ./src/compgc --type $TYPE --eval-off # 2> logs/$TYPE-eval-off.txt 1>/dev/null
-    echo -e "\n$TYPE Online\n"
-    sleep 0.5
-    ./src/compgc --type $TYPE --times $NTIMES --garb-on & # 2> logs/$TYPE-garb-on.txt &
-    sleep 1.5
-    ./src/compgc --type $TYPE --times $NTIMES --eval-on # 2> logs/$TYPE-eval-on.txt
+    echo -e "\n$type Offline/Online\n"
+
+    rm -f function/garbler_gcs/*
+    rm -f function/evaluator_gcs/*
+
+    ./src/compgc --type $type --garb-off & # 2> logs/$type-garb-off.txt 1>/dev/null &
+    sleep 1
+    ./src/compgc --type $type --eval-off # 2> logs/$type-eval-off.txt 1>/dev/null
+
+    echo -e "\n$type Online\n"
+
+    ./src/compgc --type $type --times $times --garb-on & # 2> logs/$type-garb-on.txt &
+    sleep 1
+    ./src/compgc --type $type --times $times --eval-on # 2> logs/$type-eval-on.txt
 done
 

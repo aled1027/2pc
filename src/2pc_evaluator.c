@@ -525,14 +525,14 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
             net_send(sockfd, corrections, sizeof(int) * num_eval_inputs, 0);
         }
         _end = current_time_();
-        fprintf(stderr, "OT correction (send): %llu\n", _end - _start);
+        fprintf(stderr, "OT correction (send): %lu\n", _end - _start);
         _start = current_time_();
         {
             tmp = g_bytes_received;
             net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
         }
         _end = current_time_();
-        fprintf(stderr, "OT correction (receive): %llu\n", _end - _start);
+        fprintf(stderr, "OT correction (receive): %lu\n", _end - _start);
         fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
         for (int i = 0; i < num_eval_inputs; ++i) {
@@ -543,7 +543,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     }
     free(corrections);
     _end = current_time_();
-    fprintf(stderr, "OT correction: %llu\n", _end - _start);
+    fprintf(stderr, "OT correction: %lu\n", _end - _start);
 
     
     /* receive garbler labels */
@@ -557,7 +557,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         }
     }
     _end = current_time_();
-    fprintf(stderr, "Receive garbler labels: %llu\n", _end - _start);
+    fprintf(stderr, "Receive garbler labels: %lu\n", _end - _start);
     fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
     /* Receive output instructions */
@@ -629,17 +629,11 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     /* cleanup */
     free(circuitMapping);
     for (int i = 0; i < num_chained_gcs + 1; ++i) {
-        if (i != num_chained_gcs) {
-            freeChainedGarbledCircuit(&chained_gcs[i], false, chainingType);
-        }
-
         free(labels[i]);
-
         free(computedOutputMap[i]);
         computedOutputMap[i] = NULL;
     }
     free(computedOutputMap[num_chained_gcs]);
-    free(chained_gcs);
     free(computedOutputMap);
     free(outputmap);
     free(output);

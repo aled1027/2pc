@@ -389,7 +389,7 @@ static void saveAndLoadTest()
     int sigma = 2;
     int n = 10;
     int m = 2;
-    char dir[40] = "files/garbler_gcs";
+    char dir[40] = GARBLER_DIR;
 
     ChainedGarbledCircuit cgc;
 

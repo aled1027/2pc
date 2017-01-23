@@ -9,6 +9,9 @@
 #define SUCCESS 0
 #define FAILURE -1
 
+#define GARBLER_DIR "function/garbler_gcs"
+#define EVALUATOR_DIR "function/evaluator_gcs"
+
 #define MIN(a, b)                               \
     (a) < (b) ? (a) : (b)
 #define MAX(a, b)                               \

@@ -10,6 +10,9 @@ else
     debug=""
 fi
 
+mkdir -p function/garbler_gcs
+mkdir -p function/evaluator_gcs
+
 export CPPFLAGS=-I$builddir/include
 export CFLAGS=-I$builddir/include
 export LDFLAGS=-L$builddir/lib
@@ -41,6 +44,3 @@ build libgarble    https://github.com/amaloz/libgarble master
 autoreconf -i
 ./configure --prefix=$builddir $debug
 make
-
-mkdir -p files/garbler_gcs
-mkdir -p files/evaluator_gcs

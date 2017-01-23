@@ -21,9 +21,6 @@
 #include "garble.h"
 #include "circuits.h"
 
-#define GARBLER_DIR "files/garbler_gcs"
-#define EVALUATOR_DIR "files/evaluator_gcs"
-
 typedef enum {
     EXPERIMENT_NONE,
     EXPERIMENT_AES, 
@@ -70,7 +67,7 @@ args_init(struct args *args, const char *progname)
     args->eval_full = 0;
     args->type = EXPERIMENT_NONE;
     args->ntrials = 1;
-    args->nsymbols = 5;
+    args->nsymbols = 30;
 }
 
 static struct option opts[] =
@@ -238,6 +235,13 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials,
     }
 
     results("EVAL", tot_time, tot_time_no_load, ntrials);
+
+    for (int i = 0; i < nchains; ++i) {
+        if (i != nchains) {
+            freeChainedGarbledCircuit(&cgcs[i], false, chainingType);
+        }
+    }
+    free(cgcs);
 
     free(inputs);
     free(tot_time);
