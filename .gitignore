@@ -54,3 +54,5 @@ stamp-h1
 Makefile
 compgc
 config.h
+logs
+function
