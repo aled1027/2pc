@@ -42,7 +42,7 @@ done
 
 for nsymbols in 30 60; do
 
-    echo -e "\n$type Full\n"
+    echo -e "\nLEVEN Full\n"
 
     $prog --type LEVEN --times $times --garb-full --nsymbols $nsymbols 2> logs/LEVEN-garb-full.txt &
     sleep 1
