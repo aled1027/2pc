@@ -73,7 +73,7 @@ static void test_mux()
     /* Build Circuit */
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
     garble_context gcContext;
 	builder_start_building(&gc, &gcContext);
 
@@ -133,7 +133,7 @@ static void test_argmax()
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
     garble_context gcContext;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
 	builder_start_building(&gc, &gcContext);
 
     /* Add circuits */
@@ -199,7 +199,7 @@ static void test_select_circuit()
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
     garble_context gcContext;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
 	builder_start_building(&gc, &gcContext);
 
     /* Add circuits */
@@ -388,7 +388,7 @@ static void test_signed_comparison()
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
     garble_context gcContext;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
 	builder_start_building(&gc, &gcContext);
 
     // build
@@ -450,7 +450,7 @@ static void signedMultTest()
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
     garble_context gcContext;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
 	builder_start_building(&gc, &gcContext);
 
     // build
@@ -516,7 +516,7 @@ static void test_mult()
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
     garble_context gcContext;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
 	builder_start_building(&gc, &gcContext);
 
     // build
@@ -574,7 +574,7 @@ static void test_add()
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
     garble_context gcContext;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
 	builder_start_building(&gc, &gcContext);
 
     // build
@@ -647,7 +647,7 @@ static void test_inner_product()
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
     garble_context gcContext;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
 	builder_start_building(&gc, &gcContext);
 
     countToN(inputWires, n);
@@ -724,7 +724,7 @@ static void argMax4Test()
     /* Build Circuit */
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
     garble_context gcContext;
 	builder_start_building(&gc, &gcContext);
 
@@ -786,7 +786,7 @@ static void argMax2Test()
     /* Build Circuit */
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
     garble_context gcContext;
 	builder_start_building(&gc, &gcContext);
 
@@ -837,7 +837,7 @@ static void test_les(int n)
     /* Build Circuit */
     garble_create_input_labels(inputLabels, n, NULL, false);
     garble_circuit gc;
-	garble_new(&gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(&gc, n, m, garble_type);
     garble_context gcContext;
 	builder_start_building(&gc, &gcContext);
 

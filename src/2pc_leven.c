@@ -48,7 +48,7 @@ leven_garb_off(int l, int sigma, ChainingType chainingType)
         garble_circuit *gc = &chainedGCs[i].gc;
 
         /* Garble */
-	    garble_new(gc, coreN, coreM, GARBLE_TYPE_STANDARD);
+	    garble_new(gc, coreN, coreM, garble_type);
 	    builder_start_building(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
 	    builder_finish_building(gc, &gcContext, outputWires);
@@ -87,7 +87,7 @@ ChainedGarbledCircuit* leven_circuits(int l, int sigma)
         countToN(inputWires, coreN);
         garble_circuit *gc = &chainedGCs[i].gc;
 
-	    garble_new(gc, coreN, coreM, GARBLE_TYPE_STANDARD);
+	    garble_new(gc, coreN, coreM, garble_type);
 	    builder_start_building(gc, &gcContext);
         addLevenshteinCoreCircuit(gc, &gcContext, l, sigma, inputWires, outputWires);
 	    builder_finish_building(gc, &gcContext, outputWires);

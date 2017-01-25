@@ -10,6 +10,8 @@
 
 #include "state.h"
 
+garble_type_e garble_type = GARBLE_TYPE_HALFGATES;
+
 void convertToBinary(int x, bool *arr, int narr)
 {
     int i = 0;

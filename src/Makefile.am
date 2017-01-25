@@ -2,7 +2,6 @@ AUTOMAKE_OPTIONS = foreign -Wall
 
 SOURCES = \
 2pc_aes.c \
-2pc_and.c \
 2pc_cbc.c \
 2pc_evaluator.c \
 2pc_function_spec.c \
@@ -10,7 +9,6 @@ SOURCES = \
 2pc_garbler.c \
 2pc_hyperplane.c \
 2pc_leven.c \
-2pc_old_tests.c \
 2pc_tests.c \
 components.c \
 crypto.c \

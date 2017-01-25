@@ -4,13 +4,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h> 
-#include "garble.h"
+#include <garble.h>
 
 #define SUCCESS 0
 #define FAILURE -1
 
 #define GARBLER_DIR "function/garbler_gcs"
 #define EVALUATOR_DIR "function/evaluator_gcs"
+
+extern garble_type_e garble_type;
 
 #define MIN(a, b)                               \
     (a) < (b) ? (a) : (b)

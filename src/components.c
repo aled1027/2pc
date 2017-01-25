@@ -321,7 +321,7 @@ void build_signed_comparison_circuit(garble_circuit *gc, int num_len)
     
     countToN(inputs, n);
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
     circuit_signed_less_than(gc, &ctxt, 2 * num_len, inputs, inputs + num_len, outputs);
 	builder_finish_building(gc, &ctxt, outputs);
@@ -348,7 +348,7 @@ void build_decision_tree_nursery_circuit(garble_circuit *gc, int num_len)
     assert(n == num_garbler_inputs + num_evaluator_inputs);
 
     countToN(inputs, n);
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
 
     int node_one_out[2];
@@ -405,7 +405,7 @@ void build_decision_tree_ecg_circuit(garble_circuit *gc, int num_len)
     garble_context ctxt;
     
     countToN(inputs, n);
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
 
     int node_one_out[2];
@@ -489,7 +489,7 @@ void build_decision_tree_circuit(garble_circuit *gc, uint32_t num_nodes, uint32_
     assert(n == num_garbler_inputs + num_evaluator_inputs);
 
     countToN(inputs, n);
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
 
     int node_one_out[2];
@@ -556,7 +556,7 @@ void build_naive_bayes_circuit(garble_circuit *gc,
     memcpy(T_inputs, inputs + C_size, T_size * sizeof(int));
     memcpy(client_inputs, inputs + C_size + T_size , client_input_size * sizeof(int));
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
     
     // these nested for loops populate probs with
@@ -601,7 +601,7 @@ void build_not_circuit(garble_circuit *gc)
     int outputs[m];
     countToN(inputs, n);
     garble_context ctxt;
-    garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+    garble_new(gc, n, m, garble_type);
     builder_start_building(gc, &ctxt);
     outputs[0] = builder_next_wire(&ctxt);
     my_not_gate(gc, &ctxt, inputs[0], outputs[0]);
@@ -617,7 +617,7 @@ void build_and_circuit(garble_circuit *gc)
     int outputs[m];
     countToN(inputs, n);
     garble_context ctxt;
-    garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+    garble_new(gc, n, m, garble_type);
     builder_start_building(gc, &ctxt);
     outputs[0] = builder_next_wire(&ctxt);
     gate_AND(gc, &ctxt, inputs[0], inputs[1], outputs[0]);
@@ -633,7 +633,7 @@ void build_gr0_circuit(garble_circuit *gc, uint32_t n)
     garble_context ctxt;
 
     countToN(input_wires, n);
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
 
     circuit_gr0(gc, &ctxt, n, input_wires, output_wires);
@@ -649,7 +649,7 @@ void build_inner_product_circuit(garble_circuit *gc, uint32_t n, uint32_t num_le
     garble_context ctxt;
 
     countToN(input_wires, n);
-	garble_new(gc, n, num_len, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, num_len, garble_type);
 	builder_start_building(gc, &ctxt);
     circuit_inner_product(gc, &ctxt, n, num_len, input_wires, output_wires);
 	builder_finish_building(gc, &ctxt, output_wires);
@@ -958,7 +958,7 @@ void build_argmax_circuit(garble_circuit *gc, int n, int num_len)
     
     countToN(inputs, n);
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
 
     circuit_argmax(gc, &ctxt, inputs, outputs, input_array_size, num_len);
@@ -975,7 +975,7 @@ void build_add_circuit(garble_circuit *gc, int num_len)
     
     countToN(inputs, n);
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
 
     int carry;
@@ -993,7 +993,7 @@ void build_select_circuit(garble_circuit *gc, int num_len, int input_array_size)
     
     countToN(inputs, n);
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
 
     circuit_select(gc, &ctxt, num_len, input_array_size, num_len, inputs, outputs);
@@ -1086,7 +1086,7 @@ void buildLinearCircuit(garble_circuit *gc, int n, int num_len)
 
 	countToN(input_wires, n);
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
 
     circuit_inner_product(gc, &ctxt, n, num_len, input_wires, ip_output_wires);
@@ -1108,7 +1108,7 @@ void buildHyperCircuit(garble_circuit *gc)
 
 	countToN(input_wires, n);
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &ctxt);
 
     circuit_inner_product(gc, &ctxt, n, num_len, input_wires, output_wires);
@@ -1149,7 +1149,7 @@ buildLevenshteinCircuit(garble_circuit *gc, int l, int sigma)
 	countToN(inputWires, n);
 
 	garble_context gctxt;
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &gctxt);
 
 	///* Populate D's 0th row and column with wire indices from inputs*/
@@ -1361,7 +1361,7 @@ buildANDCircuit(garble_circuit *gc, int n, int nlayers)
 
 	countToN(wires, n);
 
-	garble_new(gc, n, n, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, n, garble_type);
 	builder_start_building(gc, &ctxt);
 
 	for (int i = 0; i < nlayers; ++i) {
@@ -1438,7 +1438,7 @@ buildCBCFullCircuit (garble_circuit *gc, int num_message_blocks, int num_aes_rou
 	int *outputWires = (int*) malloc(sizeof(int) * m);
 	assert(aesIn && outputWires);
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	garble_context gc_context;
 	builder_start_building(gc, &gc_context);
 
@@ -1493,7 +1493,7 @@ buildAdderCircuit(garble_circuit *gc)
 
 	garble_context gc_context;
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &gc_context);
 	circuit_add22(gc, &gc_context, inputs, outputs);
 	builder_finish_building(gc, &gc_context, outputs);
@@ -1512,7 +1512,7 @@ buildXORCircuit(garble_circuit *gc, block *delta)
 	int outs[m];
 	countToN(inp, n);
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &garblingContext);
 	circuit_xor(gc, &garblingContext, 256, inp, outs);
 	builder_finish_building(gc, &garblingContext, outs);
@@ -1533,7 +1533,7 @@ buildAESRoundComponentCircuit(garble_circuit *gc, bool isFinalRound, block* delt
 	int shiftRowsOutputs[n1];
 	int mixColumnOutputs[n1];
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &garblingContext);
 	countToN(prevAndKey, 256); 
 
@@ -1577,7 +1577,7 @@ void buildAESCircuit(garble_circuit *gc)
 	int mixColumnOutputs[n];
 	int i;
 
-	garble_new(gc, n, m, GARBLE_TYPE_STANDARD);
+	garble_new(gc, n, m, garble_type);
 	builder_start_building(gc, &garblingContext);
 
 	countToN(addKeyInputs, 256);

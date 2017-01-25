@@ -25,7 +25,7 @@ aes_garb_off(char *dir, int nchains, ChainingType chainingType)
 
     for (int i = 0; i < nchains; i++) {
         garble_circuit *gc = &chained_gcs[i].gc;
-        gc->type = GARBLE_TYPE_STANDARD;
+        gc->type = garble_type;
         if (i == nchains - 1) {
             buildAESRoundComponentCircuit(gc, true, &delta);
             chained_gcs[i].type = AES_FINAL_ROUND;
@@ -68,7 +68,7 @@ aes_circuits(int nchains, ChainingType chainingType)
 
     for (int i = 0; i < nchains; i++) {
         garble_circuit *gc = &chained_gcs[i].gc;
-        gc->type = GARBLE_TYPE_STANDARD;
+        gc->type = garble_type;
         if (i == nchains - 1) {
             buildAESRoundComponentCircuit(gc, true, NULL); 
             chained_gcs[i].type = AES_FINAL_ROUND;

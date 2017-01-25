@@ -15,7 +15,7 @@ fi
 
 echo -e "Repeating $times times..."
 
-for type in WDBC CREDIT NURSERY_DT ECG_DT WDBC_NB NURSERY_NB # AUD_NB
+for type in AES CBC
 do
 
     echo -e "\n$type Full\n"
@@ -40,3 +40,26 @@ do
     ./src/compgc --type $type --times $times --eval-on 2> logs/$type-eval-on.txt
 done
 
+for nsymbols in 30 60; do
+
+    echo -e "\n$type Full\n"
+
+    $prog --type LEVEN --times $times --garb-full --nsymbols $nsymbols 2> logs/LEVEN-garb-full.txt &
+    sleep 1
+    $prog --type LEVEN --times $times --eval-full --nsymbols $nsymbols 2> logs/LEVEN-eval-full.txt
+
+    echo -e "\nLEVEN Offline/Online\n"
+
+    rm -f function/garbler_gcs/*
+    rm -f function/evaluator_gcs/*
+
+    ./src/compgc --type LEVEN --garb-off --nsymbols $nsymbols 2> logs/LEVEN-garb-off.txt 1>/dev/null &
+    sleep 1
+    ./src/compgc --type LEVEN --eval-off --nsymbols $nsymbols 2> logs/LEVEN-eval-off.txt 1>/dev/null
+
+    echo -e "\nLEVEN Online\n"
+
+    ./src/compgc --type LEVEN --times $times --garb-on --nsymbols $nsymbols 2> logs/LEVEN-garb-on.txt &
+    sleep 1
+    ./src/compgc --type LEVEN --times $times --eval-on --nsymbols $nsymbols 2> logs/LEVEN-eval-on.txt
+done
