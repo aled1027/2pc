@@ -70,7 +70,6 @@ Model *get_model(const char *path)
         model->data[i] = json_integer_value(j_ptr);
     }
 
-    printf("loaded it\n");
     return model;
 
 cleanup:

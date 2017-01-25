@@ -161,7 +161,7 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
     uint64_t *tot_time;
     bool *inputs;
 
-    inputs = calloc(ninputs, sizeof(bool));
+    inputs = calloc(ninputs, sizeof inputs[0]);
 
     if (EXPERIMENT_LEVEN == which_experiment) {
         printf("l = %d, sigma = %d\n", l, sigma);
@@ -194,7 +194,7 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
             inputs[i] = rand() % 2;
         }
     }
-    tot_time = malloc(sizeof(uint64_t) * ntrials);
+    tot_time = calloc(ntrials, sizeof tot_time[0]);
 
     for (size_t i = 0; i < ntrials; i++) {
         sleep(1);
@@ -258,8 +258,8 @@ garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
     newOldInputMapping(&imap, num_garb_inputs, num_eval_inputs);
 
     {
-        bool *inputs = calloc(num_garb_inputs, sizeof(bool));
-        uint64_t *tot_time = calloc(ntrials, sizeof(uint64_t));
+        bool *inputs = calloc(num_garb_inputs, sizeof inputs[0]);
+        uint64_t *tot_time = calloc(ntrials, sizeof tot_time[0]);
 
         for (int i = 0; i < ntrials; ++i) {
             g_bytes_sent = g_bytes_received = 0;
@@ -286,11 +286,11 @@ garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
             start = current_time_();
             garble_garble(gc, NULL, outputMap);
             end = current_time_();
-            fprintf(stderr, "Garble: %llu ns\n", end - start);
+            fprintf(stderr, "Garble: %lu ns\n", end - start);
             tot_time[i] += end - start;
             garbler_classic_2pc(gc, &imap, outputMap, num_garb_inputs,
                                 num_eval_inputs, inputs, &tot_time[i]);
-            fprintf(stderr, "Total: %llu ns\n", tot_time[i]);
+            fprintf(stderr, "Total: %lu ns\n", tot_time[i]);
         }
 
         results("GARB", tot_time, NULL, ntrials);
@@ -306,9 +306,9 @@ garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
 static void
 eval_full(garble_circuit *gc, int n_garb_inputs, int n_eval_inputs, int noutputs, int ntrials)
 {
-    uint64_t *tot_time = calloc(ntrials, sizeof(uint64_t));
-    int *eval_inputs = malloc(sizeof(int) * n_eval_inputs);
-    bool *output = malloc(sizeof(bool) * noutputs);
+    uint64_t *tot_time = calloc(ntrials, sizeof tot_time[0]);
+    int *eval_inputs = calloc(n_eval_inputs, sizeof eval_inputs[0]);
+    bool *output = calloc(noutputs, sizeof output[0]);
 
     for (int i = 0; i < ntrials; ++i) {
         g_bytes_sent = g_bytes_received = 0;
@@ -317,7 +317,7 @@ eval_full(garble_circuit *gc, int n_garb_inputs, int n_eval_inputs, int noutputs
         }
         evaluator_classic_2pc(gc, eval_inputs, output, n_garb_inputs, 
                               n_eval_inputs, &tot_time[i]);
-        fprintf(stderr, "Total: %llu\n", tot_time[i]);
+        fprintf(stderr, "Total: %lu\n", tot_time[i]);
     }
 
     results("EVAL", tot_time, NULL, ntrials);
