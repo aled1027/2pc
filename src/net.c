@@ -11,7 +11,11 @@
 #include <sys/socket.h>
 #include <assert.h>
 
+#include <zlib.h>
+
 #define BACKLOG 5
+/* between -1 and 9 */
+#define COMPRESSION_LEVEL 9
 
 size_t g_bytes_sent = 0;
 size_t g_bytes_received = 0;
@@ -51,6 +55,61 @@ net_recv(int socket, void *buffer, size_t length, int flags)
         bytesleft -= n;
     }
     g_bytes_received += length;
+    return SUCCESS;
+}
+
+int
+net_send_compressed(int socket, const void *buffer, size_t length, int flags)
+{
+    int ret;
+    z_stream strm;
+    unsigned char *cbuffer;
+    size_t clength;
+
+    cbuffer = calloc(length, sizeof cbuffer[0]);
+
+    strm.zalloc = Z_NULL;
+    strm.zfree = Z_NULL;
+    strm.opaque = Z_NULL;
+    (void) deflateInit(&strm, COMPRESSION_LEVEL);
+    strm.avail_in = length;
+    strm.next_in = buffer;
+    strm.avail_out = length;
+    strm.next_out = cbuffer;
+    (void) deflate(&strm, Z_FINISH);
+    clength = length - strm.avail_out;
+    (void) net_send(socket, &clength, sizeof clength, flags);
+    ret = net_send(socket, cbuffer, length - strm.avail_out, flags);
+    (void) deflateEnd(&strm);
+    free(cbuffer);
+    return ret;
+}
+
+int
+net_recv_compressed(int socket, void *buffer, size_t length, int flags)
+{
+    int ret;
+    z_stream strm;
+    unsigned char *cbuffer;
+    size_t clength;
+
+    cbuffer = calloc(length, sizeof cbuffer[0]);
+
+    strm.zalloc = Z_NULL;
+    strm.zfree = Z_NULL;
+    strm.opaque = Z_NULL;
+    strm.avail_in = 0;
+    strm.next_in = Z_NULL;
+    (void) inflateInit(&strm);
+    (void) net_recv(socket, &clength, sizeof clength, flags);
+    (void) net_recv(socket, cbuffer, clength, flags);
+    strm.avail_in = clength;
+    strm.next_in = cbuffer;
+    strm.avail_out = length;
+    strm.next_out = buffer;
+    (void) inflate(&strm, Z_NO_FLUSH);
+    (void) inflateEnd(&strm);
+    free(cbuffer);
     return SUCCESS;
 }
 

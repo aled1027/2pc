@@ -37,12 +37,13 @@ AC_SUBST(COMMON_CFLAGS)
 AC_SUBST(EXTRA_CFLAGS)
 
 dnl XXX: i don't know why this doesn't work
-dnl AC_SEARCH_LIBS(garble_new, garble, [], AC_MSG_ERROR([libgarble not found]))
+dnl AC_SEARCH_LIBS(garble_new, [garble], [], AC_MSG_ERROR([libgarble not found]))
 AC_SEARCH_LIBS(SHA1_Init, [crypto], [], AC_MSG_ERROR([libcrypto not found]))
 AC_SEARCH_LIBS(__gmpz_init, [gmp], [], AC_MSG_ERROR([libgmp not found]))
 AC_SEARCH_LIBS(json_loads, [jansson], [], AC_MSG_ERROR([libjansson not found]))
 AC_SEARCH_LIBS(floor, [m], [], AC_MSG_ERROR([libm not found]))
 AC_SEARCH_LIBS(msgpack_unpack_next, [msgpack, msgpackc], [], AC_MSG_ERROR([libmsgpack not found]))
+dnl AC_SEARCH_LIBS(deflateInit, libz, [], AC_MSG_ERROR([libz not found]))
 
 AC_CONFIG_FILES([Makefile src/Makefile])
 

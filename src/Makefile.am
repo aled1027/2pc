@@ -21,7 +21,7 @@ state.c \
 utils.c
 
 AM_CFLAGS = $(EXTRA_CFLAGS) -msse4.1 -maes -march=native
-AM_LDFLAGS = -lgarble -lgarblec
+AM_LDFLAGS = -lgarble -lgarblec -lz
 
 bin_PROGRAMS = compgc
 compgc_SOURCES = main.c $(SOURCES)

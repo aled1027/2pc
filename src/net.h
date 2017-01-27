@@ -13,6 +13,12 @@ int
 net_recv(int socket, void *buffer, size_t length, int flags);
 
 int
+net_send_compressed(int socket, const void *buffer, size_t length, int flags);
+
+int
+net_recv_compressed(int socket, void *buffer, size_t length, int flags);
+
+int
 net_init_server(const char *addr, const char *port);
 
 int

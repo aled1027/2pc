@@ -486,7 +486,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         tmp = g_bytes_received;
         net_recv(sockfd, &function.instructions.size, sizeof(int), 0);
         function.instructions.instr = calloc(function.instructions.size, sizeof(Instruction));
-        net_recv(sockfd, function.instructions.instr, function.instructions.size * sizeof(Instruction), 0);
+        net_recv_compressed(sockfd, function.instructions.instr, function.instructions.size * sizeof(Instruction), 0);
     }
     _end = current_time_();
     fprintf(stderr, "Receive instructions: %llu\n", _end - _start);
@@ -498,9 +498,9 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     {
         int size;
         tmp = g_bytes_received;
-        net_recv(sockfd, &size, sizeof(int), 0);
+        (void) net_recv(sockfd, &size, sizeof(int), 0);
         circuitMapping = malloc(sizeof(int) * size);
-        net_recv(sockfd, circuitMapping, sizeof(int) * size, 0);
+        (void) net_recv_compressed(sockfd, circuitMapping, sizeof(int) * size, 0);
     }
     _end = current_time_();
     fprintf(stderr, "Receive circuit map: %llu\n", _end - _start);

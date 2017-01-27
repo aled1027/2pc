@@ -682,7 +682,7 @@ garbler_online(char *function_path, char *dir, bool *inputs, int num_garb_inputs
     // Send instructions to evaluator
     _start = current_time_();
     (void) net_send(fd, &function.instructions.size, sizeof(int), 0);
-    (void) net_send(fd, function.instructions.instr, function.instructions.size * sizeof(Instruction), 0);
+    (void) net_send_compressed(fd, function.instructions.instr, function.instructions.size * sizeof(Instruction), 0);
     _end = current_time_();
     total += _end - _start;
 
@@ -691,7 +691,7 @@ garbler_online(char *function_path, char *dir, bool *inputs, int num_garb_inputs
     {
         int size = function.components.totComponents + 1;
         (void) net_send(fd, &size, sizeof size, 0);
-        (void) net_send(fd, circuitMapping, sizeof(int) * size, 0);
+        (void) net_send_compressed(fd, circuitMapping, sizeof(int) * size, 0);
     }
 
     /*main function; does core of work*/
