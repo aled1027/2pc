@@ -164,15 +164,13 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
      * time */
     start = current_time_();
 
-    gc_comm_recv(sockfd, gc);
-
     if (num_eval_inputs > 0) {
         block recvLabels[2 * num_eval_inputs];
         for (int i = 0; i < num_eval_inputs; ++i) {
             selections[i] ^= input[i];
         }
-        net_send(sockfd, selections, sizeof(int) * num_eval_inputs, 0);
-        net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
+        net_send(sockfd, selections, sizeof selections, 0);
+        net_recv(sockfd, recvLabels, sizeof recvLabels, 0);
         for (int i = 0; i < num_eval_inputs; ++i) {
             eval_labels[i] = garble_xor(eval_labels[i],
                                         recvLabels[2 * i + input[i]]);
@@ -180,16 +178,18 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
     }
 
     if (num_garb_inputs > 0) {
-        net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
+        net_recv(sockfd, garb_labels, sizeof garb_labels, 0);
     }
 
-    net_recv(sockfd, output_map, sizeof(block) * 2 * gc->m, 0);
+    gc_comm_recv(sockfd, gc);
+
+    net_recv(sockfd, output_map, sizeof output_map, 0);
 
     {
         size_t size;
         net_recv(sockfd, &size, sizeof size, 0);
         char buffer[size];
-        net_recv(sockfd, buffer, size, 0);
+        net_recv(sockfd, buffer, sizeof buffer, 0);
         readBufferIntoInputMapping(&map, buffer);
     }
 
@@ -441,7 +441,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
             corrections[i] ^= eval_inputs[i];
         }
         (void) net_send(sockfd, corrections, sizeof(int) * num_eval_inputs, 0);
-        (void) net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
+        (void) net_recv(sockfd, recvLabels, sizeof recvLabels, 0);
         for (int i = 0; i < num_eval_inputs; ++i) {
             eval_labels[i] = garble_xor(eval_labels[i],
                                         recvLabels[2 * i + eval_inputs[i]]);

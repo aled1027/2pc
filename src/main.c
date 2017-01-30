@@ -197,7 +197,7 @@ garb_on(char *function_path, int ninputs, int nchains, uint64_t ntrials,
     tot_time = calloc(ntrials, sizeof tot_time[0]);
 
     for (size_t i = 0; i < ntrials; i++) {
-        sleep(1);
+        /* sleep(2); */
         g_bytes_sent = g_bytes_received = 0;
         garbler_online(function_path, GARBLER_DIR, inputs, ninputs, nchains, 
                        &tot_time[i], chainingType);
@@ -223,7 +223,7 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials,
     inputs = calloc(ninputs, sizeof inputs[0]);
 
     for (int i = 0; i < ntrials; i++) {
-        sleep(2); // uncomment this if getting hung up
+        sleep(1); // uncomment this if getting hung up
         g_bytes_sent = g_bytes_received = 0;
         for (int j = 0; j < ninputs; j++) {
             inputs[j] = rand() % 2;
@@ -231,7 +231,6 @@ eval_on(int ninputs, int nlabels, int nchains, int ntrials,
         evaluator_online(EVALUATOR_DIR, inputs, ninputs, nchains, chainingType,
                          &tot_time[i], &tot_time_no_load[i], cgcs);
         fprintf(stderr, "Total: %lu\n", tot_time[i]);
-        fprintf(stderr, "Total (no load): %lu\n", tot_time_no_load[i]);
     }
 
     results("EVAL", tot_time, tot_time_no_load, ntrials);
@@ -286,11 +285,10 @@ garb_full(garble_circuit *gc, int num_garb_inputs, int num_eval_inputs,
             start = current_time_();
             garble_garble(gc, NULL, outputMap);
             end = current_time_();
-            fprintf(stderr, "Garble: %lu ns\n", end - start);
             tot_time[i] += end - start;
             garbler_classic_2pc(gc, &imap, outputMap, num_garb_inputs,
                                 num_eval_inputs, inputs, &tot_time[i]);
-            fprintf(stderr, "Total: %lu ns\n", tot_time[i]);
+            fprintf(stderr, "Total: %lu\n", tot_time[i]);
         }
 
         results("GARB", tot_time, NULL, ntrials);
@@ -311,6 +309,7 @@ eval_full(garble_circuit *gc, int n_garb_inputs, int n_eval_inputs, int noutputs
     bool *output = calloc(noutputs, sizeof output[0]);
 
     for (int i = 0; i < ntrials; ++i) {
+        sleep(1);
         g_bytes_sent = g_bytes_received = 0;
         for (int i = 0; i < n_eval_inputs; i++) {
             eval_inputs[i] = rand() % 2;
@@ -372,7 +371,6 @@ go(struct args *args)
         type = "LEVEN";
         break;
     case EXPERIMENT_WDBC:
-        printf("Experiment linear\n");
         num_len = 55;
         n = 31 * 2 * num_len;
         ncircs = 2;
@@ -384,7 +382,6 @@ go(struct args *args)
         fn = "functions/simple_hyperplane.json";
         break;
     case EXPERIMENT_HP_CREDIT:
-        printf("Experiment linear\n");
         // TODO ACTUALLY HYPERPLANE WITH 1 vector
         num_len = 58;
         n = 48 * 2 * num_len;
@@ -397,7 +394,6 @@ go(struct args *args)
         fn = "functions/credit.json";
         break;
     case EXPERIMENT_RANDOM_DT:
-        printf("Experiment random dt\n");
         n = 31 * 2 * num_len;
         ncircs = 2;
         n_garb_inputs = n / 2;
@@ -407,7 +403,6 @@ go(struct args *args)
         fn = "functions/decision_tree.json";
         break;
     case EXPERIMENT_DT_NURSERY:
-        printf("Experiment nursery dt\n");
         num_len = 52;
         n = 4 * 2 * num_len;
         ncircs = 7;
@@ -419,7 +414,6 @@ go(struct args *args)
         fn = "functions/nursery_dt.json";
         break;
     case EXPERIMENT_DT_ECG:
-        printf("Experiment cg dt\n");
         num_len = 52;
         n = 6 * 2 * num_len;
         ncircs = 13;
@@ -431,7 +425,6 @@ go(struct args *args)
         fn = "functions/ecg_dt.json";
         break;
     case EXPERIMENT_NB_WDBC:
-        printf("Experiment nursery naive bayes\n");
         num_len = 52;
         num_classes = 2;
         vector_size = 9;
@@ -448,7 +441,6 @@ go(struct args *args)
         fn = "functions/wdbc_nb.json";
         break;
     case EXPERIMENT_NB_NURSERY:
-        printf("Experiment nursery naive bayes\n");
         num_len = 52;
         num_classes = 5;
         vector_size = 9;
@@ -465,7 +457,6 @@ go(struct args *args)
         fn = "functions/nursery_nb.json";
         break; 
     case EXPERIMENT_NB_AUD:
-        printf("Experiment nursery naive bayes\n");
         num_len = 52;
         num_classes = 5;
         vector_size = 70;
@@ -483,7 +474,6 @@ go(struct args *args)
         break;
 
     case EXPERIMENT_HYPERPLANE:
-        printf("Experiment hyperplane\n");
         fn = NULL; // TODO add function
         n_garb_inputs = 4;
         n_eval_inputs = 4;
@@ -502,7 +492,6 @@ go(struct args *args)
            type, n_garb_inputs, n_eval_inputs, noutputs, ncircs, args->ntrials);
 
     if (args->garb_off) {
-        printf("Offline garbling\n");
         switch (args->type) {
         case EXPERIMENT_AES:
             aes_garb_off(GARBLER_DIR, 10, args->chaining_type);
@@ -537,15 +526,12 @@ go(struct args *args)
         case EXPERIMENT_NB_AUD:
             nb_garb_off(GARBLER_DIR, num_len, num_classes, vector_size, domain_size, NB_AUD);
             break;
-        case EXPERIMENT_HYPERPLANE:
-            printf("EXPERIMENT_HYPERPLANE garb off\n");
-            break;
+        default:
+            abort();
         }
     } else if (args->eval_off) {
-        printf("Offline evaluating\n");
         eval_off(n_eval_inputs, ncircs, args->chaining_type);
     } else if (args->garb_on) {
-        printf("Online garbling\n");
         if (args->type == EXPERIMENT_LEVEN) {
             char *fn;
             size_t size;
@@ -560,9 +546,6 @@ go(struct args *args)
             garb_on(fn, n_garb_inputs, ncircs, args->ntrials, args->chaining_type, 0, 0, args->type);
         }
     } else if (args->eval_on) {
-
-        // TODO UPDATE THIS
-        printf("Online evaluating\n");
         ChainedGarbledCircuit *cgcs;
         switch (args->type) {
         case EXPERIMENT_AES:
@@ -598,16 +581,10 @@ go(struct args *args)
         case EXPERIMENT_NB_AUD:
             cgcs = nb_circuits(num_len, num_classes, vector_size, domain_size, NB_AUD);
             break;
-        case EXPERIMENT_HYPERPLANE:
-            printf("EXPERIMENT_HYPERPLANE eval on\n");
-            printf("Shouldn't be here -- deprecated\n");
-            break;
         default:
-            break;
+            abort();
         }
         eval_on(n_eval_inputs, n_eval_labels, ncircs, args->ntrials, args->chaining_type, cgcs);
-
-
     } else if (args->garb_full || args->eval_full) {
         garble_circuit gc;
         switch (args->type) {

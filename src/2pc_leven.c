@@ -29,9 +29,6 @@ static int getCoreQ() { return 10000; } // TODO figure out this number
 void
 leven_garb_off(int l, int sigma, ChainingType chainingType) 
 {
-    printf("Running leven garb offline\n");
-    printf("l = %d, sigma = %d\n", l, sigma);
-
     block delta = garble_create_delta();
 
     int coreN = getCoreN(l, sigma);
