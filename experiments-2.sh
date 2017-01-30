@@ -15,7 +15,7 @@ fi
 
 echo -e "Repeating $times times..."
 
-for type in WDBC CREDIT NURSERY_DT ECG_DT WDBC_NB NURSERY_NB
+for type in WDBC CREDIT WDBC_NB NURSERY_NB NURSERY_DT ECG_DT
 do
 
     echo -e "\n$type Full\n"

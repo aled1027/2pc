@@ -64,22 +64,17 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
      */
 
     int savedCircId, offsetIdx;
-    uint64_t s,e, eval_time = 0;
     for (int i = 0; i < instructions->size; i++) {
         Instruction* cur = &instructions->instr[i];
         switch(cur->type) {
         case EVAL:
-            s = current_time_();
             savedCircId = circuitMapping[cur->ev.circId];
             garble_eval(&chained_gcs[savedCircId].gc, labels[cur->ev.circId],
                         computedOutputMap[cur->ev.circId], NULL);
-
-            e = current_time_();
-            eval_time += e - s;
             break;
         case CHAIN:
-            if (chainingType == CHAINING_TYPE_STANDARD) {
-
+            assert(chainingType == CHAINING_TYPE_STANDARD);
+            /* if (chainingType == CHAINING_TYPE_STANDARD) { */
                 // if mapping inputs
                 if (cur->ch.fromCircId == 0) {
                     int offsetIdx = cur->ch.offsetIdx;
@@ -91,48 +86,41 @@ evaluator_evaluate(ChainedGarbledCircuit* chained_gcs, int num_chained_gcs,
                             computedOutputMap[cur->ch.fromCircId][j],
                             offsets[offsetIdx]);
                     }
-
-                
-
                 } else {
                     // if not inputs:
-
                     block b = garble_xor(
                         computedOutputMap[cur->ch.fromCircId][cur->ch.fromWireId], 
                         offsets[cur->ch.offsetIdx]);
                     memcpy(&labels[cur->ch.toCircId][cur->ch.toWireId], &b, sizeof(b));
                 }
+            /* } else { */
+            /*     /\* CHAINING_TYPE_SIMD *\/ */
+            /*     savedCircId = circuitMapping[cur->ch.fromCircId]; */
+            /*     offsetIdx = cur->ch.offsetIdx; */
 
-            } else { 
-                /* CHAINING_TYPE_SIMD */
-                savedCircId = circuitMapping[cur->ch.fromCircId];
-                offsetIdx = cur->ch.offsetIdx;
+            /*     for (int j = cur->ch.fromWireId, k = cur->ch.toWireId;  */
+            /*          j < cur->ch.fromWireId + cur->ch.wireDist; */
+            /*          ++j, ++k) { */
 
-                for (int j = cur->ch.fromWireId, k = cur->ch.toWireId; 
-                     j < cur->ch.fromWireId + cur->ch.wireDist;
-                     ++j, ++k) {
+            /*         /\* correct computedOutputMap offlineChainingOffsets *\/ */
+            /*         /\* i.e. correct to enable SIMD trick *\/ */
+            /*         labels[cur->ch.toCircId][k] = garble_xor( */
+            /*             computedOutputMap[cur->ch.fromCircId][j], */
+            /*             offsets[offsetIdx]); */
 
-                    /* correct computedOutputMap offlineChainingOffsets */
-                    /* i.e. correct to enable SIMD trick */
-                    labels[cur->ch.toCircId][k] = garble_xor(
-                        computedOutputMap[cur->ch.fromCircId][j],
-                        offsets[offsetIdx]);
-
-                    if (cur->ch.fromCircId != 0) { /* if not the input component */
-                        labels[cur->ch.toCircId][k] = garble_xor(
-                            labels[cur->ch.toCircId][k],
-                            chained_gcs[savedCircId].offlineChainingOffsets[j]);
-                    }
-
-                }
-            }
+            /*         if (cur->ch.fromCircId != 0) { /\* if not the input component *\/ */
+            /*             labels[cur->ch.toCircId][k] = garble_xor( */
+            /*                 labels[cur->ch.toCircId][k], */
+            /*                 chained_gcs[savedCircId].offlineChainingOffsets[j]); */
+            /*         } */
+            /*     } */
+            /* } */
             break;
         default:
             printf("Error: Instruction %d is not of a valid type\n", i);
-            return;
+            abort();
         }
     }
-    fprintf(stderr, "evaltime: %llu\n", eval_time);
 }
 
 void
@@ -146,12 +134,14 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
      */
 
     int sockfd;
-    int *selections = NULL;
     OldInputMapping map;
-    block *garb_labels = NULL, *eval_labels = NULL;
-    block *labels, *output_map;
-    uint64_t start, end, _start, _end;
-    size_t tmp;
+    uint64_t start, end;
+
+    int selections[num_eval_inputs];
+    block eval_labels[num_eval_inputs];
+    block garb_labels[num_garb_inputs];
+    block labels[gc->n];
+    block output_map[2 * gc->m];
 
     if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
         perror("net_init_client");
@@ -162,8 +152,6 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
     if (num_eval_inputs > 0) {
         struct state state;
         state_init(&state);
-        selections = calloc(num_eval_inputs, sizeof(int));
-        eval_labels = garble_allocate_blocks(num_eval_inputs);
         for (int i = 0; i < num_eval_inputs; ++i) {
             selections[i] = rand() % 2;
         }
@@ -176,78 +164,39 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
      * time */
     start = current_time_();
 
-    _start = current_time_();
-    {
-        tmp = g_bytes_received;
-        gc_comm_recv(sockfd, gc);
-    }
-    _end = current_time_();
-    fprintf(stderr, "Receive GC: %llu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
-    fflush(stderr);
+    gc_comm_recv(sockfd, gc);
 
-    _start = current_time_();
-    tmp = g_bytes_received;
     if (num_eval_inputs > 0) {
-        block *recvLabels;
+        block recvLabels[2 * num_eval_inputs];
         for (int i = 0; i < num_eval_inputs; ++i) {
             selections[i] ^= input[i];
         }
-        recvLabels = garble_allocate_blocks(2 * num_eval_inputs);
         net_send(sockfd, selections, sizeof(int) * num_eval_inputs, 0);
         net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
         for (int i = 0; i < num_eval_inputs; ++i) {
             eval_labels[i] = garble_xor(eval_labels[i],
                                         recvLabels[2 * i + input[i]]);
         }
-        free(recvLabels);
-        free(selections);
     }
-    _end = current_time_();
-    fprintf(stderr, "OT correction: %llu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
-    _start = current_time_();
-    tmp = g_bytes_received;
     if (num_garb_inputs > 0) {
-        garb_labels = garble_allocate_blocks(num_garb_inputs);
         net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
     }
-    _end = current_time_();
-    fprintf(stderr, "Receive garbler labels: %llu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
-    _start = current_time_();
-    {
-        tmp = g_bytes_received;
-        output_map = garble_allocate_blocks(2 * gc->m);
-        net_recv(sockfd, output_map, sizeof(block) * 2 * gc->m, 0);
-    }
-    _end = current_time_();
-    fprintf(stderr, "Receive output map: %llu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
+    net_recv(sockfd, output_map, sizeof(block) * 2 * gc->m, 0);
 
-    _start = current_time_();
-    tmp = g_bytes_received;
     {
         size_t size;
-        char *buffer;
-
         net_recv(sockfd, &size, sizeof size, 0);
-        buffer = malloc(size);
+        char buffer[size];
         net_recv(sockfd, buffer, size, 0);
         readBufferIntoInputMapping(&map, buffer);
-        free(buffer);
     }
-    _end = current_time_();
-    fprintf(stderr, "Receive garbler labels: %llu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
     close(sockfd);
     
     /* Plug labels in correctly based on input_mapping */
     {
-        labels = garble_allocate_blocks(gc->n);
         int garb_p = 0, eval_p = 0;
         for (int i = 0; i < map.size; i++) {
             if (map.inputter[i] == PERSON_GARBLER) {
@@ -260,20 +209,10 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
         }
     }
 
-    _start = current_time_();
-    {
-        bool *outputs = calloc(gc->m, sizeof(bool));
-        garble_eval(gc, labels, NULL, outputs);
-        free(outputs);
-    }
-    _end = current_time_();
-    fprintf(stderr, "Evaluate: %llu\n", _end - _start);
+    bool outputs[gc->m];
+    garble_eval(gc, labels, NULL, outputs);
 
     deleteOldInputMapping(&map);
-    free(output_map);
-    free(eval_labels);
-    free(garb_labels);
-    free(labels);
 
     end = current_time_();
     *tot_time = end - start;
@@ -364,15 +303,14 @@ static void
 loadOTPreprocessing(block **eval_labels, int **corrections, char *dir)
 {
     size_t size;
-    char *fname;
+
 
     size = strlen(dir) + strlen("/sel") + 1;
-    fname = malloc(size);
+    char fname[size];
     (void) snprintf(fname, size, "%s/%s", dir, "sel");
     *corrections = loadOTSelections(fname);
     (void) snprintf(fname, size, "%s/%s", dir, "lbl");
     *eval_labels = loadOTLabels(fname);
-    free(fname);
 }
 
 static int
@@ -449,22 +387,17 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
      *        value with the total amount of time it took to evaluate, not including 
      *        the time to load data from disk.
      */
-    //ChainedGarbledCircuit* chained_gcs;
     FunctionSpec function;
-    block *garb_labels = NULL, *eval_labels = NULL,
-        *outputmap = NULL, *offsets = NULL;
-    int *corrections = NULL, *circuitMapping, sockfd;
+    block *eval_labels;
+    int *corrections = NULL, sockfd;
     uint64_t start, end, _start, _end, loading_time;
     int num_garb_inputs = 0; /* later received from garbler */
     size_t tmp;
 
     block *labels[num_chained_gcs + 1];
 
-    /* start timing after socket connection */
     _start = current_time_();
     {
-        /* Load things from disk */
-        //chained_gcs = calloc(num_chained_gcs, sizeof(ChainedGarbledCircuit));
         loadChainedGarbledCircuits(chained_gcs, num_chained_gcs, dir, chainingType);
         loadOTPreprocessing(&eval_labels, &corrections, dir);
         for (int i = 1; i < num_chained_gcs + 1; i++) {
@@ -473,7 +406,6 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     }
     _end = current_time_();
     loading_time = _end - _start;
-    fprintf(stderr, "Load components: %llu\n", (_end - _start));
 
     if ((sockfd = net_init_client(HOST, PORT)) == FAILURE) {
         perror("net_init_client");
@@ -481,122 +413,71 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     }
 
     /* Receive instructions */
-    _start = current_time_();
-    {
-        tmp = g_bytes_received;
-        net_recv(sockfd, &function.instructions.size, sizeof(int), 0);
-        function.instructions.instr = calloc(function.instructions.size, sizeof(Instruction));
-        net_recv_compressed(sockfd, function.instructions.instr, function.instructions.size * sizeof(Instruction), 0);
-    }
-    _end = current_time_();
-    fprintf(stderr, "Receive instructions: %llu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
+    (void) net_recv(sockfd, &function.instructions.size, sizeof(int), 0);
+    function.instructions.instr = calloc(function.instructions.size, sizeof(Instruction));
+    net_recv_compressed(sockfd, function.instructions.instr, function.instructions.size * sizeof(Instruction), 0);
 
     /* Receive circuitMapping */
-    /* maps instructions-gc-id to disk-gc-id */
-    _start = current_time_();
-    {
-        int size;
-        tmp = g_bytes_received;
-        (void) net_recv(sockfd, &size, sizeof(int), 0);
-        circuitMapping = malloc(sizeof(int) * size);
-        (void) net_recv_compressed(sockfd, circuitMapping, sizeof(int) * size, 0);
-    }
-    _end = current_time_();
-    fprintf(stderr, "Receive circuit map: %llu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
+    int size;
+    (void) net_recv(sockfd, &size, sizeof(int), 0);
+    int circuitMapping[size];
+    (void) net_recv_compressed(sockfd, circuitMapping, sizeof(int) * size, 0);
+
+    /* *************************** */
+    /* Actually start timing here! */
+    /* *************************** */
 
     start = current_time_();
+    g_bytes_sent = 0;
+    g_bytes_received = 0;
 
     /* Receive eval labels: OT correction */
-    _start = current_time_();
     if (num_eval_inputs > 0) {
-        block *recvLabels;
+        block recvLabels[2 * num_eval_inputs];
         uint64_t _start, _end;
         for (int i = 0; i < num_eval_inputs; ++i) {
             assert(corrections[i] == 0 || corrections[i] == 1);
             assert(eval_inputs[i] == 0 || eval_inputs[i] == 1);
             corrections[i] ^= eval_inputs[i];
         }
-        recvLabels = garble_allocate_blocks(2 * num_eval_inputs);
-        /* valgrind is saying corrections is unitialized, but it seems to be */
-        _start = current_time_();
-        {
-            net_send(sockfd, corrections, sizeof(int) * num_eval_inputs, 0);
-        }
-        _end = current_time_();
-        fprintf(stderr, "OT correction (send): %lu\n", _end - _start);
-        _start = current_time_();
-        {
-            tmp = g_bytes_received;
-            net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
-        }
-        _end = current_time_();
-        fprintf(stderr, "OT correction (receive): %lu\n", _end - _start);
-        fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
-
+        (void) net_send(sockfd, corrections, sizeof(int) * num_eval_inputs, 0);
+        (void) net_recv(sockfd, recvLabels, sizeof(block) * 2 * num_eval_inputs, 0);
         for (int i = 0; i < num_eval_inputs; ++i) {
             eval_labels[i] = garble_xor(eval_labels[i],
                                         recvLabels[2 * i + eval_inputs[i]]);
         }
-        free(recvLabels);
     }
     free(corrections);
-    _end = current_time_();
-    fprintf(stderr, "OT correction: %lu\n", _end - _start);
-
     
     /* receive garbler labels */
-    _start = current_time_();
-    {
-        tmp = g_bytes_received;
-        net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
-        if (num_garb_inputs > 0) {
-            garb_labels = garble_allocate_blocks(sizeof(block) * num_garb_inputs);
-            net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
-        }
+    (void) net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
+    block garb_labels[2 * num_garb_inputs];
+    if (num_garb_inputs > 0) {
+        (void) net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
     }
-    _end = current_time_();
-    fprintf(stderr, "Receive garbler labels: %lu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
     /* Receive output instructions */
     OutputInstructions output_instructions;
-    _start = current_time_();
     {
-        tmp = g_bytes_received;
-        net_recv(sockfd, &output_instructions.size, 
-                sizeof(output_instructions.size), 0);
+        (void) net_recv(sockfd, &output_instructions.size, 
+                        sizeof(output_instructions.size), 0);
         output_instructions.output_instruction = 
             malloc(output_instructions.size * sizeof(OutputInstruction));
 
-        net_recv(sockfd, output_instructions.output_instruction, 
-                output_instructions.size * sizeof(OutputInstruction), 0);
+        (void) net_recv(sockfd, output_instructions.output_instruction, 
+                        output_instructions.size * sizeof(OutputInstruction), 0);
     }
-    _end = current_time_();
-    fprintf(stderr, "Receive output instructions: %lu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
 
-    // Receive offsets
-    _start = current_time_();
-    {
-        tmp = g_bytes_received;
+    /* Receive offsets */
+    int noffsets;
+    net_recv(sockfd, &noffsets, sizeof(int), 0);
+    block *offsets = malloc(noffsets * sizeof offsets[0]);
+    (void) net_recv(sockfd, offsets, sizeof(block) * noffsets, 0);
 
-        int noffsets;
-        net_recv(sockfd, &noffsets, sizeof(int), 0);
-        offsets = garble_allocate_blocks(noffsets);
-        net_recv(sockfd, offsets, sizeof(block) * noffsets, 0);
-    }
-    _end = current_time_();
-    fprintf(stderr, "Receive offsets: %lu\n", _end - _start);
-    fprintf(stderr, "\tBytes: %lu\n", g_bytes_received - tmp);
-
-    /* Done with socket, so close */
     close(sockfd);
 
     /* Follow instructions and evaluate */
-    _start = current_time_();
-    block **computedOutputMap = malloc(sizeof(block *) * (num_chained_gcs + 1));
+    block *computedOutputMap[num_chained_gcs + 1];
     {
         computedOutputMap[0] = garble_allocate_blocks(num_garb_inputs + num_eval_inputs);
         labels[0] = garble_allocate_blocks(num_garb_inputs + num_eval_inputs);
@@ -610,38 +491,21 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
         evaluator_evaluate(chained_gcs, num_chained_gcs, &function.instructions,
                            labels, circuitMapping, computedOutputMap, offsets, chainingType);
     }
-    _end = current_time_();
-    fprintf(stderr, "Evaluate: %lu\n", _end - _start);
 
-    _start = current_time_();
-    int *output = calloc(output_instructions.size, sizeof(int));
+    int output[output_instructions.size];
     {
         int res = computeOutputs(&output_instructions, output, computedOutputMap);
-        if (res == FAILURE) {
-            fprintf(stderr, "computeOutputs failed\n");
-            /* return FAILURE; */
-        }
+        assert(res == SUCCESS);
     }
     free(output_instructions.output_instruction);
-    _end = current_time_();
-    fprintf(stderr, "Map outputs: %lu\n", _end - _start);
 
-    /* cleanup */
-    free(circuitMapping);
     for (int i = 0; i < num_chained_gcs + 1; ++i) {
         free(labels[i]);
         free(computedOutputMap[i]);
-        computedOutputMap[i] = NULL;
     }
-    free(computedOutputMap[num_chained_gcs]);
-    free(computedOutputMap);
-    free(outputmap);
-    free(output);
-    free(garb_labels);
     free(eval_labels);
     free(function.instructions.instr);
     function.instructions.instr = NULL;
-
     free(offsets);
 
     end = current_time_();

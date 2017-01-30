@@ -117,8 +117,7 @@ garbler_classic_2pc(garble_circuit *gc, const OldInputMapping *input_mapping,
     extract_labels_gc(garb_labels, eval_labels, gc, input_mapping, inputs);
 
     if (num_eval_inputs > 0) {
-        int *corrections;
-        corrections = calloc(num_eval_inputs, sizeof(int));
+        int corrections[num_eval_inputs];
         net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
         for (int i = 0; i < num_eval_inputs; ++i) {
             assert(corrections[i] == 0 || corrections[i] == 1);
@@ -127,7 +126,6 @@ garbler_classic_2pc(garble_circuit *gc, const OldInputMapping *input_mapping,
             eval_labels[2 * i + 1] = garble_xor(eval_labels[2 * i + 1],
                                                randLabels[2 * i + !corrections[i]]);
         }
-        free(corrections);
         free(randLabels);
 
         buffer = realloc(buffer, p + sizeof(block) * 2 * num_eval_inputs);
@@ -141,28 +139,22 @@ garbler_classic_2pc(garble_circuit *gc, const OldInputMapping *input_mapping,
         free(garb_labels);
     }
 
-    {
-        buffer = realloc(buffer, p + 2 * gc->m * sizeof(block));
-        p += addToBuffer(buffer + p, output_map, 2 * gc->m * sizeof(block));
-    }
-
-    {
-        size_t size;
-
-        size = inputMappingBufferSize(input_mapping);
-        buffer = realloc(buffer, p + sizeof(size) + size);
-        p += addToBuffer(buffer + p, &size, sizeof size);
-        (void) writeInputMappingToBuffer(input_mapping, buffer + p);
-        p += size;
-    }
-
+    buffer = realloc(buffer, p + 2 * gc->m * sizeof(block));
+    p += addToBuffer(buffer + p, output_map, 2 * gc->m * sizeof(block));
     (void) net_send(fd, buffer, p, 0);
     free(buffer);
 
-    /* close and clean up network connection */
+    {
+        size_t size;
+        size = inputMappingBufferSize(input_mapping);
+        (void) net_send(fd, &size, sizeof size, 0);
+        char buffer[size];
+        (void) writeInputMappingToBuffer(input_mapping, buffer);
+        (void) net_send(fd, buffer, size, 0);
+    }
+
     close(fd);
     close(serverfd);
-
 
     end = current_time_();
     if (tot_time)
@@ -183,21 +175,21 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
      *  - output instruction, outputmap */
     int num_eval_inputs = function->num_eval_inputs;
     int num_garb_inputs = function->num_garb_inputs;
-    block *garbLabels, *evalLabels;
+    block garbLabels[num_garb_inputs], evalLabels[2 * num_eval_inputs];
     char *buffer;
     size_t p = 0;
     uint64_t start, end, _start, _end;
 
     start = current_time_();
-    _start = current_time_();
+    g_bytes_sent = 0;
+    g_bytes_received = 0;
+
     {
         bool *usedInput[2];
         usedInput[0] = calloc(num_garb_inputs, sizeof(bool));
         usedInput[1] = calloc(num_eval_inputs, sizeof(bool));
 
         InputMapping imap = function->input_mapping;
-        evalLabels = garble_allocate_blocks(2 * num_eval_inputs);
-        garbLabels = garble_allocate_blocks(num_garb_inputs);
         for (int i = 0; i < imap.size; i++) {
             InputMappingInstruction *cur = &imap.imap_instr[i];
             int gc_id = circuitMapping[cur->gc_id];
@@ -235,20 +227,10 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         free(usedInput[1]);
     }
 
-    _end = current_time_();
-    fprintf(stderr, "Set up input labels: %llu\n", _end - _start);
-
     /* Send evaluator's labels via OT correction */
-    _start = current_time_();
     if (num_eval_inputs > 0) {
-        uint64_t _start, _end;
-        int *corrections = calloc(num_eval_inputs, sizeof(int));
-        _start = current_time_();
-        {
-            net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
-        }
-        _end = current_time_();
-        fprintf(stderr, "OT correction (receive): %llu\n", _end - _start);
+        int corrections[num_eval_inputs];
+        (void) net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
 
         for (int i = 0; i < num_eval_inputs; ++i) {
             assert(corrections[i] == 0 || corrections[i] == 1);
@@ -257,16 +239,12 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
             evalLabels[2 * i + 1] = garble_xor(evalLabels[2 * i + 1],
                                                randLabels[2 * i + !corrections[i]]);
         }
-        free(corrections);
 
         buffer = realloc(NULL, sizeof(block) * 2 * num_eval_inputs);
         p += addToBuffer(buffer + p, evalLabels, sizeof(block) * 2 * num_eval_inputs);
     } else {
         buffer = NULL;
     }
-    _end = current_time_();
-    fprintf(stderr, "OT correction: %llu\n", _end - _start);
-
     
 
     {
@@ -286,43 +264,22 @@ garbler_go(int fd, const FunctionSpec *function, const char *dir,
         p += addToBuffer(buffer + p,
                          function->output_instructions.output_instruction,
                          function->output_instructions.size * sizeof(OutputInstruction));
-
     }
 
     {
-        //buffer = realloc(buffer, p + sizeof(int) + sizeof(int) + 
-        //                 (sizeof(Instruction) * function->instructions.size) +
-        //                 (sizeof(block) * noffsets));
-        //p += addToBuffer(buffer + p, &function->instructions.size, sizeof(int));
-        //p += addToBuffer(buffer + p, &noffsets, sizeof noffsets);
-        //p += addToBuffer(buffer + p, function->instructions.instr,
-        //                 sizeof(Instruction) * function->instructions.size);
-        //p += addToBuffer(buffer + p, offsets, sizeof(block) * noffsets);
-
         buffer = realloc(buffer, p + sizeof(int) + (sizeof(block) * noffsets));
         p += addToBuffer(buffer + p, &noffsets, sizeof noffsets);
         p += addToBuffer(buffer + p, offsets, sizeof(block) * noffsets);
     }
-    _end = current_time_();
-    fprintf(stderr, "Fill buffer: %llu\n", _end - _start);
+
     /* Send everything */
-    _start = current_time_();
     {
         net_send(fd, buffer, p, 0);
     }
-    _end = current_time_();
-    fprintf(stderr, "Send buffer: %llu\n", _end - _start);
 
-    if (num_garb_inputs > 0)
-        free(garbLabels);
-    if (num_eval_inputs > 0)
-        free(evalLabels);
     free(buffer);
 
     end = current_time_();
-    fprintf(stderr, "Total (post connection): %llu\n", end - start);
-    fprintf(stderr, "Bytes sent: %lu\n", g_bytes_sent);
-    fprintf(stderr, "Bytes received: %lu\n", g_bytes_received);
 
     if (tot_time)
         *tot_time += end - start;
