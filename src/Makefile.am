@@ -20,7 +20,7 @@ ot_np.c \
 state.c \
 utils.c
 
-AM_CFLAGS = $(EXTRA_CFLAGS) -msse4.1 -maes -march=native
+AM_CFLAGS = $(EXTRA_CFLAGS) -msse4.1 -maes -march=native -DNDEBUG
 AM_LDFLAGS = -lgarble -lgarblec -lz
 
 bin_PROGRAMS = compgc

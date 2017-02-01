@@ -105,12 +105,13 @@ garbler_classic_2pc(garble_circuit *gc, const OldInputMapping *input_mapping,
     }
 
     start = current_time_();
+    g_bytes_sent = g_bytes_received = 0;
 
     extract_labels_gc(garb_labels, eval_labels, gc, input_mapping, inputs);
 
     if (num_eval_inputs > 0) {
         int corrections[num_eval_inputs];
-        net_recv(fd, corrections, sizeof(int) * num_eval_inputs, 0);
+        (void) net_recv(fd, corrections, sizeof corrections, 0);
         for (int i = 0; i < num_eval_inputs; ++i) {
             assert(corrections[i] == 0 || corrections[i] == 1);
             eval_labels[2 * i] = garble_xor(eval_labels[2 * i],

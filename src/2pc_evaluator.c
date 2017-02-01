@@ -136,7 +136,6 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
     int sockfd;
     OldInputMapping map;
     uint64_t start, end;
-
     int selections[num_eval_inputs];
     block eval_labels[num_eval_inputs];
     block garb_labels[num_garb_inputs];
@@ -163,13 +162,17 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
     /* Start timing after pre-processing of OT as we only want to record online
      * time */
     start = current_time_();
+    g_bytes_sent = g_bytes_received = 0;
 
     if (num_eval_inputs > 0) {
-        block recvLabels[2 * num_eval_inputs];
         for (int i = 0; i < num_eval_inputs; ++i) {
             selections[i] ^= input[i];
         }
-        net_send(sockfd, selections, sizeof selections, 0);
+        (void) net_send(sockfd, selections, sizeof selections, 0);
+    }
+
+    if (num_eval_inputs > 0) {
+        block recvLabels[2 * num_eval_inputs];
         net_recv(sockfd, recvLabels, sizeof recvLabels, 0);
         for (int i = 0; i < num_eval_inputs; ++i) {
             eval_labels[i] = garble_xor(eval_labels[i],
@@ -178,18 +181,18 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
     }
 
     if (num_garb_inputs > 0) {
-        net_recv(sockfd, garb_labels, sizeof garb_labels, 0);
+        (void) net_recv(sockfd, garb_labels, sizeof garb_labels, 0);
     }
 
     gc_comm_recv(sockfd, gc);
 
-    net_recv(sockfd, output_map, sizeof output_map, 0);
+    (void) net_recv(sockfd, output_map, sizeof output_map, 0);
 
     {
         size_t size;
-        net_recv(sockfd, &size, sizeof size, 0);
+        (void) net_recv(sockfd, &size, sizeof size, 0);
         char buffer[size];
-        net_recv(sockfd, buffer, sizeof buffer, 0);
+        (void) net_recv(sockfd, buffer, sizeof buffer, 0);
         readBufferIntoInputMapping(&map, buffer);
     }
 
@@ -210,6 +213,7 @@ evaluator_classic_2pc(garble_circuit *gc, const int *input, bool *output,
     }
 
     bool outputs[gc->m];
+
     garble_eval(gc, labels, NULL, outputs);
 
     deleteOldInputMapping(&map);
@@ -428,8 +432,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     /* *************************** */
 
     start = current_time_();
-    g_bytes_sent = 0;
-    g_bytes_received = 0;
+    g_bytes_sent = g_bytes_received = 0;
 
     /* Receive eval labels: OT correction */
     if (num_eval_inputs > 0) {
@@ -451,7 +454,7 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
     
     /* receive garbler labels */
     (void) net_recv(sockfd, &num_garb_inputs, sizeof(int), 0);
-    block garb_labels[2 * num_garb_inputs];
+    block garb_labels[num_garb_inputs];
     if (num_garb_inputs > 0) {
         (void) net_recv(sockfd, garb_labels, sizeof(block) * num_garb_inputs, 0);
     }
@@ -470,9 +473,9 @@ evaluator_online(char *dir, const int *eval_inputs, int num_eval_inputs,
 
     /* Receive offsets */
     int noffsets;
-    net_recv(sockfd, &noffsets, sizeof(int), 0);
+    net_recv(sockfd, &noffsets, sizeof noffsets, 0);
     block *offsets = malloc(noffsets * sizeof offsets[0]);
-    (void) net_recv(sockfd, offsets, sizeof(block) * noffsets, 0);
+    (void) net_recv(sockfd, offsets, noffsets * sizeof offsets[0], 0);
 
     close(sockfd);
 
